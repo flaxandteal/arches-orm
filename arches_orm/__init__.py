@@ -4,6 +4,7 @@
 
 import logging
 
+from ._internals.wrapper import ResourceModelWrapper
 from ._internals.wkrm import resource_models
 from ._internals.utils import *
 

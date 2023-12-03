@@ -1,12 +1,12 @@
 from typing import Any
-from functools import lru_cache
 from arches.app.models.resource import Resource
 from typing import Any
 from datetime import datetime
-from arches.app.models.models import ResourceXResource, TileModel, Node, NodeGroup
+from arches.app.models.models import ResourceXResource, TileModel, Node
 from arches.app.models.tile import Tile as TileProxyModel
 from arches.app.models.system_settings import settings as system_settings
 from .relations import RelationList
+from .view_models import ConceptViewModel, UserViewModel, StringViewModel
 
 
 LOAD_FULL_NODE_OBJECTS = True
@@ -18,6 +18,8 @@ class TranslationMixin:
 
     def _get_datatype_for_node(self, node):
         """Standardize retrieval of a type from a node."""
+
+        from .wkrm import resource_models
 
         datatype_factory = self._datatype_factory()
         datatype_name, datatype = node.get("datatype", (None, None))
@@ -31,7 +33,7 @@ class TranslationMixin:
         else:
             multiple_values = isinstance(typ, list)
             if typ.startswith("@") and (
-                typ[1:] in _resource_models
+                typ[1:] in resource_models
                 or typ[1:] == "resource"
                 or typ[1:] == "[resource]"
             ):
@@ -99,6 +101,7 @@ class TranslationMixin:
                         values = all_values
 
                     if datatype_name in ("resource-instance", "resource-instance-list"):
+                        from .utils import attempt_well_known_resource_model
                         if isinstance(tile.data[nodeid], list):
                             values[key] = RelationList(self, key, nodeid, tile.tileid)
                             for datum in tile.data[nodeid]:
