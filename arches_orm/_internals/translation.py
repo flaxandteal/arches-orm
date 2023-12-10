@@ -6,7 +6,7 @@ from arches.app.models.models import ResourceXResource, TileModel, Node
 from arches.app.models.tile import Tile as TileProxyModel
 from arches.app.models.system_settings import settings as system_settings
 from .relations import RelationList
-from .view_models import ConceptViewModel, UserViewModel, StringViewModel
+from .view_models import ConceptValueViewModel, UserViewModel, StringViewModel
 
 
 LOAD_FULL_NODE_OBJECTS = True
@@ -180,7 +180,7 @@ class TranslationMixin:
         """Provide a concept object that can retain taxonomic information, while remaining a string."""
 
         concept_datatype = cls._datatype_factory().get_instance("concept")
-        return ConceptViewModel(concept_id, concept_datatype)
+        return ConceptValueViewModel(concept_id, concept_datatype)
 
     def _update_tiles(self, tiles, values, tiles_to_remove, prefix=None):
         """Map data in the well-known resource back to the Arches tiles."""

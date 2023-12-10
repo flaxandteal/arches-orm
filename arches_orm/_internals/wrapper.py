@@ -415,10 +415,13 @@ class ResourceModelWrapper(TranslationMixin):
             cls._nodes.update(well_known_resource_model.nodes)
             nodegroups = cls._nodegroup_objects()
             for node in cls._nodes.values():
-                if parentnodegroup_id := nodegroups[
+                if (nodegroup := nodegroups.get(
                     node["nodegroupid"]
-                ].parentnodegroup_id:
-                    node["parentnodegroup_id"] = str(parentnodegroup_id)
+                )):
+                    if nodegroup.parentnodegroup_id:
+                        node["parentnodegroup_id"] = str(nodegroup.parentnodegroup_id)
+                else:
+                    raise KeyError("Missing nodegroups based on WKRM")
         for node in cls._nodes.values():
             node["datatype"] = cls._datatype(node["nodeid"])
 

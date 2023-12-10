@@ -62,7 +62,7 @@ class StringViewModel(str):
         )
 
 
-class ConceptViewModel(str):
+class ConceptValueViewModel(str):
     """Wraps a concept, allowing interrogation.
 
     Subclasses str, so it can be handled like a string enum, but keeps
@@ -70,22 +70,32 @@ class ConceptViewModel(str):
     find out more.
     """
 
-    _concept_id: uuid.UUID
+    _concept_value_id: uuid.UUID
     _concept_datatype: ConceptDataType
 
-    def __new__(cls, concept_id: Union[str, uuid.UUID], concept_datatype):
-        _concept_id = (
-            concept_id if isinstance(concept_id, uuid.UUID) else uuid.UUID(concept_id)
+    def __new__(cls, concept_value_id: Union[str, uuid.UUID], concept_datatype):
+        _concept_value_id: uuid.UUID = (
+            concept_value_id if isinstance(concept_value_id, uuid.UUID) else uuid.UUID(concept_value_id)
         )
-        mystr = super(ConceptViewModel, cls).__new__(cls, str(_concept_id))
-        mystr._concept_id = concept_id
+        mystr = super(ConceptValueViewModel, cls).__new__(cls, str(_concept_value_id))
+        mystr._concept_value_id = _concept_value_id
         mystr._concept_datatype = concept_datatype
         return mystr
 
     @property
     @lru_cache
+    def conceptid(self):
+        return self.value.concept_id
+
+    @property
+    @lru_cache
+    def concept(self):
+        return self.value.concept
+
+    @property
+    @lru_cache
     def value(self):
-        return self._concept_datatype.get_value(self._concept_id)
+        return self._concept_datatype.get_value(self._concept_value_id)
 
     @property
     @lru_cache
@@ -96,3 +106,9 @@ class ConceptViewModel(str):
     @lru_cache
     def lang(self):
         return self.value.language
+
+    def __str__(self):
+        return self.text
+
+    def __repr__(self):
+        return f"{self.value.concept_id}>{self._concept_value_id}[{self.text}]"
