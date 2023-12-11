@@ -32,3 +32,6 @@ def check_resource_instance(sender, instance, reason, **kwargs):
         model_cls.post_save.send(
             model_cls, instance=resource_instance, reason=reason, tile=instance
         )
+
+
+HOOKS = {"post_save", "post_delete"}

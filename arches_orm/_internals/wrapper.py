@@ -22,13 +22,15 @@ class ResourceModelWrapper(TranslationMixin):
     id: str
     _nodes: dict = None
     _nodes_real: dict = None
+    _nodegroup_objects_real: dict = None
     _values: dict = None
     _cross_record: dict = None
     _lazy: bool = False
     _filled: bool = False
     _related_prefetch = None
     __datatype_factory = None
-    __node_datatypes = None
+    _pending_relationships: list = None
+    _related_prefetch: list = None
     resource: Resource
 
     def __getitem__(self, key):
@@ -45,18 +47,39 @@ class ResourceModelWrapper(TranslationMixin):
         """
 
         key, value = self._set_value(key, value)
-        if key in ("_values", "_lazy", "_filled", "resource", "_cross_record"):
+        if key in (
+            "id",
+            "_new_id",
+            "_values",
+            "_lazy",
+            "_filled",
+            "resource",
+            "_cross_record",
+            "_related_prefetch",
+            "_pending_relationships",
+        ):
             super().__setattr__(key, value)
         else:
             if self._lazy and not self._filled:
                 self.fill_from_resource(self._related_prefetch)
-            self._values[key] = value
+            if self._nodes[key]["datatype"][2]:
+                self._values.setdefault(key, [])
+                self._values[key] += [{"tile": None, "value": item} for item in value]
+            else:
+                self._values.setdefault(key, {"tile": None, "value": value})
+                self._values[key]["value"] = value
 
     def __getattr__(self, key):
         """Retrieve Python values for nodes attributes."""
 
         if key in self._values:
-            return self._values[key]
+            value = self._values[key]
+            if isinstance(value, RelationList):
+                return value
+            if self._nodes[key]["datatype"][2]:
+                return (item["value"] for item in value)
+            else:
+                return value["value"]
         elif key in self._nodes:
             if self._lazy and not self._filled:
                 self.fill_from_resource(self._related_prefetch)
@@ -66,8 +89,8 @@ class ResourceModelWrapper(TranslationMixin):
             return (
                 []
                 if (datatype := self._nodes[key].get("datatype", None))
-                and datatype[1].collects_multiple_values()
-                or datatype[0] == "semantic"
+                and datatype[0].collects_multiple_values()
+                or datatype[1] == "semantic"
                 else None
             )
         raise AttributeError(f"No well-known attribute {key}")
@@ -182,9 +205,7 @@ class ResourceModelWrapper(TranslationMixin):
 
         for key, value in kwargs.items():
             if isinstance(value, list) and any(
-                types := [
-                    isinstance(entry, ResourceModelWrapper) for entry in value
-                ]
+                types := [isinstance(entry, ResourceModelWrapper) for entry in value]
             ):
                 if not all(types):
                     raise NotImplementedError(
@@ -195,6 +216,11 @@ class ResourceModelWrapper(TranslationMixin):
                 kwargs[key] = RelationList(self, key, self._nodes[key]["nodeid"], None)
                 for resource in value:
                     kwargs[key].append(resource)
+            else:
+                if self._nodes[key]["datatype"][2]:
+                    kwargs[key] = [{"tile": None, "value": item} for item in value]
+                else:
+                    kwargs[key]["value"] = value
 
         self._values.update(kwargs)
 
@@ -203,8 +229,8 @@ class ResourceModelWrapper(TranslationMixin):
 
         if "." in key:
             node, prop = key.split(".")
-            typ = self._nodes[node]["type"]
-            if not typ.startswith("@"):
+            _, typ, _ = self._nodes[node]["datatype"]
+            if not typ.startswith("resource-"):
                 raise RuntimeError(
                     "Relationship must be with a resource model, not e.g. a primitive"
                     " type"
@@ -233,6 +259,7 @@ class ResourceModelWrapper(TranslationMixin):
     @classmethod
     def _get_wkrm(cls, typ):
         from .wkrm import get_well_known_resource_model_by_class_name
+
         return get_well_known_resource_model_by_class_name(typ)
 
     @classmethod
@@ -279,7 +306,10 @@ class ResourceModelWrapper(TranslationMixin):
 
     def save(self):
         """Rebuild and save the underlying resource."""
-        return self.to_resource(strict=True)
+        resource = self.to_resource(strict=True)
+        resource.save()
+        self.id = str(resource.pk)
+        return self
 
     @classmethod
     def search(cls, text, fields=None, _total=None):
@@ -300,7 +330,7 @@ class ResourceModelWrapper(TranslationMixin):
         # TODO: permitted_nodegroups = get_permitted_nodegroups(request.user)
         permitted_nodegroups = [
             node["nodegroupid"]
-            for key, node in cls._nodes.items()
+            for key, node in cls._build_nodes().items()
             if (fields is None or key in fields)
         ]
 
@@ -374,20 +404,22 @@ class ResourceModelWrapper(TranslationMixin):
         for key, value in self._values.items():
             if isinstance(value, list) or isinstance(value, RelationList):
                 if value:
+                    if not isinstance(value, RelationList):
+                        value = [item["value"] for item in value]
                     table.append([key, value[0].__class__.__name__, str(value[0])])
                     for val in value[1:]:
                         table.append(["", val.__class__.__name__, str(val)])
                 else:
                     table.append([key, "", "(empty)"])
             else:
-                table.append([key, value.__class__.__name__, str(value)])
+                table.append([key, value["value"].__class__.__name__, str(value)])
         return description + tabulate(table)
 
     @classmethod
     def where(cls, x=None, **kwargs):
         """Do a filtered query returning a list of well-known resources."""
         # TODO: replace with proper query
-        unknown_keys = set(kwargs) - set(cls._nodes)
+        unknown_keys = set(kwargs) - set(cls._build_nodes())
         if unknown_keys:
             raise KeyError(f"Unknown key(s) {unknown_keys}")
 
@@ -398,8 +430,8 @@ class ResourceModelWrapper(TranslationMixin):
         value = kwargs[key]
 
         tiles = TileProxyModel.objects.filter(
-            nodegroup_id=cls._nodes[key]["nodegroupid"],
-            data__contains={cls._nodes[key]["nodeid"]: value},
+            nodegroup_id=cls._build_nodes()[key]["nodegroupid"],
+            data__contains={cls._build_nodes()[key]["nodeid"]: value},
         )
         return [
             cls.from_resource_instance(tile.resourceinstance, x=x) for tile in tiles
@@ -411,34 +443,59 @@ class ResourceModelWrapper(TranslationMixin):
 
     @property
     def _nodes(self):
-        self._build_nodes()
-        return self._nodes_real
+        return self._build_nodes()
 
     @classmethod
     @lru_cache
     def _build_nodes(cls):
+        if cls._nodes_real or cls._nodegroup_objects_real:
+            raise RuntimeError(
+                "Cache should never try and rebuild nodes when non-empty"
+            )
         nodes: dict[str, dict] = {}
+        nodegroups: dict[str, NodeGroup] = {}
         if LOAD_FULL_NODE_OBJECTS and LOAD_ALL_NODES:
-            for node_obj in cls._node_objects(load_all=True).values():
+            datatype_factory = cls._datatype_factory()
+
+            node_objects = cls._node_objects()
+            for node_obj in node_objects.values():
                 # The root node will not have a nodegroup, but we do not need it
                 if node_obj.nodegroup_id:
                     nodes[str(node_obj.alias)] = {
                         "nodeid": str(node_obj.nodeid),
                         "nodegroupid": str(node_obj.nodegroup_id),
-                        "type": node_obj.datatype,
                     }
             # Ensure defined nodes overwrite the autoloaded ones
             nodes.update(cls._wkrm.nodes)
-            nodegroups = cls._nodegroup_objects()
+            nodegroups.update(
+                {
+                    str(nodegroup.nodegroupid): nodegroup
+                    for nodegroup in NodeGroup.objects.filter(
+                        nodegroupid__in=[node["nodegroupid"] for node in nodes.values()]
+                    )
+                }
+            )
             for node in nodes.values():
-                if nodegroup := nodegroups.get(node["nodegroupid"]):
+                if nodegroup := nodegroups.get(str(node["nodegroupid"])):
                     if nodegroup.parentnodegroup_id:
                         node["parentnodegroup_id"] = str(nodegroup.parentnodegroup_id)
+
+                    node_obj = node_objects[node["nodeid"]]
+                    if "datatype" not in node:
+                        node["datatype"] = (
+                            datatype_factory.get_instance(node_obj.datatype),
+                            node_obj.datatype,
+                            nodegroup.cardinality == "n",
+                        )
+
+                    if node_obj.config:
+                        node["config"] = node_obj.config
                 else:
                     raise KeyError("Missing nodegroups based on WKRM")
-        for node in nodes.values():
-            node["datatype"] = cls._datatype(node["nodeid"])
-        cls._nodes_real = nodes
+
+        cls._nodes_real.update(nodes)
+        cls._nodegroup_objects_real.update(nodegroups)
+        return cls._nodes_real
 
     def __init_subclass__(cls, well_known_resource_model=None):
         """Create a new well-known resource model wrapper, from an WKRM."""
@@ -449,15 +506,8 @@ class ResourceModelWrapper(TranslationMixin):
         cls.graphid = well_known_resource_model.graphid
         cls._wkrm = well_known_resource_model
         cls._nodes_real = {}
+        cls._nodegroup_objects_real = {}
         cls.post_save = Signal()
-
-    @classmethod
-    @lru_cache
-    def _datatype(cls, nodeid):
-        """Caching datatype retrieval (possibly unnecessary)."""
-        datatype = cls._node_datatypes()[nodeid]
-        datatype_instance = cls._datatype_factory().get_instance(datatype)
-        return datatype, datatype_instance
 
     @classmethod
     def _datatype_factory(cls):
@@ -471,15 +521,17 @@ class ResourceModelWrapper(TranslationMixin):
 
     @classmethod
     @lru_cache
-    def _node_objects(cls, load_all=False):
+    def _node_objects(cls):
         """Caching retrieval of all Arches nodes for this model."""
         if not LOAD_FULL_NODE_OBJECTS:
             raise RuntimeError("Attempt to load full node objects when asked not to")
 
-        if load_all:
+        if LOAD_ALL_NODES:
             fltr = {"graph_id": cls.graphid}
         else:
-            fltr = {"nodeid__in": [node["nodeid"] for node in cls._nodes.values()]}
+            fltr = {
+                "nodeid__in": [node["nodeid"] for node in cls._build_nodes().values()]
+            }
         return {str(node.nodeid): node for node in Node.objects.filter(**fltr)}
 
     @classmethod
@@ -489,24 +541,8 @@ class ResourceModelWrapper(TranslationMixin):
         if not LOAD_FULL_NODE_OBJECTS:
             raise RuntimeError("Attempt to load full node objects when asked not to")
 
-        return {
-            str(nodegroup.nodegroupid): nodegroup
-            for nodegroup in NodeGroup.objects.filter(
-                nodegroupid__in=[node["nodegroupid"] for node in cls._nodes.values()]
-            )
-        }
-
-    @classmethod
-    def _node_datatypes(cls):
-        """Caching retrieval of datatypes for Arches nodes in this model."""
-        if cls.__node_datatypes is None:
-            cls.__node_datatypes = {
-                str(nodeid): datatype
-                for nodeid, datatype in Node.objects.filter(
-                    nodeid__in=[node["nodeid"] for node in cls._nodes.values()]
-                ).values_list("nodeid", "datatype")
-            }
-        return cls.__node_datatypes
+        cls._build_nodes()
+        return cls._nodegroup_objects_real
 
     @classmethod
     def from_resource_instance(cls, resourceinstance, x=None):

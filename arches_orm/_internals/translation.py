@@ -1,4 +1,3 @@
-from typing import Any
 from arches.app.models.resource import Resource
 from datetime import datetime
 from arches.app.models.models import ResourceXResource, Node
@@ -15,47 +14,13 @@ LOAD_ALL_NODES = True
 class TranslationMixin:
     """Provides functionality for translating to/from Arches types."""
 
-    def _get_datatype_for_node(self, node):
-        """Standardize retrieval of a type from a node."""
-
-        from .wkrm import resource_models
-
-        datatype_factory = self._datatype_factory()
-        datatype_name, datatype = node.get("datatype", (None, None))
-        typ = node.get("type", None)
-        if typ is None:
-            if datatype is None:
-                datatype = datatype_factory.get_instance("string")
-            multiple_values = (
-                self._nodegroup_objects()[node["nodegroupid"]].cardinality == "n"
-            )
-        else:
-            multiple_values = isinstance(typ, list)
-            if typ.startswith("@") and (
-                typ[1:] in resource_models
-                or typ[1:] == "resource"
-                or typ[1:] == "[resource]"
-            ):
-                if (typ[1], typ[-1]) == ("[", "]"):
-                    datatype_name = \
-                        "resource-instance-list"
-                else:
-                    datatype_name = "resource-instance"
-            elif isinstance(typ, str):
-                datatype_name = typ
-
-            try:
-                datatype = datatype_factory.get_instance(datatype_name)
-            except KeyError:
-                raise NotImplementedError("Datatype {typ}")
-        return datatype, datatype_name, multiple_values
-
     def fill_from_resource(self, reload=None, related_prefetch=None):
         """Populate fields from the ID-referenced Arches resource."""
 
         all_values = {}
         cls = self.__class__
-        class_nodes = {node["nodeid"]: key for key, node in cls._nodes.items()}
+        nodes = cls._build_nodes()
+        class_nodes = {node["nodeid"]: key for key, node in nodes.items()}
         if reload is True or (reload is None and self._lazy):
             self.resource = Resource.objects.get(resourceinstanceid=self.id)
         self.resource.load_tiles()
@@ -66,7 +31,7 @@ class TranslationMixin:
             for nodeid in tile.data:
                 if nodeid in class_nodes:
                     key = class_nodes[nodeid]
-                    node = cls._nodes[key]
+                    node = nodes[key]
                     if LOAD_FULL_NODE_OBJECTS:
                         node_obj = cls._node_objects()[nodeid]
                     else:
@@ -80,7 +45,7 @@ class TranslationMixin:
                         datatype,
                         datatype_name,
                         multiple_values,
-                    ) = self._get_datatype_for_node(node)
+                    ) = node["datatype"]
 
                     lang = node.get("lang", None)
                     if "/" in key:
@@ -105,7 +70,7 @@ class TranslationMixin:
                         from .utils import attempt_well_known_resource_model
 
                         if isinstance(tile.data[nodeid], list):
-                            values[key] = RelationList(self, key, nodeid, tile.tileid)
+                            values[key] = RelationList(self, key, nodeid)
                             for datum in tile.data[nodeid]:
                                 if (
                                     related := attempt_well_known_resource_model(
@@ -115,51 +80,68 @@ class TranslationMixin:
                                         lazy=True,
                                     )
                                 ) is not None:
-                                    values[key].append(related)
+                                    values[key]["value"].append(related, tile)
                         elif tile.data[nodeid]:
-                            values[key] = attempt_well_known_resource_model(
-                                tile.data[nodeid], related_prefetch, x=datum, lazy=True
-                            )
+                            values[key] = {
+                                "tile": tile,
+                                "value": attempt_well_known_resource_model(
+                                    tile.data[nodeid],
+                                    related_prefetch,
+                                    x=datum,
+                                    lazy=True,
+                                ),
+                            }
                     elif datatype.datatype_name == "string":
                         text = self._make_string_from_tile_and_node(tile, node_obj)
                         if multiple_values:
                             values.setdefault(key, [])
-                            values[key].append(text)
+                            values[key].append({"value": text, "tile": tile})
                         else:
-                            values[key] = text
+                            values[key] = {"value": text, "tile": tile}
                     elif datatype.datatype_name == "concept-list":
-                        values[key] = [
-                            self.make_concept(concept_id)
-                            for concept_id in tile.data[nodeid]
-                            if concept_id
-                        ]
+                        values[key] = {
+                            "value": [
+                                self.make_concept(concept_id)
+                                for concept_id in tile.data[nodeid]
+                                if concept_id
+                            ],
+                            "tile": tile,
+                        }
                     elif datatype.datatype_name == "concept":
-                        values[key] = (
-                            self.make_concept(tile.data[nodeid])
-                            if tile.data[nodeid]
-                            else None
-                        )
+                        values[key] = {
+                            "tile": tile,
+                            "value": (
+                                self.make_concept(tile.data[nodeid])
+                                if tile.data[nodeid]
+                                else None
+                            ),
+                        }
                     elif datatype.datatype_name == "user":
                         value = self._make_user_from_tile_and_node(tile, node_obj)
                         if multiple_values:
                             values.setdefault(key, [])
-                            values[key].append(value)
+                            values[key].append({"tile": tile, "value": value})
                         else:
-                            values[key] = value
+                            values[key] = {"tile": tile, "value": value}
                     elif datatype.collects_multiple_values():
-                        values[key] = datatype.to_json(tile, node_obj)
+                        values[key] = {
+                            "tile": tile,
+                            "value": datatype.to_json(tile, node_obj),
+                        }
                     else:
                         value = datatype.get_display_value(
                             tile, node_obj, language=lang
                         )
                         if multiple_values:
                             values.setdefault(key, [])
-                            values[key].append(value)
+                            values[key].append({"tile": tile, "value": value})
                         else:
-                            values[key] = value
+                            values[key] = {"tile": tile, "value": value}
             if semantic_node:
-                all_values.setdefault(semantic_node, [])
-                all_values[semantic_node].append(semantic_values)
+                all_values.setdefault(str(semantic_node), [])
+                all_values[str(semantic_node)].append(
+                    {"tile": tile, "value": semantic_values}
+                )
         self._values.update(all_values)
         self._filled = True
 
@@ -192,12 +174,6 @@ class TranslationMixin:
 
         relationships = []
         for key, node in self._nodes.items():
-            if node["nodeid"] not in self._nodes_loaded:
-                self._nodes_loaded[node["nodeid"]] = Node.objects.get(
-                    nodeid=node["nodeid"]
-                )
-            loaded_node = self._nodes_loaded[node["nodeid"]]  # FIXME: Duplicate
-
             if prefix is not None:
                 if not key.startswith(prefix):
                     continue
@@ -210,10 +186,8 @@ class TranslationMixin:
             if key in values:
                 data = {}
                 single = False
-                value: Any = values[key]
-                datatype, datatype_name, multiple_values = self._get_datatype_for_node(
-                    node
-                )
+                value = values[key]
+                datatype, datatype_name, multiple_values = node["datatype"]
                 if value is None:
                     continue
 
@@ -252,7 +226,7 @@ class TranslationMixin:
                             ]
 
                         relationships += self._update_tiles(
-                            subtiles, entry, tiles_to_remove, prefix=f"{key}/"
+                            subtiles, entry["value"], tiles_to_remove, prefix=f"{key}/"
                         )
                         if node["nodegroupid"] in subtiles:
                             tiles[node["nodegroupid"]] = list(
@@ -279,10 +253,22 @@ class TranslationMixin:
                 ) and len(value) == 0:
                     continue
                 elif datatype:
-                    single = True
-                    value = datatype.transform_value_for_tile(
-                        value, **loaded_node.config
-                    )
+                    if multiple_values:
+                        single = False
+                        value = [
+                            {
+                                "tile": val["tile"],
+                                "value": datatype.transform_value_for_tile(
+                                    val["value"], **node.get("config", {})
+                                ),
+                            }
+                            for val in value
+                        ]
+                    else:
+                        single = True
+                        value = datatype.transform_value_for_tile(
+                            value, **node.get("config", {})
+                        )
                 if single:
                     multiple_values: list = [value]
                 else:
@@ -290,7 +276,8 @@ class TranslationMixin:
 
                 for value in multiple_values:
                     data = {}
-                    data[node["nodeid"]] = value
+                    data[node["nodeid"]] = value["value"]
+                    old_tile = value["tile"]
                     if not single and prefix:
                         raise RuntimeError(
                             "Cannot have field multiplicity inside a grouping (semantic"
@@ -325,7 +312,8 @@ class TranslationMixin:
                                 parent.tiles.append(tile)
                             tile.data.update(data)
                             continue
-                    tile = TileProxyModel(
+
+                    tile = old_tile or TileProxyModel(
                         dict(
                             data=data,
                             nodegroup_id=node["nodegroupid"],
@@ -333,9 +321,11 @@ class TranslationMixin:
                             tileid=None,
                         )
                     )
+                    tile.data = data
                     tiles.setdefault(node["nodegroupid"], [])
-                    tiles[node["nodegroupid"]].append(tile)
-                    if parent:
+                    if tile not in tiles[node["nodegroupid"]]:
+                        tiles[node["nodegroupid"]].append(tile)
+                    if parent and tile not in parent.tiles:
                         parent.tiles.append(tile)
         return relationships
 
@@ -356,16 +346,21 @@ class TranslationMixin:
         tiles = {}
         if not _known_new:
             for tile in TileProxyModel.objects.filter(resourceinstance=resource):
-                tiles.setdefault(tile.nodegroup_id, [])
-                tiles[tile.nodegroup_id].append(tile)
+                tiles.setdefault(str(tile.nodegroup_id), [])
+                tiles[str(tile.nodegroup_id)].append(tile)
         tiles_to_remove = sum((ts for ts in tiles.values()), [])
 
         relationships = self._update_tiles(tiles, self._values, tiles_to_remove)
 
         # parented tiles are saved hierarchically
         resource.tiles = [
-            t for t in sum((ts for ts in tiles.values()), []) if not t.parenttile
+            t
+            for t in sum((ts for ts in tiles.values()), [])
+            if not t.parenttile and t not in tiles_to_remove
         ]
+        for tile in tiles_to_remove:
+            if tile.tileid:
+                tile.delete()
 
         if not resource.createdtime:
             resource.createdtime = datetime.now()
@@ -388,7 +383,6 @@ class TranslationMixin:
             #    resource.save()
             #    resource.tiles = all_tiles
 
-            # TODO: remove tiles_to_remove
             resource.save()
             self.id = resource.resourceinstanceid
             system_settings.BYPASS_REQUIRED_VALUE_TILE_VALIDATION = bypass

@@ -41,7 +41,7 @@ def django_db_use_migrations():
 sys.modules["arches.app.search.search_engine_factory"] = Mock()
 
 
-@pytest.yield_fixture(scope="function")
+@pytest.fixture(scope="function")
 def arches_orm(django_db_blocker):
     # Sqlite cannot handle JSON-contains filtering, or jsonb_set
     from arches.app.models import tile
@@ -78,7 +78,7 @@ def arches_orm(django_db_blocker):
         for model in ("Activity.json", "Person.json"):
             with (Path(__file__).parent / "_django" / model).open("r") as f:
                 archesfile = JSONDeserializer().deserialize(f)
-                errs, importer = ResourceGraphImporter(archesfile["graph"], True)
+                ResourceGraphImporter(archesfile["graph"], True)
         import arches_orm
 
         yield arches_orm

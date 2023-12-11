@@ -9,7 +9,10 @@ INSTALLED_APPS = (
 )
 FILENAME_GENERATOR = "arches.app.utils.storage_filename_generator.generate_filename"
 DATABASES = {
-    "default": {"ENGINE": "django.contrib.gis.db.backends.spatialite", "NAME": ":memory:"}
+    "default": {
+        "ENGINE": "django.contrib.gis.db.backends.spatialite",
+        "NAME": ":memory:",
+    }
 }
 ELASTICSEARCH_HOSTS = []
 ELASTICSEARCH_PREFIX = ""
