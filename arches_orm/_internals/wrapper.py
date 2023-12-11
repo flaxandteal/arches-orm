@@ -21,6 +21,7 @@ class ResourceModelWrapper(TranslationMixin):
     graphid: str
     id: str
     _nodes: dict = None
+    _nodes_real: dict = None
     _values: dict = None
     _cross_record: dict = None
     _lazy: bool = False
@@ -391,30 +392,28 @@ class ResourceModelWrapper(TranslationMixin):
         """Convert to string."""
         return str(self._wkrm.to_string(self))
 
-    def __init_subclass__(cls, well_known_resource_model=None):
-        """Create a new well-known resource model wrapper, from an WKRM."""
-        if not well_known_resource_model:
-            raise RuntimeError("Must try to wrap a real model")
+    @property
+    def _nodes(self):
+        self._build_nodes()
+        return self._nodes_real
 
-        cls._model_name = well_known_resource_model.model_name
-        cls._nodes = {}
-        cls.graphid = well_known_resource_model.graphid
-        cls._wkrm = well_known_resource_model
-        cls._nodes_loaded = {}
-        cls.post_save = Signal()
+    @classmethod
+    @lru_cache
+    def _build_nodes(cls):
+        nodes: dict[str, dict] = {}
         if LOAD_FULL_NODE_OBJECTS and LOAD_ALL_NODES:
             for node_obj in cls._node_objects(load_all=True).values():
                 # The root node will not have a nodegroup, but we do not need it
                 if node_obj.nodegroup_id:
-                    cls._nodes[str(node_obj.alias)] = {
+                    nodes[str(node_obj.alias)] = {
                         "nodeid": str(node_obj.nodeid),
                         "nodegroupid": str(node_obj.nodegroup_id),
                         "type": node_obj.datatype,
                     }
             # Ensure defined nodes overwrite the autoloaded ones
-            cls._nodes.update(well_known_resource_model.nodes)
+            nodes.update(cls._wkrm.nodes)
             nodegroups = cls._nodegroup_objects()
-            for node in cls._nodes.values():
+            for node in nodes.values():
                 if (nodegroup := nodegroups.get(
                     node["nodegroupid"]
                 )):
@@ -422,8 +421,20 @@ class ResourceModelWrapper(TranslationMixin):
                         node["parentnodegroup_id"] = str(nodegroup.parentnodegroup_id)
                 else:
                     raise KeyError("Missing nodegroups based on WKRM")
-        for node in cls._nodes.values():
+        for node in nodes.values():
             node["datatype"] = cls._datatype(node["nodeid"])
+        cls._nodes_real = nodes
+
+    def __init_subclass__(cls, well_known_resource_model=None):
+        """Create a new well-known resource model wrapper, from an WKRM."""
+        if not well_known_resource_model:
+            raise RuntimeError("Must try to wrap a real model")
+
+        cls._model_name = well_known_resource_model.model_name
+        cls.graphid = well_known_resource_model.graphid
+        cls._wkrm = well_known_resource_model
+        cls._nodes_real = {}
+        cls.post_save = Signal()
 
     @classmethod
     @lru_cache
