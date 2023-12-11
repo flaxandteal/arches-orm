@@ -35,6 +35,7 @@ WELL_KNOWN_RESOURCE_MODELS = [
     WKRM(**model) for model in settings.WELL_KNOWN_RESOURCE_MODELS
 ]
 
+
 def _make_wkrm(wkrm_definition):
     try:
         return type(
@@ -44,11 +45,14 @@ def _make_wkrm(wkrm_definition):
             well_known_resource_model=wkrm_definition,
         )
     except KeyError as e:
-        logger.error("A WKRM, or its declared nodes, are missing: %s", wkrm_definition.model_class_name)
+        logger.error(
+            "A WKRM, or its declared nodes, are missing: %s",
+            wkrm_definition.model_class_name,
+        )
         logger.exception(e)
 
+
 resource_models = {
-    wkrm.model_class_name: _make_wkrm(wkrm)
-    for wkrm in WELL_KNOWN_RESOURCE_MODELS
+    wkrm.model_class_name: _make_wkrm(wkrm) for wkrm in WELL_KNOWN_RESOURCE_MODELS
 }
 resource_models_by_graph_id = {rm.graphid: rm for rm in resource_models.values() if rm}

@@ -20,7 +20,9 @@ def check_resource_instance_on_tile_delete(sender, instance, **kwargs):
 
 
 def check_resource_instance(sender, instance, reason, **kwargs):
-    """On an action against a tile, emit a post_save signal for the well-known resource."""
+    """On an action against a tile, emit a post_save signal for the
+    well-known resource.
+    """
     # This (I think) gets loaded anyway during the Tile save
     model_cls = get_well_known_resource_model_by_graph_id(
         instance.resourceinstance.graph_id

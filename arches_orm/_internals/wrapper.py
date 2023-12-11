@@ -61,7 +61,8 @@ class ResourceModelWrapper(TranslationMixin):
             if self._lazy and not self._filled:
                 self.fill_from_resource(self._related_prefetch)
                 return self.__getattr__(key)
-            # Semantic nodes say they don't collect multiple values, but they have multiple children
+            # Semantic nodes say they don't collect multiple values, but
+            # they have multiple children
             return (
                 []
                 if (datatype := self._nodes[key].get("datatype", None))
@@ -155,7 +156,11 @@ class ResourceModelWrapper(TranslationMixin):
         lazy=False,
         **kwargs,
     ):
-        """Not normally called manually, this is the underlying constructor for well-known resources."""
+        """Build well-known resource.
+
+        Not normally called manually, this is the underlying constructor for
+        well-known resources.
+        """
 
         self._values = {}
         self.id = id
@@ -177,13 +182,16 @@ class ResourceModelWrapper(TranslationMixin):
 
         for key, value in kwargs.items():
             if isinstance(value, list) and any(
-                types := [isinstance(entry, ResourceModelWrapper) for entry in value]
+                types := [
+                    isinstance(entry, ResourceModelWrapper) for entry in value
+                ]
             ):
                 if not all(types):
                     raise NotImplementedError(
-                        "Cannot currently handle mixed ResourceModelWrapper/non-ResourceModelWrapper lists"
+                        "Cannot currently handle mixed"
+                        " ResourceModelWrapper/non-ResourceModelWrapper"
+                        " lists"
                     )
-                typ = self._nodes[key]["type"]
                 kwargs[key] = RelationList(self, key, self._nodes[key]["nodeid"], None)
                 for resource in value:
                     kwargs[key].append(resource)
@@ -198,14 +206,15 @@ class ResourceModelWrapper(TranslationMixin):
             typ = self._nodes[node]["type"]
             if not typ.startswith("@"):
                 raise RuntimeError(
-                    "Relationship must be with a resource model, not e.g. a primitive type"
+                    "Relationship must be with a resource model, not e.g. a primitive"
+                    " type"
                 )
             typ = typ[1:]
             datum = {}
             datum["wkriFrom"] = self
             datum["wkriFromKey"] = node
             datum["wkriFromNodeid"] = self._nodes[node]["nodeid"]
-            resource_cls = get_well_known_resource_model_by_class_name(typ)
+            resource_cls = self._get_wkrm(typ)
             if not isinstance(arg, list):
                 arg = [arg]
 
@@ -220,6 +229,11 @@ class ResourceModelWrapper(TranslationMixin):
             return node, all_resources
         else:
             return key, arg
+
+    @classmethod
+    def _get_wkrm(cls, typ):
+        from .wkrm import get_well_known_resource_model_by_class_name
+        return get_well_known_resource_model_by_class_name(typ)
 
     @classmethod
     def create_bulk(cls, fields: list, do_index: bool = True):
@@ -239,7 +253,11 @@ class ResourceModelWrapper(TranslationMixin):
 
     @classmethod
     def build(cls, **kwargs):
-        """Create a new well-known resource, but not (yet) Arches resource, from field values."""
+        """Create a new well-known resource.
+
+        Makes a well-known resource but not (yet) Arches resource,
+        from field values.
+        """
 
         values = {}
         for key, arg in kwargs.items():
@@ -261,10 +279,10 @@ class ResourceModelWrapper(TranslationMixin):
 
     def save(self):
         """Rebuild and save the underlying resource."""
-        resource = self.to_resource(strict=True)
+        return self.to_resource(strict=True)
 
     @classmethod
-    def search(cls, text, fields=None, _total=None, _include_provisional=True):
+    def search(cls, text, fields=None, _total=None):
         """Search ES for resources of this model, and return as well-known resources."""
 
         from arches.app.search.search_engine_factory import SearchEngineFactory
@@ -278,8 +296,6 @@ class ResourceModelWrapper(TranslationMixin):
         )
 
         # AGPL Arches
-        total = _total or 0
-        include_provisional = _include_provisional
         se = SearchEngineFactory().create()
         # TODO: permitted_nodegroups = get_permitted_nodegroups(request.user)
         permitted_nodegroups = [
@@ -340,7 +356,8 @@ class ResourceModelWrapper(TranslationMixin):
         resource = Resource.objects.get(resourceinstanceid=resourceinstanceid)
         if str(resource.graph_id) != cls.graphid:
             raise RuntimeError(
-                f"Using find against wrong resource type: {resource.graph_id} for {cls.graphid}"
+                f"Using find against wrong resource type: {resource.graph_id} for"
+                f" {cls.graphid}"
             )
         if resource:
             return cls.from_resource(resource)
@@ -414,9 +431,7 @@ class ResourceModelWrapper(TranslationMixin):
             nodes.update(cls._wkrm.nodes)
             nodegroups = cls._nodegroup_objects()
             for node in nodes.values():
-                if (nodegroup := nodegroups.get(
-                    node["nodegroupid"]
-                )):
+                if nodegroup := nodegroups.get(node["nodegroupid"]):
                     if nodegroup.parentnodegroup_id:
                         node["parentnodegroup_id"] = str(nodegroup.parentnodegroup_id)
                 else:

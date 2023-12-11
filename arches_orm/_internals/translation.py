@@ -1,8 +1,7 @@
 from typing import Any
 from arches.app.models.resource import Resource
-from typing import Any
 from datetime import datetime
-from arches.app.models.models import ResourceXResource, TileModel, Node
+from arches.app.models.models import ResourceXResource, Node
 from arches.app.models.tile import Tile as TileProxyModel
 from arches.app.models.system_settings import settings as system_settings
 from .relations import RelationList
@@ -38,7 +37,8 @@ class TranslationMixin:
                 or typ[1:] == "[resource]"
             ):
                 if (typ[1], typ[-1]) == ("[", "]"):
-                    datatype_name = "resource-instance-list"
+                    datatype_name = \
+                        "resource-instance-list"
                 else:
                     datatype_name = "resource-instance"
             elif isinstance(typ, str):
@@ -46,7 +46,7 @@ class TranslationMixin:
 
             try:
                 datatype = datatype_factory.get_instance(datatype_name)
-            except:
+            except KeyError:
                 raise NotImplementedError("Datatype {typ}")
         return datatype, datatype_name, multiple_values
 
@@ -58,7 +58,6 @@ class TranslationMixin:
         class_nodes = {node["nodeid"]: key for key, node in cls._nodes.items()}
         if reload is True or (reload is None and self._lazy):
             self.resource = Resource.objects.get(resourceinstanceid=self.id)
-        tiles = TileModel.objects.filter(resourceinstance_id=self.id)
         self.resource.load_tiles()
 
         for tile in self.resource.tiles:
@@ -90,7 +89,9 @@ class TranslationMixin:
                             semantic_node = _semantic_node
                         elif semantic_node != _semantic_node:
                             raise RuntimeError(
-                                f"We should never end up with node values from two groups (semantic nodes) in a tile: {semantic_node} and {_semantic_node}"
+                                "We should never end up with node values from two"
+                                " groups (semantic nodes) in a tile:"
+                                f" {semantic_node} and {_semantic_node}"
                             )
                         if "/" in semantic_node:
                             raise NotImplementedError(
@@ -102,6 +103,7 @@ class TranslationMixin:
 
                     if datatype_name in ("resource-instance", "resource-instance-list"):
                         from .utils import attempt_well_known_resource_model
+
                         if isinstance(tile.data[nodeid], list):
                             values[key] = RelationList(self, key, nodeid, tile.tileid)
                             for datum in tile.data[nodeid]:
@@ -177,7 +179,10 @@ class TranslationMixin:
 
     @classmethod
     def make_concept(cls, concept_id):
-        """Provide a concept object that can retain taxonomic information, while remaining a string."""
+        """Provide a concept object.
+
+        It that can retain taxonomic information, while remaining a string.
+        """
 
         concept_datatype = cls._datatype_factory().get_instance("concept")
         return ConceptValueViewModel(concept_id, concept_datatype)
@@ -235,8 +240,8 @@ class TranslationMixin:
                         if parent:
                             subtiles[parent.nodegroup_id] = [parent]
 
-                        # If we have a dataless version of this node, perhaps because it is already
-                        # a parent, we allow it to be filled in.
+                        # If we have a dataless version of this node, perhaps because it
+                        # is already a parent, we allow it to be filled in.
                         if (
                             tiles[node["nodegroupid"]]
                             and not tiles[node["nodegroupid"]][0].data
@@ -255,14 +260,15 @@ class TranslationMixin:
                                 | set(subtiles[node["nodegroupid"]])
                             )
                     # We do not need to do anything here, because
-                    # the nodegroup (semantic node) has no separate existence from the values
-                    # in the tile in our approach -- if there were values, the appropriate tile(s)
-                    # were added with this nodegroupid. For nesting, this would need to change.
+                    # the nodegroup (semantic node) has no separate existence from the
+                    # values in the tile in our approach -- if there were values, the
+                    # appropriate tile(s) were added with this nodegroupid. For nesting,
+                    # this would need to change.
                     continue
                 elif (
                     value
                     and (isinstance(value, list) or isinstance(value, RelationList))
-                    and isinstance(value[0], ResourceModelWrapper)
+                    and isinstance(value[0], TranslationMixin)
                 ):
                     value = [({}, v) for v in value]
                     relationships += value
@@ -287,7 +293,8 @@ class TranslationMixin:
                     data[node["nodeid"]] = value
                     if not single and prefix:
                         raise RuntimeError(
-                            "Cannot have field multiplicity inside a grouping (semantic node), as it is equivalent to nesting"
+                            "Cannot have field multiplicity inside a grouping (semantic"
+                            " node), as it is equivalent to nesting"
                         )
 
                     if "parentnodegroup_id" in node:
@@ -340,7 +347,10 @@ class TranslationMixin:
         _known_new=False,
         _do_index=True,
     ):
-        """Construct an Arches resource, new or existing, for this well-known resource."""
+        """Construct an Arches resource.
+
+        This may be new or existing, for this well-known resource.
+        """
 
         resource = Resource(resourceinstanceid=self.id, graph_id=self.graphid)
         tiles = {}
@@ -385,9 +395,6 @@ class TranslationMixin:
         elif not resource._state.adding:
             self.id = resource.resourceinstanceid
 
-        parented = [
-            t.data for t in sum((ts for ts in tiles.values()), []) if t.parenttile
-        ]
         self.resource = resource
 
         # for nodegroupid, nodeid, resourceid in relationships:

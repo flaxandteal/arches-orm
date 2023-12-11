@@ -75,7 +75,9 @@ class ConceptValueViewModel(str):
 
     def __new__(cls, concept_value_id: Union[str, uuid.UUID], concept_datatype):
         _concept_value_id: uuid.UUID = (
-            concept_value_id if isinstance(concept_value_id, uuid.UUID) else uuid.UUID(concept_value_id)
+            concept_value_id
+            if isinstance(concept_value_id, uuid.UUID)
+            else uuid.UUID(concept_value_id)
         )
         mystr = super(ConceptValueViewModel, cls).__new__(cls, str(_concept_value_id))
         mystr._concept_value_id = _concept_value_id
