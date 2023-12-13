@@ -12,7 +12,6 @@ from .translation import (
     LOAD_ALL_NODES,
     LOAD_FULL_NODE_OBJECTS,
 )
-from .relations import RelationList
 
 logger = logging.getLogger(__name__)
 
@@ -86,12 +85,7 @@ class ResourceModelWrapper(TranslationMixin):
 
         if key in self._values:
             value = self._values[key]
-            if isinstance(value, RelationList):
-                return value
-            if self._nodes[key]["datatype"][2]:
-                return (item.value for item in value)
-            else:
-                return value.value
+            return value.value
         elif key in self._nodes:
             if self._lazy and not self._filled:
                 self.fill_from_resource(self._related_prefetch)
@@ -405,17 +399,10 @@ class ResourceModelWrapper(TranslationMixin):
         )
         table = [["PROPERTY", "TYPE", "VALUE"]]
         for key, value in self._values.items():
-            if isinstance(value, list) or isinstance(value, RelationList):
-                if value:
-                    if not isinstance(value, RelationList):
-                        value = [item.value for item in value]
-                    table.append([key, value[0].__class__.__name__, str(value[0])])
-                    for val in value[1:]:
-                        table.append(["", val.__class__.__name__, str(val)])
-                else:
-                    table.append([key, "", "(empty)"])
-            else:
+            if value.value:
                 table.append([key, value.value.__class__.__name__, str(value)])
+            else:
+                table.append([key, "", "(empty)"])
         return description + tabulate(table)
 
     @classmethod
