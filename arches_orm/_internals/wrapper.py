@@ -5,7 +5,13 @@ from django.dispatch import Signal
 from arches.app.models.models import ResourceXResource, Node, NodeGroup
 from arches.app.models.tile import Tile as TileProxyModel
 from arches.app.models.system_settings import settings as system_settings
-from .translation import TranslationMixin, LOAD_ALL_NODES, LOAD_FULL_NODE_OBJECTS
+from .translation import (
+    PseudoNode,
+    PseudoNodeList,
+    TranslationMixin,
+    LOAD_ALL_NODES,
+    LOAD_FULL_NODE_OBJECTS,
+)
 from .relations import RelationList
 
 logger = logging.getLogger(__name__)
@@ -62,12 +68,18 @@ class ResourceModelWrapper(TranslationMixin):
         else:
             if self._lazy and not self._filled:
                 self.fill_from_resource(self._related_prefetch)
+            nodegroup = self._nodegroup_objects()[self._nodes[key]["nodegroupid"]]
+            node_obj = self._node_objects()[self._nodes[key]["nodeid"]]
             if self._nodes[key]["datatype"][2]:
-                self._values.setdefault(key, [])
-                self._values[key] += [{"tile": None, "value": item} for item in value]
+                if self._values.get(key):
+                    raise NotImplementedError("Cannot replace a full pseudo-node list")
+                self._values[key] = PseudoNodeList(nodegroup)
+                self._values[key] += [
+                    PseudoNode(tile=None, node=node_obj, value=item) for item in value
+                ]
             else:
-                self._values.setdefault(key, {"tile": None, "value": value})
-                self._values[key]["value"] = value
+                self._values.setdefault(key, PseudoNode(tile=None, node=node_obj))
+                self._values[key].value = value
 
     def __getattr__(self, key):
         """Retrieve Python values for nodes attributes."""
@@ -77,9 +89,9 @@ class ResourceModelWrapper(TranslationMixin):
             if isinstance(value, RelationList):
                 return value
             if self._nodes[key]["datatype"][2]:
-                return (item["value"] for item in value)
+                return (item.value for item in value)
             else:
-                return value["value"]
+                return value.value
         elif key in self._nodes:
             if self._lazy and not self._filled:
                 self.fill_from_resource(self._related_prefetch)
@@ -204,23 +216,14 @@ class ResourceModelWrapper(TranslationMixin):
             )
 
         for key, value in kwargs.items():
-            if isinstance(value, list) and any(
-                types := [isinstance(entry, ResourceModelWrapper) for entry in value]
-            ):
-                if not all(types):
-                    raise NotImplementedError(
-                        "Cannot currently handle mixed"
-                        " ResourceModelWrapper/non-ResourceModelWrapper"
-                        " lists"
-                    )
-                kwargs[key] = RelationList(self, key, self._nodes[key]["nodeid"], None)
-                for resource in value:
-                    kwargs[key].append(resource)
+            nodegroup = self._nodegroup_objects()[self._nodes[key]["nodegroupid"]]
+            node_obj = self._node_objects()[self._nodes[key]["nodeid"]]
+            if self._nodes[key]["datatype"][2]:
+                kwargs[key] = PseudoNodeList(nodegroup)
+                kwargs[key] += [PseudoNode(node=node_obj, value=item) for item in value]
             else:
-                if self._nodes[key]["datatype"][2]:
-                    kwargs[key] = [{"tile": None, "value": item} for item in value]
-                else:
-                    kwargs[key]["value"] = value
+                kwargs[key] = PseudoNode(node=node_obj)
+                kwargs[key].value = value
 
         self._values.update(kwargs)
 
@@ -405,14 +408,14 @@ class ResourceModelWrapper(TranslationMixin):
             if isinstance(value, list) or isinstance(value, RelationList):
                 if value:
                     if not isinstance(value, RelationList):
-                        value = [item["value"] for item in value]
+                        value = [item.value for item in value]
                     table.append([key, value[0].__class__.__name__, str(value[0])])
                     for val in value[1:]:
                         table.append(["", val.__class__.__name__, str(val)])
                 else:
                     table.append([key, "", "(empty)"])
             else:
-                table.append([key, value["value"].__class__.__name__, str(value)])
+                table.append([key, value.value.__class__.__name__, str(value)])
         return description + tabulate(table)
 
     @classmethod
