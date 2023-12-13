@@ -4,17 +4,18 @@ from arches.app.models.models import ResourceXResource, Node, NodeGroup
 from arches.app.models.tile import Tile as TileProxyModel
 from arches.app.models.system_settings import settings as system_settings
 from collections import UserList
-from .relations import RelationList
 from .view_models import get_view_model_for_datatype
 
 
 LOAD_FULL_NODE_OBJECTS = True
 LOAD_ALL_NODES = True
 
+
 class PseudoNodeList(UserList):
     def __init__(self, nodegroup):
         super().__init__()
         self.nodegroup = nodegroup
+
 
 class PseudoNode:
     _value_loaded = False
@@ -40,7 +41,9 @@ class PseudoNode:
             tile_value = self._value.as_tile_data()
         except AttributeError:
             tile_value = self._value
-        self.tile.data[str(self.node.nodeid)] = tile_value # TODO: ensure this works for any value
+        self.tile.data[
+            str(self.node.nodeid)
+        ] = tile_value  # TODO: ensure this works for any value
         return self.tile
 
     def _update_value(self):
@@ -48,9 +51,7 @@ class PseudoNode:
             if not self.node:
                 raise RuntimeError("Empty tile")
             self.tile = TileProxyModel(
-                nodegroup_id=self.node.nodegroup_id,
-                tileid=None,
-                data={}
+                nodegroup_id=self.node.nodegroup_id, tileid=None, data={}
             )
         if not self._value_loaded:
             if self.tile.data is not None and str(self.node.nodeid) in self.tile.data:
@@ -63,7 +64,7 @@ class PseudoNode:
                     self.node,
                     value=data,
                     parent=self._parent,
-                    related_prefetch=self._related_prefetch
+                    related_prefetch=self._related_prefetch,
                 )
             except KeyError:
                 self._value = self.tile.data[str(self.node.nodeid)]
@@ -83,7 +84,9 @@ class PseudoNode:
 class SemanticTile(dict):
     __tile: TileProxyModel
 
-    def __init__(self, tile: TileProxyModel | None=None, nodegroup: NodeGroup | None=None):
+    def __init__(
+        self, tile: TileProxyModel | None = None, nodegroup: NodeGroup | None = None
+    ):
         if tile is None:
             if nodegroup is None:
                 raise RuntimeError("Must have a tile or nodegroup")
@@ -105,7 +108,6 @@ class SemanticTile(dict):
     def get_tile(self):
         self.__tile.data = self
         return self.__tile
-
 
 
 class TranslationMixin:
@@ -134,9 +136,7 @@ class TranslationMixin:
                         nodegroup = cls._nodegroup_objects()[node["nodegroupid"]]
                         node_obj = cls._node_objects()[nodeid]
                     else:
-                        nodegroup = NodeGroup(
-                            pk=node["nodegroupid"]
-                        )
+                        nodegroup = NodeGroup(pk=node["nodegroupid"])
                         node_obj = Node(
                             pk=nodeid,
                             nodeid=nodeid,
@@ -168,9 +168,7 @@ class TranslationMixin:
                         values = all_values
 
                     value = PseudoNode(
-                        node_obj,
-                        tile,
-                        related_prefetch=related_prefetch
+                        node_obj, tile, related_prefetch=related_prefetch
                     )
                     if multiple_values:
                         values[key] = PseudoNodeList(nodegroup)

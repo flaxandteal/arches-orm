@@ -5,7 +5,13 @@ from django.dispatch import Signal
 from arches.app.models.models import ResourceXResource, Node, NodeGroup
 from arches.app.models.tile import Tile as TileProxyModel
 from arches.app.models.system_settings import settings as system_settings
-from .translation import PseudoNode, PseudoNodeList, TranslationMixin, LOAD_ALL_NODES, LOAD_FULL_NODE_OBJECTS
+from .translation import (
+    PseudoNode,
+    PseudoNodeList,
+    TranslationMixin,
+    LOAD_ALL_NODES,
+    LOAD_FULL_NODE_OBJECTS,
+)
 from .relations import RelationList
 
 logger = logging.getLogger(__name__)
@@ -69,11 +75,7 @@ class ResourceModelWrapper(TranslationMixin):
                     raise NotImplementedError("Cannot replace a full pseudo-node list")
                 self._values[key] = PseudoNodeList(nodegroup)
                 self._values[key] += [
-                    PseudoNode(
-                        tile=None,
-                        node=node_obj,
-                        value=item
-                    ) for item in value
+                    PseudoNode(tile=None, node=node_obj, value=item) for item in value
                 ]
             else:
                 self._values.setdefault(key, PseudoNode(tile=None, node=node_obj))
@@ -218,12 +220,7 @@ class ResourceModelWrapper(TranslationMixin):
             node_obj = self._node_objects()[self._nodes[key]["nodeid"]]
             if self._nodes[key]["datatype"][2]:
                 kwargs[key] = PseudoNodeList(nodegroup)
-                kwargs[key] += [
-                    PseudoNode(
-                        node=node_obj,
-                        value=item
-                    ) for item in value
-                ]
+                kwargs[key] += [PseudoNode(node=node_obj, value=item) for item in value]
             else:
                 kwargs[key] = PseudoNode(node=node_obj)
                 kwargs[key].value = value
