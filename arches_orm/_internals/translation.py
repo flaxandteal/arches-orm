@@ -1,17 +1,115 @@
 from arches.app.models.resource import Resource
 from datetime import datetime
-from arches.app.models.models import ResourceXResource, Node
+from arches.app.models.models import ResourceXResource, Node, NodeGroup
 from arches.app.models.tile import Tile as TileProxyModel
 from arches.app.models.system_settings import settings as system_settings
+from collections import UserList
 from .relations import RelationList
-from .view_models import ConceptValueViewModel, UserViewModel, StringViewModel
+from .view_models import get_view_model_for_datatype
 
 
 LOAD_FULL_NODE_OBJECTS = True
 LOAD_ALL_NODES = True
 
+class PseudoNodeList(UserList):
+    def __init__(self, nodegroup):
+        super().__init__()
+        self.nodegroup = nodegroup
+
+class PseudoNode:
+    _value_loaded = False
+    _value = None
+
+    def __init__(self, node, tile=None, value=None, parent=None, related_prefetch=None):
+        self.node = node
+        self.tile = tile
+        self._related_prefetch = related_prefetch
+        self._parent = parent
+        self._value = value
+
+    def get_relationships(self):
+        try:
+            return self.value.get_relationships() if self.value else []
+        except AttributeError:
+            return []
+
+    def get_tile(self):
+        self._update_value()
+
+        try:
+            tile_value = self._value.as_tile_data()
+        except AttributeError:
+            tile_value = self._value
+        self.tile.data[str(self.node.nodeid)] = tile_value # TODO: ensure this works for any value
+        return self.tile
+
+    def _update_value(self):
+        if not self.tile:
+            if not self.node:
+                raise RuntimeError("Empty tile")
+            self.tile = TileProxyModel(
+                nodegroup_id=self.node.nodegroup_id,
+                tileid=None,
+                data={}
+            )
+        if not self._value_loaded:
+            if self.tile.data is not None and str(self.node.nodeid) in self.tile.data:
+                data = self.tile.data[str(self.node.nodeid)]
+            else:
+                data = self._value
+            try:
+                self._value = get_view_model_for_datatype(
+                    self.tile,
+                    self.node,
+                    value=data,
+                    parent=self._parent,
+                    related_prefetch=self._related_prefetch
+                )
+            except KeyError:
+                self._value = self.tile.data[str(self.node.nodeid)]
+            self._value_loaded = True
+
+    @property
+    def value(self):
+        self._update_value()
+        return self._value
+
+    @value.setter
+    def value(self, value):
+        self._value = value
+        self._value_loaded = True
+
+
+class SemanticTile(dict):
+    __tile: TileProxyModel
+
+    def __init__(self, tile: TileProxyModel | None=None, nodegroup: NodeGroup | None=None):
+        if tile is None:
+            if nodegroup is None:
+                raise RuntimeError("Must have a tile or nodegroup")
+            tile = TileProxyModel(
+                dict(
+                    data={},
+                    nodegroup_id=nodegroup.nodegroupid,
+                    tileid=None,
+                )
+            )
+        self.__tile = tile
+        self.update(tile.data)
+
+    def __setitem__(self, key, value):
+        if not isinstance(value, PseudoNode):
+            raise RuntimeError("Can only set PseudoNodes on a SemanticTile")
+        setattr(self, key, value)
+
+    def get_tile(self):
+        self.__tile.data = self
+        return self.__tile
+
+
 
 class TranslationMixin:
+
     """Provides functionality for translating to/from Arches types."""
 
     def fill_from_resource(self, reload=None, related_prefetch=None):
@@ -33,8 +131,12 @@ class TranslationMixin:
                     key = class_nodes[nodeid]
                     node = nodes[key]
                     if LOAD_FULL_NODE_OBJECTS:
+                        nodegroup = cls._nodegroup_objects()[node["nodegroupid"]]
                         node_obj = cls._node_objects()[nodeid]
                     else:
+                        nodegroup = NodeGroup(
+                            pk=node["nodegroupid"]
+                        )
                         node_obj = Node(
                             pk=nodeid,
                             nodeid=nodeid,
@@ -47,7 +149,6 @@ class TranslationMixin:
                         multiple_values,
                     ) = node["datatype"]
 
-                    lang = node.get("lang", None)
                     if "/" in key:
                         _semantic_node, key = key.split("/")
                         if semantic_node is None:
@@ -66,108 +167,23 @@ class TranslationMixin:
                     else:
                         values = all_values
 
-                    if datatype_name in ("resource-instance", "resource-instance-list"):
-                        from .utils import attempt_well_known_resource_model
-
-                        if isinstance(tile.data[nodeid], list):
-                            values[key] = RelationList(self, key, nodeid)
-                            for datum in tile.data[nodeid]:
-                                if (
-                                    related := attempt_well_known_resource_model(
-                                        datum["resourceId"],
-                                        related_prefetch,
-                                        x=datum,
-                                        lazy=True,
-                                    )
-                                ) is not None:
-                                    values[key]["value"].append(related, tile)
-                        elif tile.data[nodeid]:
-                            values[key] = {
-                                "tile": tile,
-                                "value": attempt_well_known_resource_model(
-                                    tile.data[nodeid],
-                                    related_prefetch,
-                                    x=datum,
-                                    lazy=True,
-                                ),
-                            }
-                    elif datatype.datatype_name == "string":
-                        text = self._make_string_from_tile_and_node(tile, node_obj)
-                        if multiple_values:
-                            values.setdefault(key, [])
-                            values[key].append({"value": text, "tile": tile})
-                        else:
-                            values[key] = {"value": text, "tile": tile}
-                    elif datatype.datatype_name == "concept-list":
-                        values[key] = {
-                            "value": [
-                                self.make_concept(concept_id)
-                                for concept_id in tile.data[nodeid]
-                                if concept_id
-                            ],
-                            "tile": tile,
-                        }
-                    elif datatype.datatype_name == "concept":
-                        values[key] = {
-                            "tile": tile,
-                            "value": (
-                                self.make_concept(tile.data[nodeid])
-                                if tile.data[nodeid]
-                                else None
-                            ),
-                        }
-                    elif datatype.datatype_name == "user":
-                        value = self._make_user_from_tile_and_node(tile, node_obj)
-                        if multiple_values:
-                            values.setdefault(key, [])
-                            values[key].append({"tile": tile, "value": value})
-                        else:
-                            values[key] = {"tile": tile, "value": value}
-                    elif datatype.collects_multiple_values():
-                        values[key] = {
-                            "tile": tile,
-                            "value": datatype.to_json(tile, node_obj),
-                        }
+                    value = PseudoNode(
+                        node_obj,
+                        tile,
+                        related_prefetch=related_prefetch
+                    )
+                    if multiple_values:
+                        values[key] = PseudoNodeList(nodegroup)
+                        values[key].append(value)
                     else:
-                        value = datatype.get_display_value(
-                            tile, node_obj, language=lang
-                        )
-                        if multiple_values:
-                            values.setdefault(key, [])
-                            values[key].append({"tile": tile, "value": value})
-                        else:
-                            values[key] = {"tile": tile, "value": value}
+                        values[key] = value
             if semantic_node:
                 all_values.setdefault(str(semantic_node), [])
                 all_values[str(semantic_node)].append(
-                    {"tile": tile, "value": semantic_values}
+                    PseudoNode(None, tile, value=semantic_values)
                 )
         self._values.update(all_values)
         self._filled = True
-
-    @classmethod
-    def _make_user_from_tile_and_node(cls, tile, node):
-        """Provide a rich user object."""
-
-        string_datatype = cls._datatype_factory().get_instance("user")
-        return UserViewModel(tile, node, string_datatype)
-
-    @classmethod
-    def _make_string_from_tile_and_node(cls, tile, node):
-        """Provide a string object that can have language, while remaining a string."""
-
-        string_datatype = cls._datatype_factory().get_instance("string")
-        return StringViewModel(tile, node, string_datatype)
-
-    @classmethod
-    def make_concept(cls, concept_id):
-        """Provide a concept object.
-
-        It that can retain taxonomic information, while remaining a string.
-        """
-
-        concept_datatype = cls._datatype_factory().get_instance("concept")
-        return ConceptValueViewModel(concept_id, concept_datatype)
 
     def _update_tiles(self, tiles, values, tiles_to_remove, prefix=None):
         """Map data in the well-known resource back to the Arches tiles."""
@@ -199,11 +215,9 @@ class TranslationMixin:
                             node["parentnodegroup_id"],
                             [
                                 TileProxyModel(
-                                    dict(
-                                        data={},
-                                        nodegroup_id=node["parentnodegroup_id"],
-                                        tileid=None,
-                                    )
+                                    data={},
+                                    nodegroup_id=node["parentnodegroup_id"],
+                                    tileid=None,
                                 )
                             ],
                         )[0]
@@ -226,7 +240,7 @@ class TranslationMixin:
                             ]
 
                         relationships += self._update_tiles(
-                            subtiles, entry["value"], tiles_to_remove, prefix=f"{key}/"
+                            subtiles, entry.value, tiles_to_remove, prefix=f"{key}/"
                         )
                         if node["nodegroupid"] in subtiles:
                             tiles[node["nodegroupid"]] = list(
@@ -239,45 +253,19 @@ class TranslationMixin:
                     # appropriate tile(s) were added with this nodegroupid. For nesting,
                     # this would need to change.
                     continue
-                elif (
-                    value
-                    and (isinstance(value, list) or isinstance(value, RelationList))
-                    and isinstance(value[0], TranslationMixin)
-                ):
-                    value = [({}, v) for v in value]
-                    relationships += value
-                    value = [[v] for v, _ in value]
-                # FIXME: we should be able to remove entries if appropriate
-                elif (
-                    isinstance(value, list) or isinstance(value, RelationList)
-                ) and len(value) == 0:
-                    continue
-                elif datatype:
-                    if multiple_values:
-                        single = False
-                        value = [
-                            {
-                                "tile": val["tile"],
-                                "value": datatype.transform_value_for_tile(
-                                    val["value"], **node.get("config", {})
-                                ),
-                            }
-                            for val in value
-                        ]
-                    else:
-                        single = True
-                        value = datatype.transform_value_for_tile(
-                            value, **node.get("config", {})
-                        )
-                if single:
-                    multiple_values: list = [value]
-                else:
-                    multiple_values: list = list(value)
 
-                for value in multiple_values:
-                    data = {}
-                    data[node["nodeid"]] = value["value"]
-                    old_tile = value["tile"]
+                if isinstance(value, PseudoNodeList):
+                    values = value
+                else:
+                    values: list = [value]
+
+                for value in values:
+                    # FIXME: we should be able to remove entries if appropriate
+                    tile = value.get_tile()
+                    if tile in tiles_to_remove:
+                        tiles_to_remove.remove(tile)
+                    relationships += value.get_relationships()
+
                     if not single and prefix:
                         raise RuntimeError(
                             "Cannot have field multiplicity inside a grouping (semantic"
@@ -289,11 +277,9 @@ class TranslationMixin:
                             node["parentnodegroup_id"],
                             [
                                 TileProxyModel(
-                                    dict(
-                                        data={},
-                                        nodegroup_id=node["parentnodegroup_id"],
-                                        tileid=None,
-                                    )
+                                    data={},
+                                    nodegroup_id=node["parentnodegroup_id"],
+                                    tileid=None,
                                 )
                             ],
                         )
@@ -304,6 +290,7 @@ class TranslationMixin:
                     if node["nodegroupid"] in tiles:
                         # if single or not tiles[node["nodegroupid"]].data:
                         if single:
+                            data = tile.data
                             tile = tiles[node["nodegroupid"]][0]
                             if tile in tiles_to_remove:
                                 tiles_to_remove.remove(tile)
@@ -313,15 +300,6 @@ class TranslationMixin:
                             tile.data.update(data)
                             continue
 
-                    tile = old_tile or TileProxyModel(
-                        dict(
-                            data=data,
-                            nodegroup_id=node["nodegroupid"],
-                            parenttile=parent,
-                            tileid=None,
-                        )
-                    )
-                    tile.data = data
                     tiles.setdefault(node["nodegroupid"], [])
                     if tile not in tiles[node["nodegroupid"]]:
                         tiles[node["nodegroupid"]].append(tile)

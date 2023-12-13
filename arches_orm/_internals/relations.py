@@ -1,4 +1,6 @@
 import collections
+import uuid
+from typing import Protocol
 
 
 class RelationList(collections.UserList):
@@ -20,3 +22,7 @@ class RelationList(collections.UserList):
         item._cross_record = datum
         super().append(item)
         return item
+
+class WKRI(Protocol):
+    graph_id: uuid.UUID
+    _cross_record: dict | None = None
