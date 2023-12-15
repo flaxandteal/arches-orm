@@ -264,6 +264,8 @@ INSERT INTO edges(edgeid, graphid, domainnodeid, rangenodeid, ontologyproperty)
 INSERT INTO card_components(componentid, name, description, component, componentname, defaultconfig)
     VALUES ('4e40b397-d6bc-4660-a398-4a72c90dba07', 'Photo Gallery Card', 'Photo gallery card UI', 'views/components/cards/photo-gallery-card', 'photo-gallery-card', '{}');
 INSERT INTO card_components(componentid, name, description, component, componentname, defaultconfig)
+    VALUES ('f554c976-9026-463b-a11d-47528e77cf67', 'User Account Card', 'User account related to a person', 'views/components/cards/user_account', 'user-account-card', '{}');
+INSERT INTO card_components(componentid, name, description, component, componentname, defaultconfig)
     VALUES ('f05e4d3a-53c1-11e8-b0ea-784f435179ea', 'Name Card', 'Name Card', 'views/components/cards/name', 'name', '{}');
 INSERT INTO cards(cardid, name, description, instructions,
         nodegroupid, graphid, active, visible, helpenabled, componentid)

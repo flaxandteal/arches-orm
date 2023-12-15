@@ -1,5 +1,6 @@
 from django.test import override_settings
 from django.test import TestCase
+from django.contrib.auth.models import User
 import pytest
 import json
 
@@ -60,8 +61,9 @@ JSON_PERSON = """
 @pytest.mark.django_db
 def test_startup(arches_orm):
     Person = arches_orm.models.Person
-    person = Person.create(full_name=["Ash"])
-    assert list(person.full_name) == ["Ash"]
+    person = Person.create()
+    ash = person.name.append()
+    ash.full_name = "Ash"
     resource = person.to_resource()
 
     assert resource.to_json() == json.loads(JSON_PERSON)
@@ -69,4 +71,14 @@ def test_startup(arches_orm):
     person.save()
 
     reloaded_person = Person.find(person.id)
-    assert list(reloaded_person.full_name) == ["Ash"]
+    assert reloaded_person.name[0].full_name == "Ash"
+
+    user_account = User(email="ash@example.com")
+    user_account.save()
+    reloaded_person.user_account = user_account
+    assert reloaded_person.user_account.email == "ash@example.com"
+
+    reloaded_person.save()
+
+    reloaded_person = Person.find(person.id)
+    assert reloaded_person.user_account.email == "ash@example.com"
