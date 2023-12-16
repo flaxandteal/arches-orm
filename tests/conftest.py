@@ -41,6 +41,7 @@ def django_db_use_migrations():
 @pytest.fixture(scope="function")
 def search_engine():
     sef = Mock()
+    sys.modules["arches.app.search.search_engine_factory"] = sef
     se = Mock()
     search_results = {"hits": {"hits": []}}
     sef.SearchEngineInstance.search = lambda *args, **kwargs: search_results

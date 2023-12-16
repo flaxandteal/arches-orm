@@ -37,6 +37,11 @@ extension loading:
 
     PYTHON_CONFIGURE_OPTS="--enable-loadable-sqlite-extensions" pyenv install 3.10.10
 
+## Documentation
+
+Documentation is generated using `pdoc`:
+
+    pdoc
 ## Thanks
 
 Particular thanks to the funders of this work, and to the Arches community for

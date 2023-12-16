@@ -9,13 +9,6 @@ from collections import UserDict
 
 from arches_orm.view_models import (
     WKRI,
-    UserViewModelMixin,
-    UserProtocol,
-    StringViewModel,
-    RelatedResourceInstanceListViewModel,
-    RelatedResourceInstanceViewModelMixin,
-    ConceptListValueViewModel,
-    ConceptValueViewModel,
     SemanticViewModel,
 )
 from ._register import REGISTER

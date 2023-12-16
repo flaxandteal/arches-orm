@@ -1,51 +1,10 @@
 import logging
+import uuid
 from abc import (abstractmethod, abstractclassmethod, abstractstaticmethod)
 from .view_models import WKRI as Resource
+from .adapter import ADAPTER_MANAGER
 
 logger = logging.getLogger(__name__)
-
-class AdapterManager:
-    default_adapter = None
-
-    def __init__(self):
-        self.adapters = {}
-
-    def register_adapter(self, wrapper_cls):
-        key = str(wrapper_cls)
-        if key in self.adapters:
-            raise RuntimeError(
-                "Cannot register same adapter multiple times"
-            )
-        if len(self.adapters) and not self.default_adapter:
-            raise RuntimeError(
-                "Must set a default adapter, if registering multiple in one process"
-            )
-        self.adapters[key] = wrapper_cls
-
-    def set_default_adapter(self, default_adapter):
-        self.default_adapter = default_adapter
-
-    def get_adapter(self, key=None):
-        if not self.adapters:
-            raise RuntimeError(
-                "Must have at least one adapter available, "
-                "did you mean to import an adapter module?"
-            )
-        if key is not None:
-            adapter = self.adapters[key]
-        elif len(self.adapters) > 1:
-            if not self.default_adapter:
-                raise RuntimeError(
-                    "You have imported multiple adapters, "
-                    "you must set an explicit default."
-                )
-            adapter = self.adapters[self.default_adapter]
-        else:
-            adapter = list(self.adapters.values())[0]
-        return adapter
-
-ADAPTER_MANAGER = AdapterManager()
-get_adapter = ADAPTER_MANAGER.get_adapter
 
 class ResourceWrapper(Resource):
     """Superclass of all well-known resources.
@@ -67,6 +26,13 @@ class ResourceWrapper(Resource):
 
     def __setitem__(self, key, value):
         return self.__setattr__(key, value)
+
+    def __eq__(self, other):
+        return (
+            self.id and other.id and
+            self.id == other.id and
+            self.__class__ == other.__class__
+        )
 
     def __setattr__(self, key, value):
         """Set Python values for nodes attributes."""
@@ -106,8 +72,8 @@ class ResourceWrapper(Resource):
         """
 
         self._values = {}
-        self.id = id
-        self._new_id = _new_id
+        self.id = id if isinstance(id, uuid.UUID) else uuid.UUID(id) if id else None
+        self._new_id = _new_id if isinstance(_new_id, uuid.UUID) else uuid.UUID(_new_id) if _new_id else None
         self.resource = resource
         self._cross_record = cross_record
         self._related_prefetch = related_prefetch
@@ -166,7 +132,7 @@ class ResourceWrapper(Resource):
         """Rebuild and save the underlying resource."""
         resource = self.to_resource(strict=True)
         resource.save()
-        self.id = str(resource.pk)
+        self.id = resource.pk
         return self
 
     def describe(self):
@@ -228,12 +194,6 @@ class ResourceWrapper(Resource):
     @abstractmethod
     def append(self, _no_save=False):
         """When called via a relationship (dot), append to the relationship."""
-
-    @abstractclassmethod
-    def values_from_resource(
-        cls, nodes, node_objs, resource, related_prefetch=None, wkri=None
-    ):
-        """Populate fields from the ID-referenced Arches resource."""
 
     @abstractclassmethod
     def where(cls, cross_record=None, **kwargs):

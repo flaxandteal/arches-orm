@@ -99,3 +99,20 @@ def test_user_account(arches_orm, person_ashs):
 
     reloaded_person = arches_orm.models.Person.find(person_ashs.id)
     assert reloaded_person.user_account.email == "ash@example.com"
+
+@pytest.mark.django_db
+def test_hooks_setup(arches_orm):
+    hooks = arches_orm.add_hooks()
+    assert hooks == {"post_save", "post_delete"}
+
+@pytest.mark.django_db
+def test_can_create_create_by_class_name(arches_orm):
+    from arches_orm.utils import get_well_known_resource_model_by_class_name
+    Person = get_well_known_resource_model_by_class_name("Person")
+    assert Person == arches_orm.models.Person
+
+@pytest.mark.django_db
+def test_can_retrieve_by_resource_id(arches_orm, person_ashs):
+    from arches_orm.utils import attempt_well_known_resource_model
+    person = attempt_well_known_resource_model(person_ashs.id)
+    assert person.__eq__(person_ashs)
