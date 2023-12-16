@@ -1,61 +1,29 @@
 from arches.app.models.resource import Resource
+from django.dispatch import Signal
 from functools import lru_cache
 from datetime import datetime
 from arches.app.models.models import ResourceXResource, Node, NodeGroup, Edge
 from arches.app.models.tile import Tile as TileProxyModel
 from arches.app.models.system_settings import settings as system_settings
 from collections import UserList
-from .view_models import ViewModel
-from .tile_view_models import get_view_model_for_datatype
+
+from arches_orm.view_models import ViewModel, NodeListViewModel
+from arches_orm.wrapper import AdapterManager, ResourceWrapper
+
+from .datatypes import get_view_model_for_datatype
 
 
 LOAD_FULL_NODE_OBJECTS = True
 LOAD_ALL_NODES = True
 
+class ArchesDjangoAdapter:
+    def get_wrapper(self):
+        return ArchesDjangoResourceWrapper
 
-class NodeListViewModel(UserList):
-    def __init__(self, nodelist):
-        self.nodelist = nodelist
+    def get_hooks(self):
+        from .hooks import HOOKS
+        return HOOKS
 
-    @property
-    def data(self):
-        return [node.value for node in self.nodelist]
-
-    def append(self, item=None):
-        value = self.nodelist.append(item)
-        return value
-
-    def extend(self, other):
-        self.nodelist.extend(other)
-
-    def sort(self, /, *args, **kwds):
-        self.nodelist.sort(*args, **kwds)
-
-    def reverse(self):
-        self.nodelist.reverse()
-
-    def clear(self):
-        self.nodelist.clear()
-
-    def remove(self, item):
-        self.nodelist.remove(item)
-
-    def pop(self):
-        item = self.nodelist.pop()
-        return item.value
-
-    def insert(self, i, item):
-        value = self.nodelist.insert(i, item)
-        return value
-
-    def __setitem__(self, i, item):
-        self.nodelist[i] = item
-
-    def __delitem__(self, i):
-        del self.nodelist[i]
-
-    def __iadd__(self, other):
-        self.nodelist += other
 
 
 class PseudoNodeList(UserList):
@@ -195,7 +163,9 @@ class PseudoNodeValue:
         return []
 
 
-class TranslationMixin:
+class ArchesDjangoResourceWrapper(ResourceWrapper, adapter=True):
+    _nodes_real: dict = None
+    _nodegroup_objects_real: dict = None
     _root_node: Node | None = None
     __datatype_factory = None
 
@@ -230,128 +200,6 @@ class TranslationMixin:
                 tiles[nodegroup_id].append(tile)
                 if tile in tiles_to_remove:
                     tiles_to_remove.remove(tile)
-        return relationships
-
-    def __update_tiles(self, tiles, all_values, tiles_to_remove, nodegroup_id=None):
-        """Map data in the well-known resource back to the Arches tiles."""
-
-        relationships = []
-        nodegroups = self._nodegroup_objects()
-        for key, value in all_values.items():
-            # if prefix is not None:
-            #    if not key.startswith(prefix):
-            #        continue
-            #    prekey, key = key.split("/", -1)
-            #    if "/" in prekey:
-            #        raise NotImplementedError("Only one level of groupings supported")
-            # elif "/" in key:
-            #    continue
-            node_obj = value.node
-            if nodegroup_id is not None and str(node_obj.nodegroup_id) != nodegroup_id:
-                continue
-            nodegroup_id = str(node_obj.nodegroup_id) if node_obj.nodegroup_id else None
-
-            data = {}
-            single = False
-
-            # FIXME: this change needs checked
-            if isinstance(value, PseudoNodeList):
-                values = value
-            else:
-                values: list = [value]
-
-            for value in values:
-                if value._child_nodes and nodegroup_id is not None:
-                    tiles.setdefault(nodegroup_id, [])
-                    nodegroup = nodegroups[nodegroup_id]
-                    if nodegroup.parentnodegroup_id:
-                        parent = tiles.setdefault(
-                            nodegroup.parentnodegroup_id,
-                            [
-                                TileProxyModel(
-                                    data={},
-                                    nodegroup_id=nodegroup.parentnodegroup_id,
-                                    tileid=None,
-                                )
-                            ],
-                        )[0]
-                    else:
-                        parent = None
-                    if not isinstance(value, PseudoNodeList):
-                        value = [value] if value is not None else []
-                    for entry in value:
-                        nodegroup = nodegroups[nodegroup_id]
-                        subtiles = {}
-                        if parent:
-                            subtiles[str(parent.nodegroup_id)] = [parent]
-
-                        # If we have a dataless version of this node, perhaps because it
-                        # is already a parent, we allow it to be filled in.
-                        if (
-                            tiles[nodegroup_id]
-                            and not tiles[nodegroup_id][0].data
-                            and tiles[nodegroup_id][0].tiles
-                        ):
-                            subtiles[nodegroup_id] = [tiles[nodegroup_id][0]]
-
-                        relationships += self._update_tiles(
-                            subtiles,
-                            entry.value._child_values,
-                            tiles_to_remove,
-                            nodegroup_id=nodegroup_id,
-                        )
-                        for nodegroup_id, subtile in subtiles.items():
-                            if subtile:
-                                tiles[nodegroup_id] = list(
-                                    set(tiles[nodegroup_id]) | set(subtile)
-                                )
-                    # We do not need to do anything here, because
-                    # the nodegroup (semantic node) has no separate existence from the
-                    # values in the tile in our approach -- if there were values, the
-                    # appropriate tile(s) were added with this nodegroupid. For nesting,
-                    # this would need to change.
-                    continue
-
-                # FIXME: we should be able to remove entries if appropriate
-                tile = value.get_tile()
-                if tile in tiles_to_remove:
-                    tiles_to_remove.remove(tile)
-                relationships += value.get_relationships()
-
-                parent = None
-                if node_obj != self._root_node:
-                    nodegroup = nodegroups[nodegroup_id]
-                    if nodegroup.parentnodegroup_id:
-                        parents = tiles.setdefault(
-                            nodegroup.parentnodegroup_id,
-                            [
-                                TileProxyModel(
-                                    data={},
-                                    nodegroup_id=nodegroup.parentnodegroup_id,
-                                    tileid=None,
-                                )
-                            ],
-                        )
-                        parent = parents[0]
-
-                if nodegroup_id in tiles:
-                    # if single or not tiles[node["nodegroupid"]].data:
-                    if single:
-                        data = tile.data
-                        tile = tiles[nodegroup_id][0]
-                        if tile in tiles_to_remove:
-                            tiles_to_remove.remove(tile)
-                        if parent and not tile.parenttile:
-                            tile.parenttile = parent
-                            parent.tiles.append(tile)
-                        tile.data.update(data)
-                        continue
-
-                tiles.setdefault(nodegroup_id, [])
-                if tile not in tiles[nodegroup_id]:
-                    tiles[nodegroup_id].append(tile)
-                if parent and tile not in parent.tiles:
-                    parent.tiles.append(tile)
         return relationships
 
     def to_resource(
@@ -788,3 +636,85 @@ class TranslationMixin:
             cls.from_resource_instance(tile.resourceinstance, cross_record=cross_record)
             for tile in tiles
         ]
+
+    def _make_pseudo_node(self, key, single=False, tile=None):
+        return self._make_pseudo_node_cls(key, single=single, tile=tile, wkri=self)
+
+    @classmethod
+    def _make_pseudo_node_cls(cls, key, single=False, tile=None, wkri=None):
+        nodes = cls._build_nodes()
+        node_obj = cls._node_objects()[nodes[key]["nodeid"]]
+        edges = cls._edges().get(nodes[key]["nodeid"])
+        value = None
+        if nodes[key]["datatype"][2] and not single:
+            value = PseudoNodeList(
+                node_obj,
+                parent=wkri,
+            )
+        if value is None or tile:
+            child_nodes = {}
+            if edges is not None:
+                child_nodes.update(
+                    {
+                        n.alias: (n, False)
+                        for n in cls._node_objects().values()
+                        if str(n.nodeid) in edges
+                    }
+                )
+            child_nodes.update(
+                {
+                    n.alias: (n, True)
+                    for n in cls._node_objects().values()
+                    if n.nodegroup_id == node_obj.nodeid and n.nodeid != node_obj.nodeid
+                }
+            )
+            node_value = PseudoNodeValue(
+                tile=tile,
+                node=node_obj,
+                value=None,
+                parent=wkri,
+                child_nodes=child_nodes,
+            )
+            # If we have a tile in a list, add it
+            if value is not None:
+                value.append(node_value)
+            else:
+                value = node_value
+
+        return value
+
+    def __init_subclass__(cls, well_known_resource_model=None):
+        super().__init_subclass__(well_known_resource_model=well_known_resource_model)
+        cls._nodes_real = {}
+        cls._nodegroup_objects_real = {}
+        cls._build_nodes()
+
+    @classmethod
+    def _add_events(cls):
+        cls.post_save = Signal()
+
+    def get_root(self):
+        if self._root_node:
+            if self._root_node.alias in self._values:
+                value = self._values[self._root_node.alias]
+            else:
+                value = self._make_pseudo_node(
+                    self._root_node.alias,
+                )
+                self._values[self._root_node.alias] = value
+            return value
+
+    def delete(self):
+        """Delete the underlying resource."""
+        return self.resource.delete()
+
+    @classmethod
+    def create(cls, _no_save=False, _do_index=True, **kwargs):
+        # We have our own way of saving a resource in Arches.
+        inst = super().create(_no_save=True, _do_index=_do_index, **kwargs)
+        inst.to_resource(_no_save=_no_save, _do_index=_do_index)
+        return inst
+
+    @staticmethod
+    def get_adapter():
+        return ArchesDjangoAdapter()

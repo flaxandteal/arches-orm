@@ -1,6 +1,3 @@
-from django.test import override_settings
-from django.test import TestCase
-from django.contrib.auth.models import User
 import pytest
 import json
 
@@ -58,27 +55,47 @@ JSON_PERSON = """
 """
 
 
+@pytest.fixture
+def person_ash(arches_orm):
+    Person = arches_orm.models.Person
+    person = Person.create()
+    ash = person.name.append()
+    ash.full_name = "Ash"
+    return person
+
+@pytest.fixture
+def person_ashs(arches_orm, person_ash):
+    person_ash.save()
+    yield person_ash
+    person_ash.delete()
+
 @pytest.mark.django_db
 def test_startup(arches_orm):
     Person = arches_orm.models.Person
     person = Person.create()
     ash = person.name.append()
     ash.full_name = "Ash"
-    resource = person.to_resource()
-
-    assert resource.to_json() == json.loads(JSON_PERSON)
-
     person.save()
 
-    reloaded_person = Person.find(person.id)
+@pytest.mark.django_db
+def test_unsaved_json(person_ash):
+    resource = person_ash.to_resource()
+    assert resource.to_json() == json.loads(JSON_PERSON)
+
+@pytest.mark.django_db
+def test_find(arches_orm, person_ashs):
+    reloaded_person = arches_orm.models.Person.find(person_ashs.id)
     assert reloaded_person.name[0].full_name == "Ash"
 
+@pytest.mark.django_db
+def test_user_account(arches_orm, person_ashs):
+    from django.contrib.auth.models import User
     user_account = User(email="ash@example.com")
     user_account.save()
-    reloaded_person.user_account = user_account
-    assert reloaded_person.user_account.email == "ash@example.com"
+    person_ashs.user_account = user_account
+    assert person_ashs.user_account.email == "ash@example.com"
 
-    reloaded_person.save()
+    person_ashs.save()
 
-    reloaded_person = Person.find(person.id)
+    reloaded_person = arches_orm.models.Person.find(person_ashs.id)
     assert reloaded_person.user_account.email == "ash@example.com"

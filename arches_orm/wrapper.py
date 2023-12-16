@@ -1,16 +1,53 @@
 import logging
-from django.dispatch import Signal
-from .translation import (
-    PseudoNodeValue,
-    PseudoNodeList,
-    TranslationMixin,
-)
+from abc import (abstractmethod, abstractclassmethod, abstractstaticmethod)
 from .view_models import WKRI as Resource
 
 logger = logging.getLogger(__name__)
 
+class AdapterManager:
+    default_adapter = None
 
-class ResourceModelWrapper(Resource, TranslationMixin):
+    def __init__(self):
+        self.adapters = {}
+
+    def register_adapter(self, wrapper_cls):
+        key = str(wrapper_cls)
+        if key in self.adapters:
+            raise RuntimeError(
+                "Cannot register same adapter multiple times"
+            )
+        if len(self.adapters) and not self.default_adapter:
+            raise RuntimeError(
+                "Must set a default adapter, if registering multiple in one process"
+            )
+        self.adapters[key] = wrapper_cls
+
+    def set_default_adapter(self, default_adapter):
+        self.default_adapter = default_adapter
+
+    def get_adapter(self, key=None):
+        if not self.adapters:
+            raise RuntimeError(
+                "Must have at least one adapter available, "
+                "did you mean to import an adapter module?"
+            )
+        if key is not None:
+            adapter = self.adapters[key]
+        elif len(self.adapters) > 1:
+            if not self.default_adapter:
+                raise RuntimeError(
+                    "You have imported multiple adapters, "
+                    "you must set an explicit default."
+                )
+            adapter = self.adapters[self.default_adapter]
+        else:
+            adapter = list(self.adapters.values())[0]
+        return adapter
+
+ADAPTER_MANAGER = AdapterManager()
+get_adapter = ADAPTER_MANAGER.get_adapter
+
+class ResourceWrapper(Resource):
     """Superclass of all well-known resources.
 
     When you use, `Person`, etc. it will be this class in disguise.
@@ -19,8 +56,6 @@ class ResourceModelWrapper(Resource, TranslationMixin):
     model_name: str
     graphid: str
     id: str
-    _nodes_real: dict = None
-    _nodegroup_objects_real: dict = None
     _values: dict = None
     _cross_record: dict = None
     _pending_relationships: list = None
@@ -33,58 +68,11 @@ class ResourceModelWrapper(Resource, TranslationMixin):
     def __setitem__(self, key, value):
         return self.__setattr__(key, value)
 
-    def _make_pseudo_node(self, key, single=False, tile=None):
-        return self._make_pseudo_node_cls(key, single=single, tile=tile, wkri=self)
-
-    @classmethod
-    def _make_pseudo_node_cls(cls, key, single=False, tile=None, wkri=None):
-        nodes = cls._build_nodes()
-        node_obj = cls._node_objects()[nodes[key]["nodeid"]]
-        edges = cls._edges().get(nodes[key]["nodeid"])
-        value = None
-        if nodes[key]["datatype"][2] and not single:
-            value = PseudoNodeList(
-                node_obj,
-                parent=wkri,
-            )
-        if value is None or tile:
-            child_nodes = {}
-            if edges is not None:
-                child_nodes.update(
-                    {
-                        n.alias: (n, False)
-                        for n in cls._node_objects().values()
-                        if str(n.nodeid) in edges
-                    }
-                )
-            child_nodes.update(
-                {
-                    n.alias: (n, True)
-                    for n in cls._node_objects().values()
-                    if n.nodegroup_id == node_obj.nodeid and n.nodeid != node_obj.nodeid
-                }
-            )
-            node_value = PseudoNodeValue(
-                tile=tile,
-                node=node_obj,
-                value=None,
-                parent=wkri,
-                child_nodes=child_nodes,
-            )
-            # If we have a tile in a list, add it
-            if value is not None:
-                value.append(node_value)
-            else:
-                value = node_value
-
-        return value
-
     def __setattr__(self, key, value):
         """Set Python values for nodes attributes."""
 
         if key in (
             "id",
-            "_root",
             "_new_id",
             "_values",
             "resource",
@@ -95,16 +83,12 @@ class ResourceModelWrapper(Resource, TranslationMixin):
         ):
             super().__setattr__(key, value)
         else:
-            setattr(self._root().value, key, value)
+            setattr(self.get_root().value, key, value)
 
     def __getattr__(self, key):
         """Retrieve Python values for nodes attributes."""
 
-        return getattr(self._root().value, key)
-
-    def delete(self):
-        """Delete the underlying resource."""
-        return self.resource.delete()
+        return getattr(self.get_root().value, key)
 
     def __init__(
         self,
@@ -131,17 +115,6 @@ class ResourceModelWrapper(Resource, TranslationMixin):
         for key, value in kwargs.items():
             setattr(self, key, value)
 
-    def _root(self):
-        if self._root_node:
-            if self._root_node.alias in self._values:
-                value = self._values[self._root_node.alias]
-            else:
-                value = self._make_pseudo_node(
-                    self._root_node.alias,
-                )
-                self._values[self._root_node.alias] = value
-            return value
-
     @classmethod
     def create_bulk(cls, fields: list, do_index: bool = True):
         raise NotImplementedError("The bulk_create module needs to be rewritten")
@@ -154,8 +127,10 @@ class ResourceModelWrapper(Resource, TranslationMixin):
         if "id" in kwargs:
             kwargs["_new_id"] = kwargs["id"]
             del kwargs["id"]
+
         inst = cls.build(**kwargs)
-        inst.to_resource(_no_save=_no_save, _do_index=_do_index)
+        if not _no_save:
+            inst.save()
         return inst
 
     @classmethod
@@ -213,15 +188,57 @@ class ResourceModelWrapper(Resource, TranslationMixin):
         """Convert to string."""
         return str(self._wkrm.to_string(self))
 
-    def __init_subclass__(cls, well_known_resource_model=None):
+    def __init_subclass__(cls, well_known_resource_model=None, adapter=False):
         """Create a new well-known resource model wrapper, from an WKRM."""
-        if not well_known_resource_model:
-            raise RuntimeError("Must try to wrap a real model")
+        if adapter:
+            ADAPTER_MANAGER.register_adapter(cls.get_adapter())
+        else:
+            if not well_known_resource_model:
+                raise RuntimeError("Must try to wrap a real model")
 
-        cls._model_name = well_known_resource_model.model_name
-        cls.graphid = well_known_resource_model.graphid
-        cls._wkrm = well_known_resource_model
-        cls._nodes_real = {}
-        cls._nodegroup_objects_real = {}
-        cls.post_save = Signal()
-        cls._build_nodes()
+            cls._model_name = well_known_resource_model.model_name
+            cls.graphid = well_known_resource_model.graphid
+            cls._wkrm = well_known_resource_model
+            cls._add_events()
+
+    @abstractclassmethod
+    def search(cls, text, fields=None, _total=None):
+        """Search for resources of this model, and return as well-known resources."""
+
+    @abstractclassmethod
+    def all_ids(cls):
+        """Get IDs for all resources of this type."""
+
+    @abstractclassmethod
+    def all(cls, related_prefetch=None):
+        """Get all resources of this type."""
+
+    @abstractclassmethod
+    def find(cls, resourceinstanceid):
+        """Find an individual well-known resource by instance ID."""
+
+    @abstractmethod
+    def delete(self):
+        """Delete the underlying resource."""
+
+    @abstractmethod
+    def remove(self):
+        """When called via a relationship (dot), remove the relationship."""
+
+    @abstractmethod
+    def append(self, _no_save=False):
+        """When called via a relationship (dot), append to the relationship."""
+
+    @abstractclassmethod
+    def values_from_resource(
+        cls, nodes, node_objs, resource, related_prefetch=None, wkri=None
+    ):
+        """Populate fields from the ID-referenced Arches resource."""
+
+    @abstractclassmethod
+    def where(cls, cross_record=None, **kwargs):
+        """Do a filtered query returning a list of well-known resources."""
+
+    @abstractstaticmethod
+    def get_adapter():
+        """Get the adapter that encapsulates this wrapper."""

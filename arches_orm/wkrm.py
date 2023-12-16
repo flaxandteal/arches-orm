@@ -1,7 +1,7 @@
 import logging
 from django.conf import settings
 from typing import Callable
-from .wrapper import ResourceModelWrapper
+from .wrapper import get_adapter
 
 
 logger = logging.getLogger(__name__)
@@ -36,11 +36,11 @@ WELL_KNOWN_RESOURCE_MODELS = [
 ]
 
 
-def _make_wkrm(wkrm_definition):
+def _make_wkrm(wkrm_definition, adapter: str | None=None):
     try:
         return type(
             wkrm_definition.model_class_name,
-            (ResourceModelWrapper,),
+            (get_adapter(adapter).get_wrapper(),),
             {},
             well_known_resource_model=wkrm_definition,
         )
