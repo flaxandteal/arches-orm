@@ -15,15 +15,13 @@
 
         from arches.app.models.system_settings import settings as system_settings
 
-        from collections import UserList
-
         import logging
 
-        from arches_orm.view_models import ViewModel, NodeListViewModel
+        from arches_orm.wrapper import ResourceWrapper
 
-        from arches_orm.wrapper import AdapterManager, ResourceWrapper
+        from .adapter import ArchesDjangoAdapter
 
-        from .datatypes import get_view_model_for_datatype
+        from .pseudo_nodes import PseudoNodeList, PseudoNodeValue
 
         logger = logging.getLogger(__name__)
 
@@ -32,286 +30,6 @@
         LOAD_FULL_NODE_OBJECTS = True
 
         LOAD_ALL_NODES = True
-
-        class ArchesDjangoAdapter:
-
-            def __str__(self):
-
-                return "arches-django"
-
-            def get_wrapper(self):
-
-                return ArchesDjangoResourceWrapper
-
-            def load_from_id(self, resource_id, from_prefetch=None):
-
-                from arches_orm.utils import get_resource_models_for_adapter
-
-                resource = (
-
-                    from_prefetch(resource_id)
-
-                    if from_prefetch is not None
-
-                    else Resource.objects.get(pk=resource_id)
-
-                )
-
-                resource_models_by_graph_id = get_resource_models_for_adapter(str(self))["by-graph-id"]
-
-                if str(resource.graph_id) not in resource_models_by_graph_id:
-
-                    logger.error("Tried to load non-existent WKRM: %s", resource_id)
-
-                    return None
-
-                return resource_models_by_graph_id[str(resource.graph_id)].from_resource(
-
-                    resource, related_prefetch=from_prefetch
-
-                )
-
-            def get_hooks(self):
-
-                from .hooks import HOOKS
-
-                return HOOKS
-
-        
-
-        class PseudoNodeList(UserList):
-
-            def __init__(self, node, parent):
-
-                super().__init__()
-
-                self.node = node
-
-                self.parent = parent
-
-            def value_list(self):
-
-                return NodeListViewModel(self)
-
-            def get_tile(self):
-
-                for pseudo_node in self:
-
-                    pseudo_node.get_tile()
-
-                return None
-
-            def __iadd__(self, other):
-
-                other_pn = [
-
-                    self.parent._make_pseudo_node(
-
-                        self.node.alias,
-
-                        single=True,
-
-                    )
-
-                    if not isinstance(item, PseudoNodeValue)
-
-                    else item
-
-                    for item in other
-
-                ]
-
-                super().__iadd__(other_pn)
-
-            def append(self, item=None):
-
-                if not isinstance(item, PseudoNodeValue):
-
-                    value = self.parent._make_pseudo_node(
-
-                        self.node.alias,
-
-                        single=True,
-
-                    )
-
-                    if item is not None:
-
-                        value.value = item
-
-                    item = value
-
-                super().append(item)
-
-                return item.value
-
-            def get_relationships(self):
-
-                return []
-
-            def get_children(self, direct=None):
-
-                return self
-
-        
-
-        class PseudoNodeValue:
-
-            _value_loaded = False
-
-            _value = None
-
-            def __init__(self, node, tile=None, value=None, parent=None, child_nodes=None):
-
-                self.node = node
-
-                self.tile = tile
-
-                if "Model" in str(self.tile.__class__):
-
-                    raise RuntimeError()
-
-                self._parent = parent
-
-                self._child_nodes = child_nodes
-
-                self._value = value
-
-            def __str__(self):
-
-                return f"{{{self.value}}}"
-
-            def __repr__(self):
-
-                return str(self)
-
-            def get_relationships(self):
-
-                try:
-
-                    return self.value.get_relationships() if self.value else []
-
-                except AttributeError:
-
-                    return []
-
-            def get_tile(self):
-
-                self._update_value()
-
-                if self._as_tile_data:
-
-                    tile_value = self._as_tile_data(self._value)
-
-                else:
-
-                    tile_value = self._value
-
-                self.tile.data[
-
-                    str(self.node.nodeid)
-
-                ] = tile_value  # TODO: ensure this works for any value
-
-                return self.tile if self.node.is_collector else None
-
-            def _update_value(self):
-
-                if not self.tile:
-
-                    if not self.node:
-
-                        raise RuntimeError("Empty tile")
-
-                    self.tile = TileProxyModel(
-
-                        nodegroup_id=self.node.nodegroup_id, tileid=None, data={}
-
-                    )
-
-                if not self._value_loaded:
-
-                    if self.tile.data is not None and str(self.node.nodeid) in self.tile.data:
-
-                        data = self.tile.data[str(self.node.nodeid)]
-
-                    else:
-
-                        data = self._value
-
-                    self._value, self._as_tile_data = get_view_model_for_datatype(
-
-                        self.tile,
-
-                        self.node,
-
-                        value=data,
-
-                        parent=self._parent,
-
-                        child_nodes=self._child_nodes,
-
-                    )
-
-                    if self._value is not None:
-
-                        self._value._parent_pseudo_node = self
-
-                    if self._value is not None:
-
-                        self._value_loaded = True
-
-            @property
-
-            def value(self):
-
-                self._update_value()
-
-                return self._value
-
-            @value.setter
-
-            def value(self, value):
-
-                if not isinstance(value, ViewModel):
-
-                    value, self._as_tile_data = get_view_model_for_datatype(
-
-                        self.tile,
-
-                        self.node,
-
-                        value=value,
-
-                        parent=self._parent,
-
-                        child_nodes=self._child_nodes,
-
-                    )
-
-                self._value = value
-
-                self._value_loaded = True
-
-            def __len__(self):
-
-                return len(self.get_children())
-
-            def get_children(self, direct=None):
-
-                if self.value:
-
-                    try:
-
-                        return self.value.get_children(direct=direct)
-
-                    except AttributeError:
-
-                        ...
-
-                return []
-
-        
 
         class ArchesDjangoResourceWrapper(ResourceWrapper, adapter=True):
 
@@ -551,6 +269,20 @@
 
                 return cls.__datatype_factory
 
+            @property
+
+            def _nodes(self):
+
+                return self._node_objects_by_alias()
+
+            @classmethod
+
+            @lru_cache
+
+            def _node_objects_by_alias(cls):
+
+                return {node.alias: node for node in cls._node_objects().values()}
+
             @classmethod
 
             @lru_cache
@@ -563,19 +295,9 @@
 
                     raise RuntimeError("Attempt to load full node objects when asked not to")
 
-                if LOAD_ALL_NODES:
+                cls._build_nodes()
 
-                    fltr = {"graph_id": cls.graphid}
-
-                else:
-
-                    fltr = {
-
-                        "nodeid__in": [node["nodeid"] for node in cls._build_nodes().values()]
-
-                    }
-
-                return {str(node.nodeid): node for node in Node.objects.filter(**fltr)}
+                return cls._nodes_real
 
             @classmethod
 
@@ -663,12 +385,6 @@
 
                 return wkri
 
-            @property
-
-            def _nodes(self):
-
-                return self._build_nodes()
-
             @classmethod
 
             @lru_cache
@@ -683,117 +399,41 @@
 
                     )
 
-                nodes: dict[str, dict] = {}
+                if LOAD_ALL_NODES:
 
-                nodegroups: dict[str, NodeGroup] = {}
+                    fltr = {"graph_id": cls.graphid}
 
-                root_node = None
+                else:
 
-                if LOAD_FULL_NODE_OBJECTS and LOAD_ALL_NODES:
+                    fltr = {
 
-                    datatype_factory = cls._datatype_factory()
+                        "nodeid__in": [alias for alias in cls._wkrm.nodes]
 
-                    node_objects = cls._node_objects()
+                    }
 
-                    for node_obj in node_objects.values():
+                nodes = {str(node.nodeid): node for node in Node.objects.filter(**fltr)}
 
-                        # The root node will not have a nodegroup
+                nodegroups = {
 
-                        if node_obj.nodegroup_id:
+                    str(nodegroup.nodegroupid): nodegroup
 
-                            nodes[str(node_obj.alias)] = {
+                    for nodegroup in NodeGroup.objects.filter(
 
-                                "nodeid": str(node_obj.nodeid),
-
-                                "nodegroupid": str(node_obj.nodegroup_id),
-
-                            }
-
-                        else:
-
-                            root_node = node_obj
-
-                            nodes[str(node_obj.alias)] = {
-
-                                "nodeid": str(node_obj.nodeid),
-
-                                "nodegroupid": None,
-
-                            }
-
-                    # Ensure defined nodes overwrite the autoloaded ones
-
-                    nodes.update(cls._wkrm.nodes)
-
-                    nodegroups.update(
-
-                        {
-
-                            str(nodegroup.nodegroupid): nodegroup
-
-                            for nodegroup in NodeGroup.objects.filter(
-
-                                nodegroupid__in=[node["nodegroupid"] for node in nodes.values()]
-
-                            )
-
-                        }
+                        nodegroupid__in=[node.nodegroup_id for node in nodes.values()]
 
                     )
 
-                    for node in nodes.values():
-
-                        if nodegroup := nodegroups.get(str(node["nodegroupid"])):
-
-                            if nodegroup.parentnodegroup_id:
-
-                                node["parentnodegroup_id"] = str(nodegroup.parentnodegroup_id)
-
-                            node_obj = node_objects[node["nodeid"]]
-
-                            if "datatype" not in node:
-
-                                node["datatype"] = (
-
-                                    datatype_factory.get_instance(node_obj.datatype),
-
-                                    node_obj.datatype,
-
-                                    nodegroup.cardinality == "n"
-
-                                    and node_obj.nodeid == node_obj.nodegroup_id,
-
-                                )
-
-                            if node_obj.config:
-
-                                node["config"] = node_obj.config
-
-                        elif root_node and node["nodeid"] == str(root_node.nodeid):
-
-                            node_obj = node_objects[node["nodeid"]]
-
-                            node["datatype"] = (
-
-                                datatype_factory.get_instance(node_obj.datatype),
-
-                                node_obj.datatype,
-
-                                False,
-
-                            )
-
-                        else:
-
-                            raise KeyError("Missing nodegroups based on WKRM")
+                }
 
                 cls._nodes_real.update(nodes)
 
                 cls._nodegroup_objects_real.update(nodegroups)
 
-                cls._root_node = root_node
+                cls._root_node = {
 
-                return cls._nodes_real
+                    "root": node for node in nodes.values() if node.nodegroup_id is None
+
+                }.get("root")
 
             @classmethod
 
@@ -827,9 +467,9 @@
 
                 permitted_nodegroups = [
 
-                    node["nodegroupid"]
+                    node.nodegroup_id
 
-                    for key, node in cls._build_nodes().items()
+                    for key, node in cls._nodes.items()
 
                     if (fields is None or key in fields)
 
@@ -963,9 +603,9 @@
 
                 tile = resource.tiles
 
-                nodeid = wkfm._nodes[key]["nodeid"]
+                nodeid = str(wkfm._nodes()[key].nodeid)
 
-                nodegroupid = wkfm._nodes[key]["nodegroupid"]
+                nodegroupid = str(wkfm._nodes()[key].nodegroup_id)
 
                 for tile in resource.tiles:
 
@@ -1015,9 +655,9 @@
 
                 tile = resource.tiles
 
-                nodeid = wkfm._nodes[key]["nodeid"]
+                nodeid = str(wkfm._nodes()[key].nodeid)
 
-                nodegroupid = wkfm._nodes[key]["nodegroupid"]
+                nodegroupid = str(wkfm._nodes()[key].nodegroup_id)
 
                 for tile in resource.tiles:
 
@@ -1091,7 +731,7 @@
 
                             if nodeid in node_objs:
 
-                                key = node_objs[nodeid]
+                                key = node_objs[nodeid].alias
 
                                 if node_value is not None:
 
@@ -1111,7 +751,7 @@
 
                 # TODO: replace with proper query
 
-                unknown_keys = set(kwargs) - set(cls._build_nodes())
+                unknown_keys = set(kwargs) - set(cls._nodes)
 
                 if unknown_keys:
 
@@ -1149,17 +789,15 @@
 
             def _make_pseudo_node_cls(cls, key, single=False, tile=None, wkri=None):
 
-                nodes = cls._build_nodes()
-
-                node_obj = cls._node_objects()[nodes[key].nodeid]
+                node_obj = cls._node_objects_by_alias()[key]
 
                 nodegroups = cls._nodegroup_objects()
 
-                edges = cls._edges().get(nodes[key].nodeid)
+                edges = cls._edges().get(str(node_obj.nodeid))
 
                 value = None
 
-                if node_obj.nodegroup_id and nodegroups[str(node_obj.nodegroup_id)].cardinality == "n":
+                if node_obj.nodegroup_id and node_obj.is_collector and nodegroups[str(node_obj.nodegroup_id)].cardinality == "n" and not single:
 
                     value = PseudoNodeList(
 
@@ -1304,135 +942,6 @@ logger
 ```
 
 ## Classes
-
-### ArchesDjangoAdapter
-
-```python3
-class ArchesDjangoAdapter(
-    /,
-    *args,
-    **kwargs
-)
-```
-
-??? example "View Source"
-        class ArchesDjangoAdapter:
-
-            def __str__(self):
-
-                return "arches-django"
-
-            def get_wrapper(self):
-
-                return ArchesDjangoResourceWrapper
-
-            def load_from_id(self, resource_id, from_prefetch=None):
-
-                from arches_orm.utils import get_resource_models_for_adapter
-
-                resource = (
-
-                    from_prefetch(resource_id)
-
-                    if from_prefetch is not None
-
-                    else Resource.objects.get(pk=resource_id)
-
-                )
-
-                resource_models_by_graph_id = get_resource_models_for_adapter(str(self))["by-graph-id"]
-
-                if str(resource.graph_id) not in resource_models_by_graph_id:
-
-                    logger.error("Tried to load non-existent WKRM: %s", resource_id)
-
-                    return None
-
-                return resource_models_by_graph_id[str(resource.graph_id)].from_resource(
-
-                    resource, related_prefetch=from_prefetch
-
-                )
-
-            def get_hooks(self):
-
-                from .hooks import HOOKS
-
-                return HOOKS
-
-------
-
-#### Methods
-
-    
-#### get_hooks
-
-```python3
-def get_hooks(
-    self
-)
-```
-
-??? example "View Source"
-            def get_hooks(self):
-
-                from .hooks import HOOKS
-
-                return HOOKS
-
-    
-#### get_wrapper
-
-```python3
-def get_wrapper(
-    self
-)
-```
-
-??? example "View Source"
-            def get_wrapper(self):
-
-                return ArchesDjangoResourceWrapper
-
-    
-#### load_from_id
-
-```python3
-def load_from_id(
-    self,
-    resource_id,
-    from_prefetch=None
-)
-```
-
-??? example "View Source"
-            def load_from_id(self, resource_id, from_prefetch=None):
-
-                from arches_orm.utils import get_resource_models_for_adapter
-
-                resource = (
-
-                    from_prefetch(resource_id)
-
-                    if from_prefetch is not None
-
-                    else Resource.objects.get(pk=resource_id)
-
-                )
-
-                resource_models_by_graph_id = get_resource_models_for_adapter(str(self))["by-graph-id"]
-
-                if str(resource.graph_id) not in resource_models_by_graph_id:
-
-                    logger.error("Tried to load non-existent WKRM: %s", resource_id)
-
-                    return None
-
-                return resource_models_by_graph_id[str(resource.graph_id)].from_resource(
-
-                    resource, related_prefetch=from_prefetch
-
-                )
 
 ### ArchesDjangoResourceWrapper
 
@@ -1690,6 +1199,20 @@ When you use, `Person`, etc. it will be this class in disguise.
 
                 return cls.__datatype_factory
 
+            @property
+
+            def _nodes(self):
+
+                return self._node_objects_by_alias()
+
+            @classmethod
+
+            @lru_cache
+
+            def _node_objects_by_alias(cls):
+
+                return {node.alias: node for node in cls._node_objects().values()}
+
             @classmethod
 
             @lru_cache
@@ -1702,19 +1225,9 @@ When you use, `Person`, etc. it will be this class in disguise.
 
                     raise RuntimeError("Attempt to load full node objects when asked not to")
 
-                if LOAD_ALL_NODES:
+                cls._build_nodes()
 
-                    fltr = {"graph_id": cls.graphid}
-
-                else:
-
-                    fltr = {
-
-                        "nodeid__in": [node["nodeid"] for node in cls._build_nodes().values()]
-
-                    }
-
-                return {str(node.nodeid): node for node in Node.objects.filter(**fltr)}
+                return cls._nodes_real
 
             @classmethod
 
@@ -1802,12 +1315,6 @@ When you use, `Person`, etc. it will be this class in disguise.
 
                 return wkri
 
-            @property
-
-            def _nodes(self):
-
-                return self._build_nodes()
-
             @classmethod
 
             @lru_cache
@@ -1822,117 +1329,41 @@ When you use, `Person`, etc. it will be this class in disguise.
 
                     )
 
-                nodes: dict[str, dict] = {}
+                if LOAD_ALL_NODES:
 
-                nodegroups: dict[str, NodeGroup] = {}
+                    fltr = {"graph_id": cls.graphid}
 
-                root_node = None
+                else:
 
-                if LOAD_FULL_NODE_OBJECTS and LOAD_ALL_NODES:
+                    fltr = {
 
-                    datatype_factory = cls._datatype_factory()
+                        "nodeid__in": [alias for alias in cls._wkrm.nodes]
 
-                    node_objects = cls._node_objects()
+                    }
 
-                    for node_obj in node_objects.values():
+                nodes = {str(node.nodeid): node for node in Node.objects.filter(**fltr)}
 
-                        # The root node will not have a nodegroup
+                nodegroups = {
 
-                        if node_obj.nodegroup_id:
+                    str(nodegroup.nodegroupid): nodegroup
 
-                            nodes[str(node_obj.alias)] = {
+                    for nodegroup in NodeGroup.objects.filter(
 
-                                "nodeid": str(node_obj.nodeid),
-
-                                "nodegroupid": str(node_obj.nodegroup_id),
-
-                            }
-
-                        else:
-
-                            root_node = node_obj
-
-                            nodes[str(node_obj.alias)] = {
-
-                                "nodeid": str(node_obj.nodeid),
-
-                                "nodegroupid": None,
-
-                            }
-
-                    # Ensure defined nodes overwrite the autoloaded ones
-
-                    nodes.update(cls._wkrm.nodes)
-
-                    nodegroups.update(
-
-                        {
-
-                            str(nodegroup.nodegroupid): nodegroup
-
-                            for nodegroup in NodeGroup.objects.filter(
-
-                                nodegroupid__in=[node["nodegroupid"] for node in nodes.values()]
-
-                            )
-
-                        }
+                        nodegroupid__in=[node.nodegroup_id for node in nodes.values()]
 
                     )
 
-                    for node in nodes.values():
-
-                        if nodegroup := nodegroups.get(str(node["nodegroupid"])):
-
-                            if nodegroup.parentnodegroup_id:
-
-                                node["parentnodegroup_id"] = str(nodegroup.parentnodegroup_id)
-
-                            node_obj = node_objects[node["nodeid"]]
-
-                            if "datatype" not in node:
-
-                                node["datatype"] = (
-
-                                    datatype_factory.get_instance(node_obj.datatype),
-
-                                    node_obj.datatype,
-
-                                    nodegroup.cardinality == "n"
-
-                                    and node_obj.nodeid == node_obj.nodegroup_id,
-
-                                )
-
-                            if node_obj.config:
-
-                                node["config"] = node_obj.config
-
-                        elif root_node and node["nodeid"] == str(root_node.nodeid):
-
-                            node_obj = node_objects[node["nodeid"]]
-
-                            node["datatype"] = (
-
-                                datatype_factory.get_instance(node_obj.datatype),
-
-                                node_obj.datatype,
-
-                                False,
-
-                            )
-
-                        else:
-
-                            raise KeyError("Missing nodegroups based on WKRM")
+                }
 
                 cls._nodes_real.update(nodes)
 
                 cls._nodegroup_objects_real.update(nodegroups)
 
-                cls._root_node = root_node
+                cls._root_node = {
 
-                return cls._nodes_real
+                    "root": node for node in nodes.values() if node.nodegroup_id is None
+
+                }.get("root")
 
             @classmethod
 
@@ -1966,9 +1397,9 @@ When you use, `Person`, etc. it will be this class in disguise.
 
                 permitted_nodegroups = [
 
-                    node["nodegroupid"]
+                    node.nodegroup_id
 
-                    for key, node in cls._build_nodes().items()
+                    for key, node in cls._nodes.items()
 
                     if (fields is None or key in fields)
 
@@ -2102,9 +1533,9 @@ When you use, `Person`, etc. it will be this class in disguise.
 
                 tile = resource.tiles
 
-                nodeid = wkfm._nodes[key]["nodeid"]
+                nodeid = str(wkfm._nodes()[key].nodeid)
 
-                nodegroupid = wkfm._nodes[key]["nodegroupid"]
+                nodegroupid = str(wkfm._nodes()[key].nodegroup_id)
 
                 for tile in resource.tiles:
 
@@ -2154,9 +1585,9 @@ When you use, `Person`, etc. it will be this class in disguise.
 
                 tile = resource.tiles
 
-                nodeid = wkfm._nodes[key]["nodeid"]
+                nodeid = str(wkfm._nodes()[key].nodeid)
 
-                nodegroupid = wkfm._nodes[key]["nodegroupid"]
+                nodegroupid = str(wkfm._nodes()[key].nodegroup_id)
 
                 for tile in resource.tiles:
 
@@ -2230,7 +1661,7 @@ When you use, `Person`, etc. it will be this class in disguise.
 
                             if nodeid in node_objs:
 
-                                key = node_objs[nodeid]
+                                key = node_objs[nodeid].alias
 
                                 if node_value is not None:
 
@@ -2250,7 +1681,7 @@ When you use, `Person`, etc. it will be this class in disguise.
 
                 # TODO: replace with proper query
 
-                unknown_keys = set(kwargs) - set(cls._build_nodes())
+                unknown_keys = set(kwargs) - set(cls._nodes)
 
                 if unknown_keys:
 
@@ -2288,17 +1719,15 @@ When you use, `Person`, etc. it will be this class in disguise.
 
             def _make_pseudo_node_cls(cls, key, single=False, tile=None, wkri=None):
 
-                nodes = cls._build_nodes()
-
-                node_obj = cls._node_objects()[nodes[key].nodeid]
+                node_obj = cls._node_objects_by_alias()[key]
 
                 nodegroups = cls._nodegroup_objects()
 
-                edges = cls._edges().get(nodes[key].nodeid)
+                edges = cls._edges().get(str(node_obj.nodeid))
 
                 value = None
 
-                if node_obj.nodegroup_id and nodegroups[str(node_obj.nodegroup_id)].cardinality == "n":
+                if node_obj.nodegroup_id and node_obj.is_collector and nodegroups[str(node_obj.nodegroup_id)].cardinality == "n" and not single:
 
                     value = PseudoNodeList(
 
@@ -2433,11 +1862,7 @@ When you use, `Person`, etc. it will be this class in disguise.
 #### Ancestors (in MRO)
 
 * arches_orm.wrapper.ResourceWrapper
-* arches_orm.view_models.WKRI
-
-#### Descendants
-
-* arches_orm.wkrm.Person
+* arches_orm.view_models._base.WKRI
 
 #### Static methods
 
@@ -2773,9 +2198,9 @@ Search ES for resources of this model, and return as well-known resources.
 
                 permitted_nodegroups = [
 
-                    node["nodegroupid"]
+                    node.nodegroup_id
 
-                    for key, node in cls._build_nodes().items()
+                    for key, node in cls._nodes.items()
 
                     if (fields is None or key in fields)
 
@@ -2866,7 +2291,7 @@ Populate fields from the ID-referenced Arches resource.
 
                             if nodeid in node_objs:
 
-                                key = node_objs[nodeid]
+                                key = node_objs[nodeid].alias
 
                                 if node_value is not None:
 
@@ -2899,7 +2324,7 @@ Do a filtered query returning a list of well-known resources.
 
                 # TODO: replace with proper query
 
-                unknown_keys = set(kwargs) - set(cls._build_nodes())
+                unknown_keys = set(kwargs) - set(cls._nodes)
 
                 if unknown_keys:
 
@@ -2966,9 +2391,9 @@ When called via a relationship (dot), append to the relationship.
 
                 tile = resource.tiles
 
-                nodeid = wkfm._nodes[key]["nodeid"]
+                nodeid = str(wkfm._nodes()[key].nodeid)
 
-                nodegroupid = wkfm._nodes[key]["nodegroupid"]
+                nodegroupid = str(wkfm._nodes()[key].nodegroup_id)
 
                 for tile in resource.tiles:
 
@@ -3144,9 +2569,9 @@ When called via a relationship (dot), remove the relationship.
 
                 tile = resource.tiles
 
-                nodeid = wkfm._nodes[key]["nodeid"]
+                nodeid = str(wkfm._nodes()[key].nodeid)
 
-                nodegroupid = wkfm._nodes[key]["nodegroupid"]
+                nodegroupid = str(wkfm._nodes()[key].nodegroup_id)
 
                 for tile in resource.tiles:
 
@@ -3391,636 +2816,3 @@ Apply a dictionary of updates to fields.
                 for key, val in values.items():
 
                     setattr(self, key, val)
-
-### PseudoNodeList
-
-```python3
-class PseudoNodeList(
-    node,
-    parent
-)
-```
-
-A more or less complete user-defined wrapper around list objects.
-
-??? example "View Source"
-        class PseudoNodeList(UserList):
-
-            def __init__(self, node, parent):
-
-                super().__init__()
-
-                self.node = node
-
-                self.parent = parent
-
-            def value_list(self):
-
-                return NodeListViewModel(self)
-
-            def get_tile(self):
-
-                for pseudo_node in self:
-
-                    pseudo_node.get_tile()
-
-                return None
-
-            def __iadd__(self, other):
-
-                other_pn = [
-
-                    self.parent._make_pseudo_node(
-
-                        self.node.alias,
-
-                        single=True,
-
-                    )
-
-                    if not isinstance(item, PseudoNodeValue)
-
-                    else item
-
-                    for item in other
-
-                ]
-
-                super().__iadd__(other_pn)
-
-            def append(self, item=None):
-
-                if not isinstance(item, PseudoNodeValue):
-
-                    value = self.parent._make_pseudo_node(
-
-                        self.node.alias,
-
-                        single=True,
-
-                    )
-
-                    if item is not None:
-
-                        value.value = item
-
-                    item = value
-
-                super().append(item)
-
-                return item.value
-
-            def get_relationships(self):
-
-                return []
-
-            def get_children(self, direct=None):
-
-                return self
-
-------
-
-#### Ancestors (in MRO)
-
-* collections.UserList
-* collections.abc.MutableSequence
-* collections.abc.Sequence
-* collections.abc.Reversible
-* collections.abc.Collection
-* collections.abc.Sized
-* collections.abc.Iterable
-* collections.abc.Container
-
-#### Methods
-
-    
-#### append
-
-```python3
-def append(
-    self,
-    item=None
-)
-```
-
-S.append(value) -- append value to the end of the sequence
-
-??? example "View Source"
-            def append(self, item=None):
-
-                if not isinstance(item, PseudoNodeValue):
-
-                    value = self.parent._make_pseudo_node(
-
-                        self.node.alias,
-
-                        single=True,
-
-                    )
-
-                    if item is not None:
-
-                        value.value = item
-
-                    item = value
-
-                super().append(item)
-
-                return item.value
-
-    
-#### clear
-
-```python3
-def clear(
-    self
-)
-```
-
-S.clear() -> None -- remove all items from S
-
-??? example "View Source"
-            def clear(self):
-
-                self.data.clear()
-
-    
-#### copy
-
-```python3
-def copy(
-    self
-)
-```
-
-??? example "View Source"
-            def copy(self):
-
-                return self.__class__(self)
-
-    
-#### count
-
-```python3
-def count(
-    self,
-    item
-)
-```
-
-S.count(value) -> integer -- return number of occurrences of value
-
-??? example "View Source"
-            def count(self, item):
-
-                return self.data.count(item)
-
-    
-#### extend
-
-```python3
-def extend(
-    self,
-    other
-)
-```
-
-S.extend(iterable) -- extend sequence by appending elements from the iterable
-
-??? example "View Source"
-            def extend(self, other):
-
-                if isinstance(other, UserList):
-
-                    self.data.extend(other.data)
-
-                else:
-
-                    self.data.extend(other)
-
-    
-#### get_children
-
-```python3
-def get_children(
-    self,
-    direct=None
-)
-```
-
-??? example "View Source"
-            def get_children(self, direct=None):
-
-                return self
-
-    
-#### get_relationships
-
-```python3
-def get_relationships(
-    self
-)
-```
-
-??? example "View Source"
-            def get_relationships(self):
-
-                return []
-
-    
-#### get_tile
-
-```python3
-def get_tile(
-    self
-)
-```
-
-??? example "View Source"
-            def get_tile(self):
-
-                for pseudo_node in self:
-
-                    pseudo_node.get_tile()
-
-                return None
-
-    
-#### index
-
-```python3
-def index(
-    self,
-    item,
-    *args
-)
-```
-
-S.index(value, [start, [stop]]) -> integer -- return first index of value.
-
-Raises ValueError if the value is not present.
-
-Supporting start and stop arguments is optional, but
-recommended.
-
-??? example "View Source"
-            def index(self, item, *args):
-
-                return self.data.index(item, *args)
-
-    
-#### insert
-
-```python3
-def insert(
-    self,
-    i,
-    item
-)
-```
-
-S.insert(index, value) -- insert value before index
-
-??? example "View Source"
-            def insert(self, i, item):
-
-                self.data.insert(i, item)
-
-    
-#### pop
-
-```python3
-def pop(
-    self,
-    i=-1
-)
-```
-
-S.pop([index]) -> item -- remove and return item at index (default last).
-
-Raise IndexError if list is empty or index is out of range.
-
-??? example "View Source"
-            def pop(self, i=-1):
-
-                return self.data.pop(i)
-
-    
-#### remove
-
-```python3
-def remove(
-    self,
-    item
-)
-```
-
-S.remove(value) -- remove first occurrence of value.
-
-Raise ValueError if the value is not present.
-
-??? example "View Source"
-            def remove(self, item):
-
-                self.data.remove(item)
-
-    
-#### reverse
-
-```python3
-def reverse(
-    self
-)
-```
-
-S.reverse() -- reverse *IN PLACE*
-
-??? example "View Source"
-            def reverse(self):
-
-                self.data.reverse()
-
-    
-#### sort
-
-```python3
-def sort(
-    self,
-    /,
-    *args,
-    **kwds
-)
-```
-
-??? example "View Source"
-            def sort(self, /, *args, **kwds):
-
-                self.data.sort(*args, **kwds)
-
-    
-#### value_list
-
-```python3
-def value_list(
-    self
-)
-```
-
-??? example "View Source"
-            def value_list(self):
-
-                return NodeListViewModel(self)
-
-### PseudoNodeValue
-
-```python3
-class PseudoNodeValue(
-    node,
-    tile=None,
-    value=None,
-    parent=None,
-    child_nodes=None
-)
-```
-
-??? example "View Source"
-        class PseudoNodeValue:
-
-            _value_loaded = False
-
-            _value = None
-
-            def __init__(self, node, tile=None, value=None, parent=None, child_nodes=None):
-
-                self.node = node
-
-                self.tile = tile
-
-                if "Model" in str(self.tile.__class__):
-
-                    raise RuntimeError()
-
-                self._parent = parent
-
-                self._child_nodes = child_nodes
-
-                self._value = value
-
-            def __str__(self):
-
-                return f"{{{self.value}}}"
-
-            def __repr__(self):
-
-                return str(self)
-
-            def get_relationships(self):
-
-                try:
-
-                    return self.value.get_relationships() if self.value else []
-
-                except AttributeError:
-
-                    return []
-
-            def get_tile(self):
-
-                self._update_value()
-
-                if self._as_tile_data:
-
-                    tile_value = self._as_tile_data(self._value)
-
-                else:
-
-                    tile_value = self._value
-
-                self.tile.data[
-
-                    str(self.node.nodeid)
-
-                ] = tile_value  # TODO: ensure this works for any value
-
-                return self.tile if self.node.is_collector else None
-
-            def _update_value(self):
-
-                if not self.tile:
-
-                    if not self.node:
-
-                        raise RuntimeError("Empty tile")
-
-                    self.tile = TileProxyModel(
-
-                        nodegroup_id=self.node.nodegroup_id, tileid=None, data={}
-
-                    )
-
-                if not self._value_loaded:
-
-                    if self.tile.data is not None and str(self.node.nodeid) in self.tile.data:
-
-                        data = self.tile.data[str(self.node.nodeid)]
-
-                    else:
-
-                        data = self._value
-
-                    self._value, self._as_tile_data = get_view_model_for_datatype(
-
-                        self.tile,
-
-                        self.node,
-
-                        value=data,
-
-                        parent=self._parent,
-
-                        child_nodes=self._child_nodes,
-
-                    )
-
-                    if self._value is not None:
-
-                        self._value._parent_pseudo_node = self
-
-                    if self._value is not None:
-
-                        self._value_loaded = True
-
-            @property
-
-            def value(self):
-
-                self._update_value()
-
-                return self._value
-
-            @value.setter
-
-            def value(self, value):
-
-                if not isinstance(value, ViewModel):
-
-                    value, self._as_tile_data = get_view_model_for_datatype(
-
-                        self.tile,
-
-                        self.node,
-
-                        value=value,
-
-                        parent=self._parent,
-
-                        child_nodes=self._child_nodes,
-
-                    )
-
-                self._value = value
-
-                self._value_loaded = True
-
-            def __len__(self):
-
-                return len(self.get_children())
-
-            def get_children(self, direct=None):
-
-                if self.value:
-
-                    try:
-
-                        return self.value.get_children(direct=direct)
-
-                    except AttributeError:
-
-                        ...
-
-                return []
-
-------
-
-#### Instance variables
-
-```python3
-value
-```
-
-#### Methods
-
-    
-#### get_children
-
-```python3
-def get_children(
-    self,
-    direct=None
-)
-```
-
-??? example "View Source"
-            def get_children(self, direct=None):
-
-                if self.value:
-
-                    try:
-
-                        return self.value.get_children(direct=direct)
-
-                    except AttributeError:
-
-                        ...
-
-                return []
-
-    
-#### get_relationships
-
-```python3
-def get_relationships(
-    self
-)
-```
-
-??? example "View Source"
-            def get_relationships(self):
-
-                try:
-
-                    return self.value.get_relationships() if self.value else []
-
-                except AttributeError:
-
-                    return []
-
-    
-#### get_tile
-
-```python3
-def get_tile(
-    self
-)
-```
-
-??? example "View Source"
-            def get_tile(self):
-
-                self._update_value()
-
-                if self._as_tile_data:
-
-                    tile_value = self._as_tile_data(self._value)
-
-                else:
-
-                    tile_value = self._value
-
-                self.tile.data[
-
-                    str(self.node.nodeid)
-
-                ] = tile_value  # TODO: ensure this works for any value
-
-                return self.tile if self.node.is_collector else None

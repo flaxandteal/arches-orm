@@ -3,7 +3,7 @@
 ??? example "View Source"
         import logging
 
-        from .wrapper import get_adapter
+        from .adapter import get_adapter
 
         from .wkrm import get_resource_models_for_adapter
 

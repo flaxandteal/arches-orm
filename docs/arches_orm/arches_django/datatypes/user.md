@@ -136,8 +136,8 @@ UserViewModel(id, password, last_login, is_superuser, username, first_name, last
 * django.contrib.auth.models.PermissionsMixin
 * django.db.models.base.Model
 * django.db.models.utils.AltersData
-* arches_orm.view_models.UserViewModelMixin
-* arches_orm.view_models.ViewModel
+* arches_orm.view_models.user.UserViewModelMixin
+* arches_orm.view_models._base.ViewModel
 
 #### Class variables
 

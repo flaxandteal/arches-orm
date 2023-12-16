@@ -7,7 +7,7 @@
 
         from typing import Callable
 
-        from .wrapper import get_adapter
+        from .adapter import get_adapter
 
         
 

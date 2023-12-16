@@ -21,20 +21,6 @@
 
             WKRI,
 
-            UserViewModelMixin,
-
-            UserProtocol,
-
-            StringViewModel,
-
-            RelatedResourceInstanceListViewModel,
-
-            RelatedResourceInstanceViewModelMixin,
-
-            ConceptListValueViewModel,
-
-            ConceptValueViewModel,
-
             SemanticViewModel,
 
         )

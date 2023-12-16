@@ -21,6 +21,7 @@
 
 ## Sub-modules
 
+* [arches_orm.adapter](adapter/)
 * [arches_orm.arches_django](arches_django/)
 * [arches_orm.hooks](hooks/)
 * [arches_orm.models](models/)

@@ -1,7 +1,10 @@
+# Using pdocs for now - if an alternative is required,
+# move to sphinx (pdoc/pdoc3 are not options)
+
 import os
 import sys
 from pathlib import Path
-from pdocs import api
+from pdocs.cli import __hug__
 from unittest.mock import Mock
 
 OUTPUT_DIR = Path(__file__).parent
@@ -29,12 +32,5 @@ def initialize_arches():
             c.executescript(sql_f.read())
 
 if __name__ == "__main__":
-    try:
-        initialize_arches()
-    except Exception as e:
-        import logging
-        logging.exception(e)
-        raise e
-    api.as_markdown(
-        modules=["arches_orm"]
-    )
+    initialize_arches()
+    __hug__.cli()

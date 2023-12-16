@@ -7,8 +7,10 @@
 
 ## Sub-modules
 
+* [arches_orm.arches_django.adapter](adapter/)
 * [arches_orm.arches_django.datatypes](datatypes/)
 * [arches_orm.arches_django.hooks](hooks/)
+* [arches_orm.arches_django.pseudo_nodes](pseudo_nodes/)
 * [arches_orm.arches_django.wrapper](wrapper/)
 
 ## Classes
@@ -269,6 +271,20 @@ When you use, `Person`, etc. it will be this class in disguise.
 
                 return cls.__datatype_factory
 
+            @property
+
+            def _nodes(self):
+
+                return self._node_objects_by_alias()
+
+            @classmethod
+
+            @lru_cache
+
+            def _node_objects_by_alias(cls):
+
+                return {node.alias: node for node in cls._node_objects().values()}
+
             @classmethod
 
             @lru_cache
@@ -281,19 +297,9 @@ When you use, `Person`, etc. it will be this class in disguise.
 
                     raise RuntimeError("Attempt to load full node objects when asked not to")
 
-                if LOAD_ALL_NODES:
+                cls._build_nodes()
 
-                    fltr = {"graph_id": cls.graphid}
-
-                else:
-
-                    fltr = {
-
-                        "nodeid__in": [node["nodeid"] for node in cls._build_nodes().values()]
-
-                    }
-
-                return {str(node.nodeid): node for node in Node.objects.filter(**fltr)}
+                return cls._nodes_real
 
             @classmethod
 
@@ -381,12 +387,6 @@ When you use, `Person`, etc. it will be this class in disguise.
 
                 return wkri
 
-            @property
-
-            def _nodes(self):
-
-                return self._build_nodes()
-
             @classmethod
 
             @lru_cache
@@ -401,117 +401,41 @@ When you use, `Person`, etc. it will be this class in disguise.
 
                     )
 
-                nodes: dict[str, dict] = {}
+                if LOAD_ALL_NODES:
 
-                nodegroups: dict[str, NodeGroup] = {}
+                    fltr = {"graph_id": cls.graphid}
 
-                root_node = None
+                else:
 
-                if LOAD_FULL_NODE_OBJECTS and LOAD_ALL_NODES:
+                    fltr = {
 
-                    datatype_factory = cls._datatype_factory()
+                        "nodeid__in": [alias for alias in cls._wkrm.nodes]
 
-                    node_objects = cls._node_objects()
+                    }
 
-                    for node_obj in node_objects.values():
+                nodes = {str(node.nodeid): node for node in Node.objects.filter(**fltr)}
 
-                        # The root node will not have a nodegroup
+                nodegroups = {
 
-                        if node_obj.nodegroup_id:
+                    str(nodegroup.nodegroupid): nodegroup
 
-                            nodes[str(node_obj.alias)] = {
+                    for nodegroup in NodeGroup.objects.filter(
 
-                                "nodeid": str(node_obj.nodeid),
-
-                                "nodegroupid": str(node_obj.nodegroup_id),
-
-                            }
-
-                        else:
-
-                            root_node = node_obj
-
-                            nodes[str(node_obj.alias)] = {
-
-                                "nodeid": str(node_obj.nodeid),
-
-                                "nodegroupid": None,
-
-                            }
-
-                    # Ensure defined nodes overwrite the autoloaded ones
-
-                    nodes.update(cls._wkrm.nodes)
-
-                    nodegroups.update(
-
-                        {
-
-                            str(nodegroup.nodegroupid): nodegroup
-
-                            for nodegroup in NodeGroup.objects.filter(
-
-                                nodegroupid__in=[node["nodegroupid"] for node in nodes.values()]
-
-                            )
-
-                        }
+                        nodegroupid__in=[node.nodegroup_id for node in nodes.values()]
 
                     )
 
-                    for node in nodes.values():
-
-                        if nodegroup := nodegroups.get(str(node["nodegroupid"])):
-
-                            if nodegroup.parentnodegroup_id:
-
-                                node["parentnodegroup_id"] = str(nodegroup.parentnodegroup_id)
-
-                            node_obj = node_objects[node["nodeid"]]
-
-                            if "datatype" not in node:
-
-                                node["datatype"] = (
-
-                                    datatype_factory.get_instance(node_obj.datatype),
-
-                                    node_obj.datatype,
-
-                                    nodegroup.cardinality == "n"
-
-                                    and node_obj.nodeid == node_obj.nodegroup_id,
-
-                                )
-
-                            if node_obj.config:
-
-                                node["config"] = node_obj.config
-
-                        elif root_node and node["nodeid"] == str(root_node.nodeid):
-
-                            node_obj = node_objects[node["nodeid"]]
-
-                            node["datatype"] = (
-
-                                datatype_factory.get_instance(node_obj.datatype),
-
-                                node_obj.datatype,
-
-                                False,
-
-                            )
-
-                        else:
-
-                            raise KeyError("Missing nodegroups based on WKRM")
+                }
 
                 cls._nodes_real.update(nodes)
 
                 cls._nodegroup_objects_real.update(nodegroups)
 
-                cls._root_node = root_node
+                cls._root_node = {
 
-                return cls._nodes_real
+                    "root": node for node in nodes.values() if node.nodegroup_id is None
+
+                }.get("root")
 
             @classmethod
 
@@ -545,9 +469,9 @@ When you use, `Person`, etc. it will be this class in disguise.
 
                 permitted_nodegroups = [
 
-                    node["nodegroupid"]
+                    node.nodegroup_id
 
-                    for key, node in cls._build_nodes().items()
+                    for key, node in cls._nodes.items()
 
                     if (fields is None or key in fields)
 
@@ -681,9 +605,9 @@ When you use, `Person`, etc. it will be this class in disguise.
 
                 tile = resource.tiles
 
-                nodeid = wkfm._nodes[key]["nodeid"]
+                nodeid = str(wkfm._nodes()[key].nodeid)
 
-                nodegroupid = wkfm._nodes[key]["nodegroupid"]
+                nodegroupid = str(wkfm._nodes()[key].nodegroup_id)
 
                 for tile in resource.tiles:
 
@@ -733,9 +657,9 @@ When you use, `Person`, etc. it will be this class in disguise.
 
                 tile = resource.tiles
 
-                nodeid = wkfm._nodes[key]["nodeid"]
+                nodeid = str(wkfm._nodes()[key].nodeid)
 
-                nodegroupid = wkfm._nodes[key]["nodegroupid"]
+                nodegroupid = str(wkfm._nodes()[key].nodegroup_id)
 
                 for tile in resource.tiles:
 
@@ -809,7 +733,7 @@ When you use, `Person`, etc. it will be this class in disguise.
 
                             if nodeid in node_objs:
 
-                                key = node_objs[nodeid]
+                                key = node_objs[nodeid].alias
 
                                 if node_value is not None:
 
@@ -829,7 +753,7 @@ When you use, `Person`, etc. it will be this class in disguise.
 
                 # TODO: replace with proper query
 
-                unknown_keys = set(kwargs) - set(cls._build_nodes())
+                unknown_keys = set(kwargs) - set(cls._nodes)
 
                 if unknown_keys:
 
@@ -867,17 +791,15 @@ When you use, `Person`, etc. it will be this class in disguise.
 
             def _make_pseudo_node_cls(cls, key, single=False, tile=None, wkri=None):
 
-                nodes = cls._build_nodes()
-
-                node_obj = cls._node_objects()[nodes[key].nodeid]
+                node_obj = cls._node_objects_by_alias()[key]
 
                 nodegroups = cls._nodegroup_objects()
 
-                edges = cls._edges().get(nodes[key].nodeid)
+                edges = cls._edges().get(str(node_obj.nodeid))
 
                 value = None
 
-                if node_obj.nodegroup_id and nodegroups[str(node_obj.nodegroup_id)].cardinality == "n":
+                if node_obj.nodegroup_id and node_obj.is_collector and nodegroups[str(node_obj.nodegroup_id)].cardinality == "n" and not single:
 
                     value = PseudoNodeList(
 
@@ -1012,11 +934,7 @@ When you use, `Person`, etc. it will be this class in disguise.
 #### Ancestors (in MRO)
 
 * arches_orm.wrapper.ResourceWrapper
-* arches_orm.view_models.WKRI
-
-#### Descendants
-
-* arches_orm.wkrm.Person
+* arches_orm.view_models._base.WKRI
 
 #### Static methods
 
@@ -1352,9 +1270,9 @@ Search ES for resources of this model, and return as well-known resources.
 
                 permitted_nodegroups = [
 
-                    node["nodegroupid"]
+                    node.nodegroup_id
 
-                    for key, node in cls._build_nodes().items()
+                    for key, node in cls._nodes.items()
 
                     if (fields is None or key in fields)
 
@@ -1445,7 +1363,7 @@ Populate fields from the ID-referenced Arches resource.
 
                             if nodeid in node_objs:
 
-                                key = node_objs[nodeid]
+                                key = node_objs[nodeid].alias
 
                                 if node_value is not None:
 
@@ -1478,7 +1396,7 @@ Do a filtered query returning a list of well-known resources.
 
                 # TODO: replace with proper query
 
-                unknown_keys = set(kwargs) - set(cls._build_nodes())
+                unknown_keys = set(kwargs) - set(cls._nodes)
 
                 if unknown_keys:
 
@@ -1545,9 +1463,9 @@ When called via a relationship (dot), append to the relationship.
 
                 tile = resource.tiles
 
-                nodeid = wkfm._nodes[key]["nodeid"]
+                nodeid = str(wkfm._nodes()[key].nodeid)
 
-                nodegroupid = wkfm._nodes[key]["nodegroupid"]
+                nodegroupid = str(wkfm._nodes()[key].nodegroup_id)
 
                 for tile in resource.tiles:
 
@@ -1723,9 +1641,9 @@ When called via a relationship (dot), remove the relationship.
 
                 tile = resource.tiles
 
-                nodeid = wkfm._nodes[key]["nodeid"]
+                nodeid = str(wkfm._nodes()[key].nodeid)
 
-                nodegroupid = wkfm._nodes[key]["nodegroupid"]
+                nodegroupid = str(wkfm._nodes()[key].nodegroup_id)
 
                 for tile in resource.tiles:
 

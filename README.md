@@ -39,9 +39,12 @@ extension loading:
 
 ## Documentation
 
-Documentation is generated using `pdoc`:
+Documentation is generated using [pdocs](https://github.com/timothycrosley/pdocs) but,
+as the `arches_django` subpackage expects a running Arches instance to be importable
+(a side-effect of Django), we add an initialization routine.
 
-    pdoc
+    python docs/make_doc.py
+
 ## Thanks
 
 Particular thanks to the funders of this work, and to the Arches community for
