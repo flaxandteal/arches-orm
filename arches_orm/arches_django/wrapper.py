@@ -286,7 +286,7 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
         # TODO: permitted_nodegroups = get_permitted_nodegroups(request.user)
         permitted_nodegroups = [
             node.nodegroup_id
-            for key, node in cls._nodes.items()
+            for key, node in cls._node_objects_by_alias().items()
             if (fields is None or key in fields)
         ]
 
@@ -460,7 +460,7 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
     def where(cls, cross_record=None, **kwargs):
         """Do a filtered query returning a list of well-known resources."""
         # TODO: replace with proper query
-        unknown_keys = set(kwargs) - set(cls._nodes)
+        unknown_keys = set(kwargs) - set(cls._node_objects_by_alias())
         if unknown_keys:
             raise KeyError(f"Unknown key(s) {unknown_keys}")
 
