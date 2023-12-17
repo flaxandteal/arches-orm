@@ -3,6 +3,7 @@ from ._base import (
     ViewModel,
 )
 
+
 class NodeListViewModel(UserList, ViewModel):
     def __init__(self, nodelist):
         self.nodelist = nodelist

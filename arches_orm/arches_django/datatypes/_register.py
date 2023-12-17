@@ -1,23 +1,9 @@
-import uuid
 from typing import Any, Callable
 from functools import cached_property
-from django.contrib.auth.models import User
-from arches.app.models.models import Node, ResourceInstance
+from arches.app.models.models import Node
 from arches.app.models.tile import Tile
-from arches.app.models.resource import Resource
 from collections import UserDict
 
-from arches_orm.view_models import (
-    WKRI,
-    UserViewModelMixin,
-    UserProtocol,
-    StringViewModel,
-    RelatedResourceInstanceListViewModel,
-    RelatedResourceInstanceViewModelMixin,
-    ConceptListValueViewModel,
-    ConceptValueViewModel,
-    SemanticViewModel,
-)
 
 class RegisterFunction(Callable):
     def __init__(self, fn):
@@ -56,14 +42,18 @@ class ViewModelRegister(UserDict):
         value: Any = None,
         parent: Any = None,
         child_nodes: list = None,
-        datatype: str = None
+        datatype: str = None,
     ):
         datatype_name = datatype or node.datatype
 
         # TODO: this seems to an Arches issue?
         if datatype_name == "resource-instance" and (
-            (isinstance(value, list)) or
-            (value is None and tile.data is not None and isinstance(tile.data.get(str(node.nodeid)), list))
+            (isinstance(value, list))
+            or (
+                value is None
+                and tile.data is not None
+                and isinstance(tile.data.get(str(node.nodeid)), list)
+            )
         ):
             datatype_name = "resource-instance-list"
 

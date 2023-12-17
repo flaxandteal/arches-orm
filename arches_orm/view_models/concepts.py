@@ -7,6 +7,7 @@ from ._base import (
     ViewModel,
 )
 
+
 class ConceptProtocol(Protocol):
     """Minimal representation of an Arches concept."""
 

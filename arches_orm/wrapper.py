@@ -1,10 +1,10 @@
 import logging
 import uuid
-from abc import (abstractmethod, abstractclassmethod, abstractstaticmethod)
+from abc import abstractmethod, abstractclassmethod, abstractstaticmethod
 from .view_models import WKRI as Resource
-from .adapter import ADAPTER_MANAGER
 
 logger = logging.getLogger(__name__)
+
 
 class ResourceWrapper(Resource):
     """Superclass of all well-known resources.
@@ -30,9 +30,10 @@ class ResourceWrapper(Resource):
 
     def __eq__(self, other):
         return (
-            self.id and other.id and
-            self.id == other.id and
-            self.__class__ == other.__class__
+            self.id
+            and other.id
+            and self.id == other.id
+            and self.__class__ == other.__class__
         )
 
     def __setattr__(self, key, value):
@@ -47,7 +48,7 @@ class ResourceWrapper(Resource):
             "_cross_record",
             "_related_prefetch",
             "_pending_relationships",
-            "__class__"
+            "__class__",
         ):
             super().__setattr__(key, value)
         else:
@@ -76,7 +77,13 @@ class ResourceWrapper(Resource):
 
         self._values = {}
         self.id = id if isinstance(id, uuid.UUID) else uuid.UUID(id) if id else None
-        self._new_id = _new_id if isinstance(_new_id, uuid.UUID) else uuid.UUID(_new_id) if _new_id else None
+        self._new_id = (
+            _new_id
+            if isinstance(_new_id, uuid.UUID)
+            else uuid.UUID(_new_id)
+            if _new_id
+            else None
+        )
         self.resource = resource
         self._cross_record = cross_record
         self._related_prefetch = related_prefetch

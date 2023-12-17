@@ -5,6 +5,7 @@ from arches_orm.view_models import ViewModel, NodeListViewModel
 
 from .datatypes import get_view_model_for_datatype
 
+
 class PseudoNodeList(UserList):
     def __init__(self, node, parent):
         super().__init__()
@@ -95,7 +96,11 @@ class PseudoNodeValue:
                 nodegroup_id=self.node.nodegroup_id, tileid=None, data={}
             )
         if not self._value_loaded:
-            if self._value is None and self.tile.data is not None and str(self.node.nodeid) in self.tile.data:
+            if (
+                self._value is None
+                and self.tile.data is not None
+                and str(self.node.nodeid) in self.tile.data
+            ):
                 data = self.tile.data[str(self.node.nodeid)]
             else:
                 data = self._value

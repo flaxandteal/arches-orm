@@ -1,36 +1,20 @@
-
 import uuid
-from typing import Any, Callable
-from functools import cached_property
-from django.contrib.auth.models import User
-from arches.app.models.models import Node, ResourceInstance
-from arches.app.models.tile import Tile
-from arches.app.models.resource import Resource
-from collections import UserDict
 
 from arches_orm.view_models import (
-    WKRI,
-    UserViewModelMixin,
-    UserProtocol,
-    StringViewModel,
-    RelatedResourceInstanceListViewModel,
-    RelatedResourceInstanceViewModelMixin,
     ConceptListValueViewModel,
     ConceptValueViewModel,
-    SemanticViewModel,
 )
 from ._register import REGISTER
+
 
 @REGISTER("concept-list")
 def concept_list(tile, node, value: list[uuid.UUID | str] | None, _, __, ___):
     if value is None:
         value = tile.data[str(node.nodeid)]
-    make_cb = lambda value: REGISTER.make(
-        tile,
-        node,
-        value=value,
-        datatype="concept"
-    )[0]
+
+    def make_cb(value):
+        return REGISTER.make(tile, node, value=value, datatype="concept")[0]
+
     return ConceptListValueViewModel(value, make_cb)
 
 

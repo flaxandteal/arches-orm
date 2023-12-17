@@ -4,6 +4,7 @@ from ._base import (
     ViewModel,
 )
 
+
 class SemanticViewModel(ViewModel):
     """Wraps a semantic tile."""
 

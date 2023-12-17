@@ -1,10 +1,6 @@
-from typing import Protocol
 import uuid
 from collections import UserList
-from ._base import (
-    ViewModel,
-    WKRI
-)
+from ._base import ViewModel, WKRI
 
 
 class RelatedResourceInstanceViewModelMixin(ViewModel):

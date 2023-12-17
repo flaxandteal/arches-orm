@@ -1,26 +1,13 @@
 import uuid
-from typing import Any, Callable
-from functools import cached_property
-from django.contrib.auth.models import User
-from arches.app.models.models import Node, ResourceInstance
-from arches.app.models.tile import Tile
+from arches.app.models.models import ResourceInstance
 from arches.app.models.resource import Resource
-from collections import UserDict
 
 from arches_orm.view_models import (
     WKRI,
-    UserViewModelMixin,
-    UserProtocol,
-    StringViewModel,
     RelatedResourceInstanceListViewModel,
     RelatedResourceInstanceViewModelMixin,
-    ConceptListValueViewModel,
-    ConceptValueViewModel,
-    SemanticViewModel,
 )
 from ._register import REGISTER
-
-
 
 
 @REGISTER("resource-instance-list")
@@ -39,7 +26,7 @@ def resource_instance_list(
             value=value,
             parent=parent,
             child_nodes=child_nodes,
-            datatype="resource-instance"
+            datatype="resource-instance",
         )
 
     return RelatedResourceInstanceListViewModel(
@@ -121,7 +108,7 @@ def resource_instance(
         mixin = type(
             f"{model_class_name}RelatedResourceInstanceViewModel",
             (_resource_instance.__class__, RelatedResourceInstanceViewModelMixin),
-            dict(proxy=True)
+            dict(proxy=True),
         )
         RI_VIEW_MODEL_CLASSES[model_class_name] = mixin
     _resource_instance.__class__ = mixin

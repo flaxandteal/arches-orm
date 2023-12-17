@@ -3,6 +3,7 @@ from ._base import (
     ViewModel,
 )
 
+
 class StringViewModel(str, ViewModel):
     """Wraps a string, allowing language translation.
 

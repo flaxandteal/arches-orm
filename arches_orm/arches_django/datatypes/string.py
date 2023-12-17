@@ -1,24 +1,8 @@
-import uuid
-from typing import Any, Callable
-from functools import cached_property
-from django.contrib.auth.models import User
-from arches.app.models.models import Node, ResourceInstance
-from arches.app.models.tile import Tile
-from arches.app.models.resource import Resource
-from collections import UserDict
-
 from arches_orm.view_models import (
-    WKRI,
-    UserViewModelMixin,
-    UserProtocol,
     StringViewModel,
-    RelatedResourceInstanceListViewModel,
-    RelatedResourceInstanceViewModelMixin,
-    ConceptListValueViewModel,
-    ConceptValueViewModel,
-    SemanticViewModel,
 )
 from ._register import REGISTER
+
 
 @REGISTER("string")
 def string(tile, node, value: dict | None, _, __, string_datatype):
@@ -44,4 +28,3 @@ def string(tile, node, value: dict | None, _, __, string_datatype):
 @string.as_tile_data
 def s_as_tile_data(string):
     return string._value
-

@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 LOAD_FULL_NODE_OBJECTS = True
 LOAD_ALL_NODES = True
 
+
 class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
     _nodes_real: dict = None
     _nodegroup_objects_real: dict = None
@@ -252,9 +253,7 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
         if LOAD_ALL_NODES:
             fltr = {"graph_id": cls.graphid}
         else:
-            fltr = {
-                "nodeid__in": [alias for alias in cls._wkrm.nodes]
-            }
+            fltr = {"nodeid__in": [alias for alias in cls._wkrm.nodes]}
         nodes = {str(node.nodeid): node for node in Node.objects.filter(**fltr)}
         nodegroups = {
             str(nodegroup.nodegroupid): nodegroup
@@ -437,9 +436,7 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
 
         implied_keys = {
             str(tile.nodegroup_id) for tile in resource.tiles if tile.data
-        } - {
-            str(nodeid) for tile in resource.tiles for nodeid in tile.data
-        }
+        } - {str(nodeid) for tile in resource.tiles for nodeid in tile.data}
         implied_tiles = {}
         for tile in resource.tiles:
             if tile.data:
@@ -456,9 +453,7 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
         for nodeid, tile in implied_tiles.items():
             if nodeid in node_objs:
                 key = node_objs[nodeid].alias
-                all_values[key] = cls._make_pseudo_node_cls(
-                    key, tile=tile, wkri=wkri
-                )
+                all_values[key] = cls._make_pseudo_node_cls(key, tile=tile, wkri=wkri)
         return all_values
 
     @classmethod
@@ -493,7 +488,12 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
         nodegroups = cls._nodegroup_objects()
         edges = cls._edges().get(str(node_obj.nodeid))
         value = None
-        if node_obj.nodegroup_id and node_obj.is_collector and nodegroups[str(node_obj.nodegroup_id)].cardinality == "n" and not single:
+        if (
+            node_obj.nodegroup_id
+            and node_obj.is_collector
+            and nodegroups[str(node_obj.nodegroup_id)].cardinality == "n"
+            and not single
+        ):
             value = PseudoNodeList(
                 node_obj,
                 parent=wkri,
@@ -531,7 +531,9 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
         return value
 
     def __init_subclass__(cls, well_known_resource_model=None, proxy=None):
-        super().__init_subclass__(well_known_resource_model=well_known_resource_model, proxy=proxy)
+        super().__init_subclass__(
+            well_known_resource_model=well_known_resource_model, proxy=proxy
+        )
         if proxy is not None:
             cls.proxy = proxy
         if not cls.proxy:

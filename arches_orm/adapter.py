@@ -2,6 +2,7 @@ class Adapter:
     def __init_subclass__(cls):
         ADAPTER_MANAGER.register_adapter(cls)
 
+
 class AdapterManager:
     default_adapter = None
 
@@ -12,9 +13,7 @@ class AdapterManager:
         adapter = adapter_cls()
         key = str(adapter)
         if key in self.adapters:
-            raise RuntimeError(
-                "Cannot register same adapter multiple times"
-            )
+            raise RuntimeError("Cannot register same adapter multiple times")
         if len(self.adapters) and not self.default_adapter:
             raise RuntimeError(
                 "Must set a default adapter, if registering multiple in one process"
@@ -42,6 +41,7 @@ class AdapterManager:
         else:
             adapter = list(self.adapters.values())[0]
         return adapter
+
 
 ADAPTER_MANAGER = AdapterManager()
 get_adapter = ADAPTER_MANAGER.get_adapter

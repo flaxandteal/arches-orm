@@ -53,16 +53,22 @@ def _make_wkrm(wkrm_definition, adapter):
 
 
 resource_models = {}
-def get_resource_models_for_adapter(adapter_name: str | None=None):
+
+
+def get_resource_models_for_adapter(adapter_name: str | None = None):
     adapter = get_adapter(adapter_name)
     if str(adapter) not in resource_models:
         resource_models[str(adapter)] = {}
         resource_models[str(adapter)]["by-class"] = {
-            wkrm.model_class_name: _make_wkrm(wkrm, adapter) for wkrm in WELL_KNOWN_RESOURCE_MODELS
+            wkrm.model_class_name: _make_wkrm(wkrm, adapter)
+            for wkrm in WELL_KNOWN_RESOURCE_MODELS
         }
         resource_models[str(adapter)]["by-graph-id"] = {
-            rm.graphid: rm for rm in resource_models[str(adapter)]["by-class"].values() if rm
+            rm.graphid: rm
+            for rm in resource_models[str(adapter)]["by-class"].values()
+            if rm
         }
     return resource_models[str(adapter)]
+
 
 get_resource_models_for_adapter()

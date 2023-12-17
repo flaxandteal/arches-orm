@@ -3,12 +3,12 @@ from ._base import (
     ViewModel,
 )
 
+
 class UserProtocol(Protocol):
     """Provides a standard format for exposing a user."""
 
     pk: int
     email: str
-
 
 
 class UserViewModelMixin(ViewModel):

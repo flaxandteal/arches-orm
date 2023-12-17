@@ -1,17 +1,13 @@
 import uuid
-from typing import Any, Callable
-from functools import cached_property
-from django.contrib.auth.models import User
-from arches.app.models.models import Node, ResourceInstance
-from arches.app.models.tile import Tile
+from arches.app.models.models import ResourceInstance
 from arches.app.models.resource import Resource
-from collections import UserDict
 
 from arches_orm.view_models import (
     WKRI,
     SemanticViewModel,
 )
 from ._register import REGISTER
+
 
 @REGISTER("semantic")
 def semantic(

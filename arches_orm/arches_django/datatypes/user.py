@@ -1,23 +1,8 @@
-
-import uuid
-from typing import Any, Callable
-from functools import cached_property
 from django.contrib.auth.models import User
-from arches.app.models.models import Node, ResourceInstance
-from arches.app.models.tile import Tile
-from arches.app.models.resource import Resource
-from collections import UserDict
 
 from arches_orm.view_models import (
-    WKRI,
     UserViewModelMixin,
     UserProtocol,
-    StringViewModel,
-    RelatedResourceInstanceListViewModel,
-    RelatedResourceInstanceViewModelMixin,
-    ConceptListValueViewModel,
-    ConceptValueViewModel,
-    SemanticViewModel,
 )
 from ._register import REGISTER
 
@@ -54,4 +39,3 @@ def user(tile, node, value, _, __, user_datatype) -> UserProtocol:
 @user.as_tile_data
 def u_as_tile_data(view_model):
     return view_model.pk
-
