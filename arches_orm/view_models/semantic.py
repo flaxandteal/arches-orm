@@ -1,5 +1,4 @@
 from collections.abc import Iterable
-from collections import UserList
 from ._base import (
     ViewModel,
 )
