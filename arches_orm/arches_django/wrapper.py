@@ -219,6 +219,35 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
         resource = Resource(resourceinstance.resourceinstanceid)
         return cls.from_resource(resource, cross_record=cross_record)
 
+    def reload(self, ignore_prefetch=True):
+        """Reload field values, but not node values for class."""
+        if not self.id:
+            raise RuntimeError("Cannot reload without a database ID")
+
+        resource = (
+            self._related_prefetch(self.id)
+            if not ignore_prefetch and self._related_prefetch is not None
+            else Resource.objects.get(pk=self.id)
+        )
+        if not resource:
+            raise RuntimeError(f"Could not retrieve resource with ID {self.id}")
+
+        if str(resource.graph_id) != self.graphid:
+            raise RuntimeError(
+                f"Using find against wrong resource type: {resource.graph_id} for"
+                f" {self.graphid}"
+            )
+        node_objs = self._node_objects()
+        self._values = {}
+        values = self.values_from_resource(
+            node_objs,
+            resource,
+            related_prefetch=self._related_prefetch,
+            wkri=self,
+        )
+        self._values.update(values)
+        return self
+
     @classmethod
     def from_resource(cls, resource, cross_record=None, related_prefetch=None):
         """Build a well-known resource from an Arches resource."""
