@@ -470,9 +470,12 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
         key = list(kwargs)[0]
         value = kwargs[key]
 
+        node = cls._node_objects_by_alias().get(key)
+        if not node:
+            raise RuntimeError(f"This key {key} is not known on this model {cls.__name__}")
         tiles = TileProxyModel.objects.filter(
-            nodegroup_id=cls._node_objects_by_alias()[key].nodegroup_id,
-            data__contains={cls._node_objects_by_alias()[key].nodeid: value},
+            nodegroup_id=str(node.nodegroup_id),
+            data__contains={str(node.nodeid): value},
         )
         return [
             cls.from_resource_instance(tile.resourceinstance, cross_record=cross_record)

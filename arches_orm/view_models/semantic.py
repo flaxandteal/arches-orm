@@ -58,7 +58,7 @@ class SemanticViewModel(ViewModel):
             return super().__setattr__(key, value)
 
         if key not in self._child_keys:
-            raise AttributeError("Semantic node does not have this key")
+            raise AttributeError(f"Semantic node does not have this key: {key}")
 
         if key not in self._child_values:
             self._parent_wkri._values[key] = self._make_child(key)
