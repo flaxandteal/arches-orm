@@ -30,6 +30,34 @@
                     "nodegroup_id": "4110f741-1a44-11e9-885e-000d3ab1e588",
                     "sortorder": 0,
                     "visible": true
+                },
+                {
+                    "active": true,
+                    "cardid": "b06a1d0b-2987-440d-8347-5617d7b78f17",
+                    "component_id": "f554c976-9026-463b-a11d-47528e77cf67",
+                    "config": null,
+                    "constraints": [
+                    ],
+                    "cssclass": null,
+                    "description": "",
+                    "graph_id": "22477f01-1a44-11e9-b0a9-000d3ab1e588",
+                    "helpenabled": true,
+                    "helptext": {
+                        "en": "User"
+                    },
+                    "helptitle": {
+                        "en": "User Details"
+                    },
+                    "instructions": {
+                        "en": null
+                    },
+                    "is_editable": true,
+                    "name": {
+                        "en": "User"
+                    },
+                    "nodegroup_id": "b1f5c336-6a0e-11ee-b748-0242ac140009",
+                    "sortorder": 1,
+                    "visible": true
                 }
             ],
             "cards_x_nodes_x_widgets": [

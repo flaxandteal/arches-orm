@@ -38,11 +38,28 @@ def django_db_use_migrations():
     return False
 
 
-sys.modules["arches.app.search.search_engine_factory"] = Mock()
+@pytest.fixture(scope="function")
+def search_engine():
+    sef = Mock()
+    sys.modules["arches.app.search.search_engine_factory"] = sef
+    se = Mock()
+    search_results = {"hits": {"hits": []}}
+    sef.SearchEngineInstance.search = lambda *args, **kwargs: search_results
+    sys.modules["arches.app.search.search_engine_factory"] = sef
+    yield
+    del sys.modules["arches.app.search.search_engine_factory"]
+
+@pytest.fixture(scope="function")
+def test_sql(transactional_db, django_db_blocker):
+    with django_db_blocker.unblock():
+        with (Path(__file__).parent / "_django" / "test.sql").open("r") as sql_f:
+            with connection.cursor() as c:
+                c.executescript(sql_f.read())
+            yield
 
 
 @pytest.fixture(scope="function")
-def arches_orm(django_db_blocker):
+def arches_orm(search_engine, django_db_blocker, test_sql):
     # Sqlite cannot handle JSON-contains filtering, or jsonb_set
     from arches.app.models import tile
     from arches.app.models.fields import i18n
@@ -63,24 +80,17 @@ def arches_orm(django_db_blocker):
 
     i18n.I18n_JSON.as_sql = I18n_JSON_sql
 
-    from arches.app.utils.betterJSONSerializer import JSONSerializer, JSONDeserializer
+    from arches.app.utils.betterJSONSerializer import JSONDeserializer
     from arches.app.utils.data_management.resource_graphs.importer import (
         import_graph as ResourceGraphImporter,
     )
 
-    with django_db_blocker.unblock() as _:
-        from arches.db import dml
-    with django_db_blocker.unblock():
-        with (Path(__file__).parent / "_django" / "test.sql").open("r") as sql_f:
-            with connection.cursor() as c:
-                c.executescript(sql_f.read())
     with django_db_blocker.unblock():
         for model in ("Activity.json", "Person.json"):
             with (Path(__file__).parent / "_django" / model).open("r") as f:
                 archesfile = JSONDeserializer().deserialize(f)
                 ResourceGraphImporter(archesfile["graph"], True)
-        import arches_orm
+        import arches_orm.arches_django
+        import arches_orm.models
 
         yield arches_orm
-
-    del sys.modules["arches.app.search.search_engine_factory"]

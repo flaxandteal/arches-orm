@@ -37,6 +37,14 @@ extension loading:
 
     PYTHON_CONFIGURE_OPTS="--enable-loadable-sqlite-extensions" pyenv install 3.10.10
 
+## Documentation
+
+Documentation is generated using [pdocs](https://github.com/timothycrosley/pdocs) but,
+as the `arches_django` subpackage expects a running Arches instance to be importable
+(a side-effect of Django), we add an initialization routine.
+
+    python docs/make_doc.py
+
 ## Thanks
 
 Particular thanks to the funders of this work, and to the Arches community for
