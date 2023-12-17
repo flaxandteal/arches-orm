@@ -471,8 +471,8 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
         value = kwargs[key]
 
         tiles = TileProxyModel.objects.filter(
-            nodegroup_id=cls._node_objects_by_alias()[key]["nodegroupid"],
-            data__contains={cls._node_objects_by_alias()[key]["nodeid"]: value},
+            nodegroup_id=cls._node_objects_by_alias()[key].nodegroup_id,
+            data__contains={cls._node_objects_by_alias()[key].nodeid: value},
         )
         return [
             cls.from_resource_instance(tile.resourceinstance, cross_record=cross_record)
