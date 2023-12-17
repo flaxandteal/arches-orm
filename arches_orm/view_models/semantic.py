@@ -42,7 +42,7 @@ class SemanticViewModel(ViewModel):
 
         if key not in self._child_values:
             value = self._make_child(key)
-            if not isinstance(value, Iterable):
+            if value is not None and not isinstance(value.value, Iterable):
                 value = None
             self._parent_wkri._values[key] = value
             return value.value if value is not None else value
