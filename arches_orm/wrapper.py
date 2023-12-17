@@ -20,6 +20,7 @@ class ResourceWrapper(Resource):
     _pending_relationships: list = None
     _related_prefetch: list = None
     resource: Resource
+    proxy: bool = False
 
     def __getitem__(self, key):
         return self.__getattr__(key)
@@ -46,6 +47,7 @@ class ResourceWrapper(Resource):
             "_cross_record",
             "_related_prefetch",
             "_pending_relationships",
+            "__class__"
         ):
             super().__setattr__(key, value)
         else:
@@ -54,7 +56,8 @@ class ResourceWrapper(Resource):
     def __getattr__(self, key):
         """Retrieve Python values for nodes attributes."""
 
-        return getattr(self.get_root().value, key)
+        val = getattr(self.get_root().value, key)
+        return val
 
     def __init__(
         self,
@@ -154,11 +157,11 @@ class ResourceWrapper(Resource):
         """Convert to string."""
         return str(self._wkrm.to_string(self))
 
-    def __init_subclass__(cls, well_known_resource_model=None, adapter=False):
+    def __init_subclass__(cls, well_known_resource_model=None, proxy=None):
         """Create a new well-known resource model wrapper, from an WKRM."""
-        if adapter:
-            ADAPTER_MANAGER.register_adapter(cls.get_adapter())
-        else:
+        if proxy is not None:
+            cls.proxy = proxy
+        if not cls.proxy:
             if not well_known_resource_model:
                 raise RuntimeError("Must try to wrap a real model")
 

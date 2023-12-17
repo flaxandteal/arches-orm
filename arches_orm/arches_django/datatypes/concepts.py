@@ -22,26 +22,31 @@ from arches_orm.view_models import (
 from ._register import REGISTER
 
 @REGISTER("concept-list")
-def concept_list(tile, node, value: list[uuid.UUID | str] | None, _, __):
-    if value is not None:
-        tile.data = value
-    make_cb = REGISTER.make(tile, node, value=value)
-    return ConceptListValueViewModel(tile.data, make_cb)
+def concept_list(tile, node, value: list[uuid.UUID | str] | None, _, __, ___):
+    if value is None:
+        value = tile.data[str(node.nodeid)]
+    make_cb = lambda value: REGISTER.make(
+        tile,
+        node,
+        value=value,
+        datatype="concept"
+    )[0]
+    return ConceptListValueViewModel(value, make_cb)
 
 
 @concept_list.as_tile_data
 def cl_as_tile_data(concept_list):
-    return [x.as_tile_data() for x in concept_list]
+    return [cv_as_tile_data(x) for x in concept_list]
 
 
 @REGISTER("concept")
 def concept_value(tile, node, value: uuid.UUID | str | None, __, ___, datatype):
-    if value is not None:
-        tile.data[str(node.nodeid)] = value
+    if value is None:
+        value = tile.data[str(node.nodeid)]
     concept_value_cb = datatype.get_value
-    if tile.data[str(node.nodeid)] is None:
+    if value is None:
         return None
-    return ConceptValueViewModel(tile.data[str(node.nodeid)], concept_value_cb)
+    return ConceptValueViewModel(value, concept_value_cb)
 
 
 @concept_value.as_tile_data

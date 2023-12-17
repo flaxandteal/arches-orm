@@ -39,6 +39,7 @@ def resource_instance_list(
             value=value,
             parent=parent,
             child_nodes=child_nodes,
+            datatype="resource-instance"
         )
 
     return RelatedResourceInstanceListViewModel(
@@ -65,13 +66,14 @@ def resource_instance(
     child_nodes,
     resource_instance_datatype,
 ):
-    from .utils import (
+    from arches_orm.utils import (
         get_well_known_resource_model_by_graph_id,
         attempt_well_known_resource_model,
     )
 
-    if value is None:
-        raise NotImplementedError()
+    value = value or tile.data.get(str(node.nodeid))
+    if isinstance(value, dict):
+        value = value.get("resourceId")
     resource_instance_id = None
     resource_instance = None
     if isinstance(value, uuid.UUID | str):
@@ -81,7 +83,7 @@ def resource_instance(
 
     if not resource_instance:
         if resource_instance_id:
-            _resource_instance = attempt_well_known_resource_model(
+            resource_instance = attempt_well_known_resource_model(
                 resource_instance_id, related_prefetch=parent_wkri._related_prefetch
             )
         else:
@@ -113,14 +115,15 @@ def resource_instance(
     if _resource_instance._cross_record and _resource_instance._cross_record != datum:
         raise NotImplementedError("Cannot currently reparent a resource instance")
 
-    mixin = RI_VIEW_MODEL_CLASSES.get(_resource_instance.model_class_name)
+    model_class_name = str(_resource_instance.__class__.__name__)
+    mixin = RI_VIEW_MODEL_CLASSES.get(model_class_name)
     if not mixin:
         mixin = type(
-            f"{_resource_instance.model_class_name}RelatedResourceInstanceViewModel",
+            f"{model_class_name}RelatedResourceInstanceViewModel",
             (_resource_instance.__class__, RelatedResourceInstanceViewModelMixin),
-            {},
+            dict(proxy=True)
         )
-        RI_VIEW_MODEL_CLASSES[_resource_instance.model_class_name] = mixin
+        RI_VIEW_MODEL_CLASSES[model_class_name] = mixin
     _resource_instance.__class__ = mixin
     _resource_instance._cross_record = datum
 
@@ -129,4 +132,5 @@ def resource_instance(
 
 @resource_instance.as_tile_data
 def ri_as_tile_data(_):
+    return {}
     raise NotImplementedError()

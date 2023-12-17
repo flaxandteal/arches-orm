@@ -28,6 +28,7 @@ class RegisterFunction(Callable):
 
     def as_tile_data(self, as_tile_data_fn):
         self.as_tile_data_fn = as_tile_data_fn
+        return as_tile_data_fn
 
     def transform_value_for_tile(self, value):
         return self.as_tile_data_fn(value)
@@ -55,10 +56,21 @@ class ViewModelRegister(UserDict):
         value: Any = None,
         parent: Any = None,
         child_nodes: list = None,
+        datatype: str = None
     ):
-        datatype = self._datatype_factory.get_instance(node.datatype)
-        if node.datatype in self:
-            registration = self[node.datatype]
+        datatype_name = datatype or node.datatype
+
+        # TODO: this seems to an Arches issue?
+        if datatype_name == "resource-instance" and (
+            (isinstance(value, list)) or
+            (value is None and tile.data is not None and isinstance(tile.data.get(str(node.nodeid)), list))
+        ):
+            datatype_name = "resource-instance-list"
+
+        datatype = self._datatype_factory.get_instance(datatype_name)
+
+        if datatype_name in self:
+            registration = self[datatype_name]
             record = registration(tile, node, value, parent, child_nodes, datatype)
             return record, registration.transform_value_for_tile
         else:

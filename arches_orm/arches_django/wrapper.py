@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 LOAD_FULL_NODE_OBJECTS = True
 LOAD_ALL_NODES = True
 
-class ArchesDjangoResourceWrapper(ResourceWrapper, adapter=True):
+class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
     _nodes_real: dict = None
     _nodegroup_objects_real: dict = None
     _root_node: Node | None = None
@@ -162,12 +162,19 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, adapter=True):
     @classmethod
     @lru_cache
     def _node_objects_by_alias(cls):
+        if hasattr(cls.__bases__[0], "_node_objects_by_alias") and cls.proxy:
+            return cls.__bases__[0]._node_objects_by_alias()
+
         return {node.alias: node for node in cls._node_objects().values()}
 
     @classmethod
     @lru_cache
     def _node_objects(cls):
         """Caching retrieval of all Arches nodes for this model."""
+
+        if hasattr(cls.__bases__[0], "_node_objects") and cls.proxy:
+            return cls.__bases__[0]._node_objects()
+
         if not LOAD_FULL_NODE_OBJECTS:
             raise RuntimeError("Attempt to load full node objects when asked not to")
 
@@ -177,6 +184,9 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, adapter=True):
     @classmethod
     @lru_cache
     def _edges(cls):
+        if hasattr(cls.__bases__[0], "_edges") and cls.proxy:
+            return cls.__bases__[0]._edges()
+
         edge_pairs = [
             (str(edge.domainnode_id), str(edge.rangenode_id))
             for edge in Edge.objects.filter(graph_id=cls.graphid)
@@ -192,6 +202,10 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, adapter=True):
     @lru_cache
     def _nodegroup_objects(cls) -> dict[str, NodeGroup]:
         """Caching retrieval of all Arches nodegroups for this model."""
+
+        if hasattr(cls.__bases__[0], "_nodegroup_objects") and cls.proxy:
+            return cls.__bases__[0]._nodegroup_objects()
+
         if not LOAD_FULL_NODE_OBJECTS:
             raise RuntimeError("Attempt to load full node objects when asked not to")
 
@@ -227,6 +241,9 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, adapter=True):
     @classmethod
     @lru_cache
     def _build_nodes(cls):
+        if hasattr(cls.__bases__[0], "_build_nodes") and cls.proxy:
+            return cls.__bases__[0]._build_nodes()
+
         if cls._nodes_real or cls._nodegroup_objects_real:
             raise RuntimeError(
                 "Cache should never try and rebuild nodes when non-empty"
@@ -418,6 +435,12 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, adapter=True):
         # load_tiles thins by user
         resource.tiles = TileProxyModel.objects.filter(resourceinstance=resource)
 
+        implied_keys = {
+            str(tile.nodegroup_id) for tile in resource.tiles if tile.data
+        } - {
+            str(nodeid) for tile in resource.tiles for nodeid in tile.data
+        }
+        implied_tiles = {}
         for tile in resource.tiles:
             if tile.data:
                 for nodeid, node_value in tile.data.items():
@@ -428,6 +451,14 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, adapter=True):
                             all_values[key] = cls._make_pseudo_node_cls(
                                 key, tile=tile, wkri=wkri
                             )
+                            if str(tile.nodegroup_id) in implied_keys:
+                                implied_tiles[str(tile.nodegroup_id)] = tile
+        for nodeid, tile in implied_tiles.items():
+            if nodeid in node_objs:
+                key = node_objs[nodeid].alias
+                all_values[key] = cls._make_pseudo_node_cls(
+                    key, tile=tile, wkri=wkri
+                )
         return all_values
 
     @classmethod
@@ -499,11 +530,14 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, adapter=True):
 
         return value
 
-    def __init_subclass__(cls, well_known_resource_model=None):
-        super().__init_subclass__(well_known_resource_model=well_known_resource_model)
-        cls._nodes_real = {}
-        cls._nodegroup_objects_real = {}
-        cls._build_nodes()
+    def __init_subclass__(cls, well_known_resource_model=None, proxy=None):
+        super().__init_subclass__(well_known_resource_model=well_known_resource_model, proxy=proxy)
+        if proxy is not None:
+            cls.proxy = proxy
+        if not cls.proxy:
+            cls._nodes_real = {}
+            cls._nodegroup_objects_real = {}
+            cls._build_nodes()
 
     @classmethod
     def _add_events(cls):

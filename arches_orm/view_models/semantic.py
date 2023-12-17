@@ -1,3 +1,4 @@
+from collections.abc import Iterable
 from collections import UserList
 from ._base import (
     ViewModel,
@@ -8,19 +9,20 @@ class SemanticViewModel(ViewModel):
 
     _child_keys = None
     _parent_wkri = None
-    _child_values = None
     _make_child = None
 
     def __init__(self, parent_wkri, child_keys, values, make_child):
         self._child_keys = child_keys
         self._parent_wkri = parent_wkri
-        self._child_values = {
-            key: value
-            for key, value in parent_wkri._values.items()
-            if key in child_keys and value is not None
-        }
-
         self._make_child = make_child
+
+    @property
+    def _child_values(self):
+        return {
+            key: value
+            for key, value in self._parent_wkri._values.items()
+            if key in self._child_keys and value is not None
+        }
 
     def get_children(self, direct=None):
         children = [
@@ -35,10 +37,14 @@ class SemanticViewModel(ViewModel):
             return super().__getattr__(key)
 
         if key not in self._child_keys:
-            raise AttributeError("Semantic node does not have this key")
+            raise AttributeError(f"Semantic node does not have this key: {key}")
 
         if key not in self._child_values:
-            self._child_values[key] = self._make_child(key)
+            value = self._make_child(key)
+            if not isinstance(value, Iterable):
+                value = None
+            self._parent_wkri._values[key] = value
+            return value
         if isinstance(self._child_values[key], UserList):
             return self._child_values[key].value_list()
         else:
@@ -58,5 +64,5 @@ class SemanticViewModel(ViewModel):
             raise AttributeError("Semantic node does not have this key")
 
         if key not in self._child_values:
-            self._child_values[key] = self._make_child(key)
-        self._child_values[key].value = value
+            self._parent_wkri._values[key] = self._make_child(key)
+        self._parent_wkri._values[key].value = value

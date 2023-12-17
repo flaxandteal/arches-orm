@@ -25,8 +25,11 @@ class ConceptValueViewModel(str, ViewModel):
     _concept_value_id: uuid.UUID
     _concept_value_cb: Callable[[uuid.UUID], ConceptProtocol]
 
+    def __hash__(self):
+        return hash(self._concept_value_id)
+
     def __eq__(self, other):
-        return self.conceptid == other.conceptid
+        return str(self._concept_value_id) == str(other._concept_value_id)
 
     def __new__(
         cls,
@@ -44,12 +47,10 @@ class ConceptValueViewModel(str, ViewModel):
         return mystr
 
     @property
-    @lru_cache
     def conceptid(self):
         return self.value.concept_id
 
     @property
-    @lru_cache
     def concept(self):
         return self.value.concept
 
@@ -59,12 +60,10 @@ class ConceptValueViewModel(str, ViewModel):
         return self._concept_value_cb(self._concept_value_id)
 
     @property
-    @lru_cache
     def text(self):
         return self.value.value
 
     @property
-    @lru_cache
     def lang(self):
         return self.value.language
 
@@ -88,9 +87,11 @@ class ConceptListValueViewModel(UserList, ViewModel):
         concept_value_ids: Iterable[str | uuid.UUID],
         make_cb,
     ):
+        super().__init__()
+        self._make_cb = make_cb
+        self._serialize_entries = {}
         for concept_value_id in concept_value_ids:
             self.append(concept_value_id)
-        self._make_cb = make_cb
 
     def append(self, value):
         if not isinstance(value, ConceptValueViewModel):

@@ -88,6 +88,10 @@ def test_find(arches_orm, person_ashs):
     assert reloaded_person.name[0].full_name == "Ash"
 
 @pytest.mark.django_db
+def test_empty_node_is_falsy(arches_orm, person_ashs):
+    assert not person_ashs.user_account
+
+@pytest.mark.django_db
 def test_user_account(arches_orm, person_ashs):
     from django.contrib.auth.models import User
     user_account = User(email="ash@example.com")

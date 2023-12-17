@@ -1,3 +1,3 @@
-from .wrapper import ArchesDjangoResourceWrapper as adapter
+from .adapter import ArchesDjangoAdapter as adapter
 
 __all__ = ["adapter"]

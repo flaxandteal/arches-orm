@@ -41,7 +41,7 @@ def _make_wkrm(wkrm_definition, adapter):
         return type(
             wkrm_definition.model_class_name,
             (adapter.get_wrapper(),),
-            {},
+            {"proxy": False},
             well_known_resource_model=wkrm_definition,
         )
     except KeyError as e:

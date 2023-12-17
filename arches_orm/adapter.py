@@ -1,11 +1,16 @@
+class Adapter:
+    def __init_subclass__(cls):
+        ADAPTER_MANAGER.register_adapter(cls)
+
 class AdapterManager:
     default_adapter = None
 
     def __init__(self):
         self.adapters = {}
 
-    def register_adapter(self, wrapper_cls):
-        key = str(wrapper_cls)
+    def register_adapter(self, adapter_cls):
+        adapter = adapter_cls()
+        key = str(adapter)
         if key in self.adapters:
             raise RuntimeError(
                 "Cannot register same adapter multiple times"
@@ -14,7 +19,7 @@ class AdapterManager:
             raise RuntimeError(
                 "Must set a default adapter, if registering multiple in one process"
             )
-        self.adapters[key] = wrapper_cls
+        self.adapters[key] = adapter
 
     def set_default_adapter(self, default_adapter):
         self.default_adapter = default_adapter
