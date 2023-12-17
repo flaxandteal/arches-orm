@@ -27,6 +27,10 @@ WELL_KNOWN_RESOURCE_MODELS = [
             "nodegroupid": "b1f5c336-6a0e-11ee-b748-0242ac140009",
             "nodeid": "b1f5c336-6a0e-11ee-b748-0242ac140009",
         },
+    ),
+    dict(
+        model_name="Activity",
+        graphid="b9e0701e-5463-11e9-b5f5-000d3ab1e588",
     )
 ]
 MIGRATE = False

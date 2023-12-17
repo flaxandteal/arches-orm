@@ -12,7 +12,8 @@ class PseudoNodeList(UserList):
         self.node = node
         self.parent = parent
 
-    def value_list(self):
+    @property
+    def value(self):
         return NodeListViewModel(self)
 
     def get_tile(self):

@@ -45,11 +45,8 @@ class SemanticViewModel(ViewModel):
             if not isinstance(value, Iterable):
                 value = None
             self._parent_wkri._values[key] = value
-            return value
-        if isinstance(self._child_values[key], UserList):
-            return self._child_values[key].value_list()
-        else:
-            return self._child_values[key].value
+            return value.value if value is not None else value
+        return self._child_values[key].value
 
     def __setattr__(self, key, value):
         if key in (

@@ -120,3 +120,8 @@ def test_can_retrieve_by_resource_id(arches_orm, person_ashs):
     from arches_orm.utils import attempt_well_known_resource_model
     person = attempt_well_known_resource_model(person_ashs.id)
     assert person.__eq__(person_ashs)
+
+@pytest.mark.django_db
+def test_can_attach_related(arches_orm, person_ashs):
+    activity = arches_orm.models.Activity()
+    person_ashs.associated_activities.append(activity)
