@@ -38,7 +38,7 @@ def resource_instance_list(
 
 @resource_instance_list.as_tile_data
 def ril_as_tile_data(resource_instance_list):
-    return [x.as_tile_data() for x in resource_instance_list]
+    return [], resource_instance_list
 
 
 RI_VIEW_MODEL_CLASSES = {}
@@ -74,7 +74,7 @@ def resource_instance(
                 resource_instance_id, related_prefetch=parent_wkri._related_prefetch
             )
         else:
-            raise RuntimeError("Must pass a resource instance or ID")
+            return None
 
     if not isinstance(resource_instance, WKRI):
         wkrm = get_well_known_resource_model_by_graph_id(
@@ -119,5 +119,4 @@ def resource_instance(
 
 @resource_instance.as_tile_data
 def ri_as_tile_data(_):
-    return {}
-    raise NotImplementedError()
+    return {}, [self]

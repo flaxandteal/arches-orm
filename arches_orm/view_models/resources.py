@@ -11,10 +11,6 @@ class RelatedResourceInstanceViewModelMixin(ViewModel):
     find out more.
     """
 
-    def get_relationships(self):
-        # TODO: nesting
-        return [self]
-
 
 class RelatedResourceInstanceListViewModel(UserList, ViewModel):
     """Wraps a concept list, allowing interrogation.
@@ -63,6 +59,3 @@ class RelatedResourceInstanceListViewModel(UserList, ViewModel):
             if value.resourceinstanceid == item.resourceinstanceid:
                 value = item
         super().remove(value)
-
-    def get_relationships(self):
-        return sum((x.get_relationships() for x in self), [])

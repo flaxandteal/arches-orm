@@ -1,6 +1,7 @@
 import logging
 import uuid
 from abc import abstractmethod, abstractclassmethod, abstractstaticmethod
+from collections.abc import Callable
 from .view_models import WKRI as Resource
 
 logger = logging.getLogger(__name__)
@@ -15,10 +16,10 @@ class ResourceWrapper(Resource):
     model_name: str
     graphid: str
     id: str
-    _values: dict = None
-    _cross_record: dict = None
-    _pending_relationships: list = None
-    _related_prefetch: list = None
+    _values: dict | None = None
+    _cross_record: dict | None = None
+    _pending_relationships: list | None = None
+    _related_prefetch: Callable | None = None
     resource: Resource
     proxy: bool = False
 
@@ -140,8 +141,7 @@ class ResourceWrapper(Resource):
 
     def save(self):
         """Rebuild and save the underlying resource."""
-        resource = self.to_resource(strict=True)
-        resource.save()
+        resource = self.to_resource(strict=True, _no_save=False)
         self.id = resource.pk
         return self
 
@@ -154,10 +154,11 @@ class ResourceWrapper(Resource):
         )
         table = [["PROPERTY", "TYPE", "VALUE"]]
         for key, value in self._values.items():
-            if value.value:
-                table.append([key, value.value.__class__.__name__, str(value)])
-            else:
-                table.append([key, "", "(empty)"])
+            for entry in value:
+                if entry.value:
+                    table.append([key, entry.value.__class__.__name__, str(entry.value)])
+                else:
+                    table.append([key, "", "(empty)"])
         return description + tabulate(table)
 
     def __str__(self):
@@ -212,3 +213,11 @@ class ResourceWrapper(Resource):
     @abstractstaticmethod
     def get_adapter():
         """Get the adapter that encapsulates this wrapper."""
+
+    @abstractmethod
+    def reload(self, ignore_prefetch=True):
+        """Reload field values, but not node values for class."""
+
+    @abstractmethod
+    def get_root(self):
+        """Get the root value."""

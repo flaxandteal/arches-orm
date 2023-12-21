@@ -1,4 +1,8 @@
 class Adapter:
+    config: dict
+    def __init__(self):
+        self.config = {}
+
     def __init_subclass__(cls):
         ADAPTER_MANAGER.register_adapter(cls)
 

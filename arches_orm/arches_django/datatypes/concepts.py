@@ -10,7 +10,7 @@ from ._register import REGISTER
 @REGISTER("concept-list")
 def concept_list(tile, node, value: list[uuid.UUID | str] | None, _, __, ___):
     if value is None:
-        value = tile.data[str(node.nodeid)]
+        value = tile.data.get(str(node.nodeid), [])
 
     def make_cb(value):
         return REGISTER.make(tile, node, value=value, datatype="concept")[0]
@@ -26,7 +26,7 @@ def cl_as_tile_data(concept_list):
 @REGISTER("concept")
 def concept_value(tile, node, value: uuid.UUID | str | None, __, ___, datatype):
     if value is None:
-        value = tile.data[str(node.nodeid)]
+        value = tile.data.get(str(node.nodeid), None)
     concept_value_cb = datatype.get_value
     if value is None:
         return None

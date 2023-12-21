@@ -1,5 +1,6 @@
 from arches.app.models.tile import Tile as TileProxyModel
 from collections import UserList
+from collections.abc import Iterable
 
 from arches_orm.view_models import ViewModel, NodeListViewModel
 
@@ -10,7 +11,11 @@ class PseudoNodeList(UserList):
     def __init__(self, node, parent):
         super().__init__()
         self.node = node
-        self.parent = parent
+        if isinstance(self.node, PseudoNodeList):
+            raise RuntimeError("Nope")
+        self._parent = parent
+        self._parent_node = None
+        self.parenttile_id = None
 
     @property
     def value(self):
@@ -19,11 +24,11 @@ class PseudoNodeList(UserList):
     def get_tile(self):
         for pseudo_node in self:
             pseudo_node.get_tile()
-        return None
+        return None, []
 
     def __iadd__(self, other):
         other_pn = [
-            self.parent._make_pseudo_node(
+            self._parent._make_pseudo_node(
                 self.node.alias,
                 single=True,
             )
@@ -35,7 +40,7 @@ class PseudoNodeList(UserList):
 
     def append(self, item=None):
         if not isinstance(item, PseudoNodeValue):
-            value = self.parent._make_pseudo_node(
+            value = self._parent._make_pseudo_node(
                 self.node.alias,
                 single=True,
             )
@@ -43,10 +48,11 @@ class PseudoNodeList(UserList):
                 value.value = item
             item = value
         super().append(item)
+        if not self.parenttile_id:
+            self.parenttile_id = item.parenttile_id
+        if self.parenttile_id != item.parenttile_id:
+            raise RuntimeError("Cannot mix parents in a node list")
         return item.value
-
-    def get_relationships(self):
-        return []
 
     def get_children(self, direct=None):
         return self
@@ -60,8 +66,9 @@ class PseudoNodeValue:
         self.node = node
         self.tile = tile
         if "Model" in str(self.tile.__class__):
-            raise RuntimeError()
+            raise RuntimeError("Should only use Tiles not TileModels")
         self._parent = parent
+        self._parent_node = None
         self._child_nodes = child_nodes
         self._value = value
 
@@ -71,23 +78,34 @@ class PseudoNodeValue:
     def __repr__(self):
         return str(self)
 
-    def get_relationships(self):
-        try:
-            return self.value.get_relationships() if self.value else []
-        except AttributeError:
-            return []
+    @property
+    def parenttile_id(self):
+        return self.tile.parenttile_id if self.tile else None
 
     def get_tile(self):
         self._update_value()
 
-        if self._as_tile_data:
+        relationships = []
+        if self._as_tile_data and self._value is not None:
             tile_value = self._as_tile_data(self._value)
         else:
             tile_value = self._value
-        self.tile.data[
-            str(self.node.nodeid)
-        ] = tile_value  # TODO: ensure this works for any value
-        return self.tile if self.node.is_collector else None
+        if isinstance(tile_value, tuple):
+            relationships = [
+                relationship
+                if isinstance(relationship, tuple) else
+                (str(self.tile.nodegroup_id), str(self.node.nodeid), relationship)
+                for relationship in tile_value[1]
+            ]
+            tile_value = tile_value[0]
+        if tile_value is None:
+            self.tile.data.pop(self.node.nodeid, None)
+        else:
+            self.tile.data[
+                str(self.node.nodeid)
+            ] = tile_value  # TODO: ensure this works for any value
+        tile = self.tile if self.node.is_collector else None
+        return tile, relationships
 
     def _update_value(self):
         if not self.tile:
@@ -96,6 +114,7 @@ class PseudoNodeValue:
             self.tile = TileProxyModel(
                 nodegroup_id=self.node.nodegroup_id, tileid=None, data={}
             )
+            self.relationships = []
         if not self._value_loaded:
             if (
                 self._value is None
@@ -146,3 +165,6 @@ class PseudoNodeValue:
             except AttributeError:
                 ...
         return []
+
+    def __bool__(self):
+        return bool(self.value)

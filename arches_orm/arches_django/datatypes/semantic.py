@@ -1,6 +1,9 @@
 import uuid
+from functools import partial
 from arches.app.models.models import ResourceInstance
 from arches.app.models.resource import Resource
+from pyparsing import with_attribute
+from collections.abc import Iterable
 
 from arches_orm.view_models import (
     WKRI,
@@ -18,25 +21,62 @@ def semantic(
     child_nodes,
     datatype,
 ):
+    child_keys = {key: value[1] for key, value in child_nodes.items()}
+
     def make_pseudo_node(key):
-        return parent._make_pseudo_node(
+        child = parent._make_pseudo_node(
             key,
             tile=(tile if child_nodes[key][1] else None),  # Does it share a tile
         )
+        child._parent_node = svm
+        parent._values.setdefault(key, [])
+        parent._values[key].append(child)
+        return child
 
-    return SemanticViewModel(
+    def get_child_values(svm):
+        children = {
+            key: value
+            for key, values in parent._values.items()
+            for value in values
+            if key in child_keys and value is not None and value._parent_node is None and
+            (
+                (tile and value.parenttile_id == tile.tileid) or
+                (
+                    value.node.nodegroup_id == node.nodeid and
+                    child_nodes[key][1] # It shares a tile
+                ) or
+                (
+                    node.nodegroup_id != value.node.nodegroup_id and
+                    not child_nodes[key][1] # It does not share a tile
+                )
+            )
+        }
+        for key, value in children.items():
+            value._parent_node = svm
+            if key in svm._child_values:
+                raise RuntimeError(f"Semantic view model construction error - duplicate keys outside node list: {key}")
+            svm._child_values[key] = value
+
+        return children
+
+    svm = SemanticViewModel(
         parent,
-        {key: value[1] for key, value in child_nodes.items()},
+        child_keys,
         value,
         make_pseudo_node,
+        get_child_values,
     )
+    svm.get_children()
+
+    return svm
 
 
 @semantic.as_tile_data
 def sm_as_tile_data(semantic):
     # Ensure all nodes have populated the tile
-    tile = None
+    relationships = []
     for value in semantic.get_children(direct=True):
-        tile = value.get_tile() or tile
-    data = tile.data if tile is not None else {}
-    return data
+        # We do not use tile, because a child node will ignore its tile reference.
+        _, subrelationships = value.get_tile()
+        relationships += subrelationships
+    return None, relationships

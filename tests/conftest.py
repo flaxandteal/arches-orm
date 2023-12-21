@@ -80,6 +80,10 @@ def arches_orm(search_engine, django_db_blocker, test_sql):
 
     i18n.I18n_JSON.as_sql = I18n_JSON_sql
 
+    from arches.app.datatypes.datatypes import ResourceInstanceDataType
+    # No functions in Sqlite
+    ResourceInstanceDataType.post_tile_save = lambda *args, **kwargs: ()
+
     from arches.app.utils.betterJSONSerializer import JSONDeserializer
     from arches.app.utils.data_management.resource_graphs.importer import (
         import_graph as ResourceGraphImporter,
@@ -91,6 +95,8 @@ def arches_orm(search_engine, django_db_blocker, test_sql):
                 archesfile = JSONDeserializer().deserialize(f)
                 ResourceGraphImporter(archesfile["graph"], True)
         import arches_orm.arches_django
+        from arches_orm.adapter import get_adapter
+        get_adapter("arches-django").config["save_crosses"] = True
         import arches_orm.models
 
         yield arches_orm

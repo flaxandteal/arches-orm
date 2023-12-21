@@ -10,24 +10,22 @@ class SemanticViewModel(ViewModel):
     _child_keys = None
     _parent_wkri = None
     _make_child = None
+    _get_child_values = None
+    _child_values = None
 
-    def __init__(self, parent_wkri, child_keys, values, make_child):
+    def __init__(self, parent_wkri, child_keys, values, make_child, get_child_values):
         self._child_keys = child_keys
+        self._child_values = {}
         self._parent_wkri = parent_wkri
         self._make_child = make_child
-
-    @property
-    def _child_values(self):
-        return {
-            key: value
-            for key, value in self._parent_wkri._values.items()
-            if key in self._child_keys and value is not None
-        }
+        self._get_child_values = get_child_values
 
     def get_children(self, direct=None):
+        items = dict(self._get_child_values(self))
+        items.update(self._child_values)
         children = [
             value
-            for key, value in self._child_values.items()
+            for key, value in items.items()
             if (direct is None or direct == self._child_keys[key]) and value is not None
         ]
         return children
@@ -40,11 +38,10 @@ class SemanticViewModel(ViewModel):
             raise AttributeError(f"Semantic node does not have this key: {key}")
 
         if key not in self._child_values:
-            value = self._make_child(key)
-            if value is not None and not isinstance(value.value, Iterable):
-                value = None
-            self._parent_wkri._values[key] = value
-            return value.value if value is not None else value
+            if (child := self._get_child_values(self).get(key)) is None:
+                child = self._make_child(key)
+            self._child_values[key] = child
+            child._parent_node = self
         return self._child_values[key].value
 
     def __setattr__(self, key, value):
@@ -54,6 +51,7 @@ class SemanticViewModel(ViewModel):
             "_child_values",
             "_make_child",
             "_parent_pseudo_node",
+            "_get_child_values",
         ):
             return super().__setattr__(key, value)
 
@@ -61,5 +59,10 @@ class SemanticViewModel(ViewModel):
             raise AttributeError(f"Semantic node does not have this key: {key}")
 
         if key not in self._child_values:
-            self._parent_wkri._values[key] = self._make_child(key)
-        self._parent_wkri._values[key].value = value
+            if key not in self._get_child_values(self):
+                child = self._make_child(key)
+            else:
+                child = self._get_child_values(self)[key]
+            self._child_values[key] = child
+            child._parent_node = self
+        self._child_values[key].value = value

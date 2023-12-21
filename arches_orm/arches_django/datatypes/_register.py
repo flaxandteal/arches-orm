@@ -31,9 +31,18 @@ class ViewModelRegister(UserDict):
     @cached_property
     def _datatype_factory(self):
         """Caching datatype factory retrieval (possibly unnecessary)."""
-        from arches.app.datatypes.datatypes import DataTypeFactory
+        from arches.app.datatypes.datatypes import DataTypeFactory, ResourceInstanceListDataType
 
-        return DataTypeFactory()
+        class DataTypeFactoryWithResourceInstanceList(DataTypeFactory):
+            def get_instance(self, datatype):
+                if datatype == "resource-instance-list":
+                    if "ResourceInstanceListDataType" not in DataTypeFactory._datatype_instances:
+                        super().get_instance("resource-instance-list")
+                        d_datatype = DataTypeFactory._datatypes["resource-instance-list"]
+                        DataTypeFactory._datatype_instances["ResourceInstanceListDataType"] = ResourceInstanceListDataType(d_datatype)
+                    return DataTypeFactory._datatype_instances["ResourceInstanceListDataType"]
+                return super().get_instance(datatype)
+        return DataTypeFactoryWithResourceInstanceList()
 
     def make(
         self,
@@ -47,6 +56,9 @@ class ViewModelRegister(UserDict):
         datatype_name = datatype or node.datatype
 
         # TODO: this seems to an Arches issue?
+        # Maybe intended: https://github.com/archesproject/arches/   \
+        #       blob/a1c2b429f5aaa54af95a4111862eb87d56709107/arches \
+        #       /app/models/migrations/5668_add_resourceinstancelist.py#L25
         if datatype_name == "resource-instance" and (
             (isinstance(value, list))
             or (

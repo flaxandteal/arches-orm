@@ -9,6 +9,11 @@ LOAD_ALL_NODES = True
 
 
 class ArchesDjangoAdapter(Adapter):
+    # config:
+    #   save_crosses: bool
+    #      whether to save, or cache, resourceXresource models explicitly
+    #      or leave it for Postgres
+
     def __str__(self):
         return "arches-django"
 

@@ -70,12 +70,49 @@ def person_ashs(arches_orm, person_ash):
     person_ash.delete()
 
 @pytest.mark.django_db
-def test_startup(arches_orm):
+def test_can_save_with_name(arches_orm):
     Person = arches_orm.models.Person
     person = Person.create()
     ash = person.name.append()
     ash.full_name = "Ash"
     person.save()
+
+@pytest.mark.django_db
+def test_can_save_with_blank_name(arches_orm):
+    Person = arches_orm.models.Person
+    person = Person.create()
+    person.name.append()
+    person.save()
+
+@pytest.mark.django_db
+def test_can_save_two_names(arches_orm, person_ashs):
+    asha = person_ashs.name.append()
+    asha.full_name = "Asha"
+    assert len(person_ashs.name) == 2
+    person_ashs.save()
+    assert len(person_ashs.name) == 2
+
+    reloaded_person = arches_orm.models.Person.find(person_ashs.id)
+    assert len(reloaded_person.name) == 2
+    full_names = {name.full_name for name in reloaded_person.name}
+    assert full_names == {"Ash", "Asha"}
+
+@pytest.mark.django_db
+def test_can_save_two_related_resources(arches_orm, person_ashs):
+    act_1 = arches_orm.models.Activity()
+    person_ashs.associated_activities.append(act_1)
+    person_ashs.save()
+    assert len(person_ashs.associated_activities) == 1
+
+    reloaded_person = arches_orm.models.Person.find(person_ashs.id)
+    assert len(reloaded_person.name) == 1
+    act_2 = arches_orm.models.Activity()
+    reloaded_person.associated_activities.append(act_2)
+    reloaded_person.save()
+    assert len(reloaded_person.associated_activities) == 2
+
+    reloaded_person = arches_orm.models.Person.find(person_ashs.id)
+    assert len(reloaded_person.associated_activities) == 2
 
 @pytest.mark.django_db
 def test_unsaved_json(person_ash):
@@ -125,3 +162,15 @@ def test_can_retrieve_by_resource_id(arches_orm, person_ashs):
 def test_can_attach_related(arches_orm, person_ashs):
     activity = arches_orm.models.Activity()
     person_ashs.associated_activities.append(activity)
+    assert len(person_ashs.associated_activities) == 1
+
+@pytest.mark.django_db
+def test_can_attach_related_then_save(arches_orm, person_ashs):
+    activity = arches_orm.models.Activity()
+    person_ashs.associated_activities.append(activity)
+    assert len(person_ashs.associated_activities) == 1
+    person_ashs.save()
+    assert len(person_ashs.associated_activities) == 1
+    reloaded_person = arches_orm.models.Person.find(person_ashs.id)
+    assert len(reloaded_person.associated_activities) == 1
+    assert isinstance(reloaded_person.associated_activities[0], arches_orm.models.Activity)

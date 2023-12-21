@@ -3,6 +3,7 @@ from django.dispatch import Signal
 from functools import lru_cache
 from datetime import datetime
 from arches.app.models.models import ResourceXResource, Node, NodeGroup, Edge
+from arches.app.models.graph import Graph
 from arches.app.models.tile import Tile as TileProxyModel
 from arches.app.models.system_settings import settings as system_settings
 import logging
@@ -28,34 +29,40 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
     """Provides functionality for translating to/from Arches types."""
 
     def _update_tiles(
-        self, tiles, all_values=None, tiles_to_remove=None, nodegroup_id=None, root=None
+        self, tiles, all_values=None, nodegroup_id=None, root=None, parent=None
     ):
         if not root:
             if not all_values:
                 return []
             root = [
-                node for node in all_values.values() if node.node.nodegroup_id is None
+                nodelist[0] for nodelist in all_values.values() if nodelist[0].node.nodegroup_id is None
             ][0]
 
+        combined_tiles = []
         relationships = []
-        combined_tiles = [root.get_tile()]
+        if not isinstance(root, PseudoNodeList):
+            parent = root
         for pseudo_node in root.get_children():
             if len(pseudo_node):
-                self._update_tiles(
-                    tiles, root=pseudo_node, tiles_to_remove=tiles_to_remove
+                subrelationships = self._update_tiles(
+                    tiles, root=pseudo_node, parent=parent
                 )
-            elif pseudo_node.node.nodegroup_id != root.node.nodegroup_id:
-                combined_tiles.append(pseudo_node.get_tile())
-            relationships += pseudo_node.get_relationships()
+                relationships += subrelationships
+            if not isinstance(pseudo_node, PseudoNodeList) and pseudo_node.node.nodegroup_id != parent.node.nodegroup_id:
+                t_and_r = pseudo_node.get_tile()
+                combined_tiles.append(t_and_r)
 
-        for tile in combined_tiles:
+        for tile, subrelationships in combined_tiles:
             if tile:
-                tile.parent = root.node
-                nodegroup_id = str(pseudo_node.node.nodegroup_id)
+                if parent and parent.tile != tile and parent.node.nodegroup_id:
+                    tile.parenttile = parent.tile
+                nodegroup_id = str(tile.nodegroup_id)
                 tiles.setdefault(nodegroup_id, [])
+                relationships += [
+                    (len(tiles[nodegroup_id]), *relationship)
+                    for relationship in subrelationships
+                ]
                 tiles[nodegroup_id].append(tile)
-                if tile in tiles_to_remove:
-                    tiles_to_remove.remove(tile)
         return relationships
 
     def to_resource(
@@ -65,6 +72,7 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
         _no_save=False,
         _known_new=False,
         _do_index=True,
+        save_related_if_missing=True,
     ):
         """Construct an Arches resource.
 
@@ -73,24 +81,13 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
 
         resource = Resource(resourceinstanceid=self.id, graph_id=self.graphid)
         tiles = {}
-        if not _known_new:
-            for tile in TileProxyModel.objects.filter(resourceinstance=resource):
-                tiles.setdefault(str(tile.nodegroup_id), [])
-                if tile.data is not None:
-                    tiles[str(tile.nodegroup_id)].append(tile)
-        tiles_to_remove = sum((ts for ts in tiles.values()), [])
-
-        relationships = self._update_tiles(tiles, self._values, tiles_to_remove)
+        relationships = self._update_tiles(tiles, self._values)
 
         # parented tiles are saved hierarchically
         resource.tiles = [
             t
             for t in sum((ts for ts in tiles.values()), [])
-            if not t.parenttile and t not in tiles_to_remove and t.nodegroup_id
         ]
-        for tile in tiles_to_remove:
-            if tile.tileid:
-                tile.delete()
 
         if not resource.createdtime:
             resource.createdtime = datetime.now()
@@ -102,47 +99,80 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
         # This is required to avoid e.g. missing related models preventing
         # saving (as we cannot import those via CSV on first step)
         self._pending_relationships = []
+        do_final_save = False
         if not _no_save:
-            bypass = system_settings.BYPASS_REQUIRED_VALUE_TILE_VALIDATION
-            system_settings.BYPASS_REQUIRED_VALUE_TILE_VALIDATION = True
-            # all_tiles = resource.tiles
-            # parentless_tiles = [tile for tile in all_tiles if not tile.parenttile]
-            ## This only solves the problem for _one_ level of nesting
-            # if len(all_tiles) > len(parentless_tiles):
-            #    resource.tiles = parentless_tiles
-            #    resource.save()
-            #    resource.tiles = all_tiles
+            if self.id and resource.resourceinstanceid and self.id == resource.resourceinstanceid:
+                do_final_save = True
+            else:
+                bypass = system_settings.BYPASS_REQUIRED_VALUE_TILE_VALIDATION
+                system_settings.BYPASS_REQUIRED_VALUE_TILE_VALIDATION = True
+                # all_tiles = resource.tiles
+                # parentless_tiles = [tile for tile in all_tiles if not tile.parenttile]
+                ## This only solves the problem for _one_ level of nesting
+                # if len(all_tiles) > len(parentless_tiles):
+                #    resource.tiles = parentless_tiles
+                #    resource.save()
+                #    resource.tiles = all_tiles
 
-            # This fills out the tiles with None values
-            resource.save()
-            self.id = resource.resourceinstanceid
-            system_settings.BYPASS_REQUIRED_VALUE_TILE_VALIDATION = bypass
+                # This fills out the tiles with None values
+                resource.save()
+                self.id = resource.resourceinstanceid
+                system_settings.BYPASS_REQUIRED_VALUE_TILE_VALIDATION = bypass
         elif not resource._state.adding:
             self.id = resource.resourceinstanceid
 
         self.resource = resource
 
-        # for nodegroupid, nodeid, resourceid in relationships:
-        for value, related in relationships:
-            related.to_resource(verbose=verbose, strict=strict, _no_save=_no_save)
-            if _no_save:
-                self._pending_relationships.append((value, related, self))
-            else:
-                # TODO: what happens if the cross already exists for some reason?
-                cross = ResourceXResource(
-                    resourceinstanceidfrom=resource,
-                    resourceinstanceidto=related.resource,
-                )
-                cross.save()
-                value.update(
-                    {
-                        "resourceId": str(resource.resourceinstanceid),
-                        "ontologyProperty": "",
-                        "resourceXresourceId": str(cross.resourcexid),
-                        "inverseOntologyProperty": "",
-                    }
-                )
-                resource.save()
+        # Don't think we actually need this if the resource gets saved, as postsave RI datatype handles it.
+        # We do for sqlite at the very least, and likely gathering for bulk.
+        if self.get_adapter().config.get("save_crosses", False):
+            crosses = {
+                str(cross.tileid): cross
+                for cross in ResourceXResource.objects.filter(resourceinstanceidfrom=resource)
+            }
+            for tile_ix, nodegroup_id, nodeid, related in relationships:
+                value = tiles[nodegroup_id][tile_ix].data[nodeid]
+                tileid = str(tiles[nodegroup_id][tile_ix].tileid)
+                if not related.id:
+                    if save_related_if_missing:
+                        related.save()
+                    else:
+                        logger.warning("Not saving a related model as not requested")
+                        continue
+                if _no_save:
+                    self._pending_relationships.append((value, related, self))
+                elif tileid not in crosses:
+                    cross = ResourceXResource(
+                        resourceinstanceidfrom=resource,
+                        resourceinstanceidto_id=related.id,
+                    )
+                    cross.save()
+                else:
+                    cross = crosses[tileid]
+                    save_cross = False
+                    if str(cross.resourceinstanceidto_id) != str(related.id):
+                        cross.resourceinstanceidto_id = related.id
+                        save_cross = True
+                    if str(cross.resourceinstanceidfrom_id) != str(resource.id):
+                        cross.resourceinstanceidfrom_id = resource.id
+                        save_cross = True
+                    if save_cross:
+                        cross.save()
+
+                cross_value = {
+                    "resourceId": str(cross.resourceinstanceidto_id),
+                    "ontologyProperty": "",
+                    "resourceXresourceId": str(cross.resourcexid),
+                    "inverseOntologyProperty": "",
+                }
+                if isinstance(value, list):
+                    if not any(entry["resourceXresourceId"] == cross_value["resourceXresourceId"] for entry in value):
+                        value.append(cross_value)
+                else:
+                    value.update(cross_value)
+                do_final_save = True
+        if do_final_save:
+            resource.save()
 
         return resource
 
@@ -181,6 +211,11 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
 
         cls._build_nodes()
         return cls._nodes_real
+
+    @classmethod
+    @lru_cache
+    def _graph(cls):
+        return Graph.objects.get(graphid=cls.graphid)
 
     @classmethod
     @lru_cache
@@ -238,9 +273,13 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
                 f" {self.graphid}"
             )
         node_objs = self._node_objects()
+        nodegroup_objs = self._nodegroup_objects()
+        edges = self._edges()
         self._values = {}
         values = self.values_from_resource(
             node_objs,
+            nodegroup_objs,
+            edges,
             resource,
             related_prefetch=self._related_prefetch,
             wkri=self,
@@ -259,8 +298,12 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
             cross_record=cross_record,
             related_prefetch=related_prefetch,
         )
+        nodegroup_objs = cls._nodegroup_objects()
+        edges = cls._edges()
         values = cls.values_from_resource(
             node_objs,
+            nodegroup_objs,
+            edges,
             resource,
             related_prefetch=related_prefetch,
             wkri=wkri,
@@ -454,7 +497,7 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
 
     @classmethod
     def values_from_resource(
-        cls, node_objs, resource, related_prefetch=None, wkri=None
+        cls, node_objs, nodegroup_objs, edges, resource, related_prefetch=None, wkri=None
     ):
         """Populate fields from the ID-referenced Arches resource."""
 
@@ -463,26 +506,69 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
         # load_tiles thins by user
         resource.tiles = TileProxyModel.objects.filter(resourceinstance=resource)
 
-        implied_keys = {
-            str(tile.nodegroup_id) for tile in resource.tiles if tile.data
-        } - {str(nodeid) for tile in resource.tiles for nodeid in tile.data}
-        implied_tiles = {}
+        implied_nodegroups = set()
+        node_lists_by_parent = {}
+        def _add_node(node, tile):
+            key = node.alias
+            all_values.setdefault(key, [])
+            pseudo_node = cls._make_pseudo_node_cls(
+                key, tile=tile, wkri=wkri
+            )
+            if key == "full_name" and tile is not None:
+                pseudo_node.get_tile()
+            # We shouldn't have to take care of this case, as it should already
+            # be included below.
+            # if tile.parenttile_id:
+            for domain, ranges in edges.items():
+                if str(node.nodegroup_id) in ranges:
+                    implied_nodegroups.add(
+                        str(node_objs[domain].nodegroup_id)
+                        if node_objs[domain].nodegroup_id else
+                        str(node_objs[domain].nodeid) # for root
+                    )
+                    break
+            if isinstance(pseudo_node, PseudoNodeList):
+                if key in all_values:
+                    for pseudo_node_list in all_values[key]:
+                        if not isinstance(pseudo_node_list, PseudoNodeList):
+                            raise RuntimeError("Should be all lists")
+                        if pseudo_node_list._parent_node == pseudo_node._parent_node:
+                            for ps in pseudo_node:
+                                # FIXME: do we need to deal with _parent_node?
+                                pseudo_node_list.append(ps)
+                            return
+            all_values[key].append(pseudo_node)
         for tile in resource.tiles:
-            if tile.data:
-                for nodeid, node_value in tile.data.items():
-                    if nodeid in node_objs:
-                        key = node_objs[nodeid].alias
+            tile_nodes = dict(tile.data.items())
+            tile_nodes.setdefault(tile.nodegroup_id, {})
+            for nodeid, node_value in tile_nodes.items():
+                if nodeid in node_objs:
+                    node = node_objs[nodeid]
+                    key = node_objs[nodeid].alias
+                    if node_value is not None:
+                        if node.nodegroup_id:
+                            parent_node = node_objs[str(node_objs[nodeid].nodegroup_id)]
+                            if parent_node.alias in all_values:
+                                collected_tiles = sum(
+                                    (
+                                        [ps.tile for ps in pseudo_node] if isinstance(pseudo_node, PseudoNodeList) else [pseudo_node.tile]
+                                        for pseudo_node in all_values[parent_node.alias]
+                                    ), []
+                                )
+                            else:
+                                collected_tiles = []
 
-                        if node_value is not None:
-                            all_values[key] = cls._make_pseudo_node_cls(
-                                key, tile=tile, wkri=wkri
-                            )
-                            if str(tile.nodegroup_id) in implied_keys:
-                                implied_tiles[str(tile.nodegroup_id)] = tile
-        for nodeid, tile in implied_tiles.items():
-            if nodeid in node_objs:
-                key = node_objs[nodeid].alias
-                all_values[key] = cls._make_pseudo_node_cls(key, tile=tile, wkri=wkri)
+                            if not collected_tiles or not tile in collected_tiles:
+                                _add_node(parent_node, tile)
+                                if node == parent_node:
+                                    continue
+                        _add_node(node, tile)
+        while implied_nodegroups:
+            seen_nodegroups = set(implied_nodegroups)
+            for nodegroup_id in implied_nodegroups:
+                node_obj = node_objs[nodegroup_id]
+                _add_node(node_obj, None)
+            implied_nodegroups -= seen_nodegroups
         return all_values
 
     @classmethod
@@ -569,6 +655,8 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
         if proxy is not None:
             cls.proxy = proxy
         if not cls.proxy:
+            if not cls._graph().get_published_graph():
+                raise RuntimeError(f"Graph for {cls._model_name} is not published, so cannot be a WKRM")
             cls._nodes_real = {}
             cls._nodegroup_objects_real = {}
             cls._build_nodes()
@@ -579,13 +667,16 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
 
     def get_root(self):
         if self._root_node:
-            if self._root_node.alias in self._values:
-                value = self._values[self._root_node.alias]
+            self._values.setdefault(self._root_node.alias, [])
+            if len(self._values[self._root_node.alias]) not in (0, 1):
+                raise RuntimeError("Cannot have multiple root tiles")
+            if self._values[self._root_node.alias]:
+                value = self._values[self._root_node.alias][0]
             else:
                 value = self._make_pseudo_node(
                     self._root_node.alias,
                 )
-                self._values[self._root_node.alias] = value
+                self._values[self._root_node.alias] = [value]
             return value
 
     def delete(self):
@@ -601,4 +692,5 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
 
     @staticmethod
     def get_adapter():
-        return ArchesDjangoAdapter()
+        from arches_orm import adapter
+        return adapter.get_adapter(key="arches-django")
