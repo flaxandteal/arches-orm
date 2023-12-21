@@ -1,7 +1,6 @@
 from arches_orm.view_models import (
     StringViewModel,
 )
-from arches.app.models.tile import Tile as TileProxyModel
 from ._register import REGISTER
 
 
@@ -18,10 +17,11 @@ def string(tile, node, value: dict | None, _, __, string_datatype):
                 )
 
     def _flatten_cb(value, language):
-        return string_datatype.get_display_value({
-            "data": {str(node.nodeid): value},
-            "provisionaledits": {}
-        }, node, language=language)
+        return string_datatype.get_display_value(
+            {"data": {str(node.nodeid): value}, "provisionaledits": {}},
+            node,
+            language=language,
+        )
 
     if not tile or tile.data[str(node.nodeid)] is None:
         return None

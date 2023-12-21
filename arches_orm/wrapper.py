@@ -156,7 +156,9 @@ class ResourceWrapper(Resource):
         for key, value in self._values.items():
             for entry in value:
                 if entry.value:
-                    table.append([key, entry.value.__class__.__name__, str(entry.value)])
+                    table.append(
+                        [key, entry.value.__class__.__name__, str(entry.value)]
+                    )
                 else:
                     table.append([key, "", "(empty)"])
         return description + tabulate(table)

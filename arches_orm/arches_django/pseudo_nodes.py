@@ -1,6 +1,5 @@
 from arches.app.models.tile import Tile as TileProxyModel
 from collections import UserList
-from collections.abc import Iterable
 
 from arches_orm.view_models import ViewModel, NodeListViewModel
 
@@ -14,6 +13,7 @@ class PseudoNodeList(UserList):
         if isinstance(self.node, PseudoNodeList):
             raise RuntimeError("Nope")
         self._parent = parent
+        self.tile = None
         self._parent_node = None
         self.parenttile_id = None
 
@@ -93,8 +93,8 @@ class PseudoNodeValue:
         if isinstance(tile_value, tuple):
             relationships = [
                 relationship
-                if isinstance(relationship, tuple) else
-                (str(self.tile.nodegroup_id), str(self.node.nodeid), relationship)
+                if isinstance(relationship, tuple)
+                else (str(self.tile.nodegroup_id), str(self.node.nodeid), relationship)
                 for relationship in tile_value[1]
             ]
             tile_value = tile_value[0]

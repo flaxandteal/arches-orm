@@ -1,5 +1,6 @@
 class Adapter:
     config: dict
+
     def __init__(self):
         self.config = {}
 

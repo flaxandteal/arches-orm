@@ -118,5 +118,5 @@ def resource_instance(
 
 
 @resource_instance.as_tile_data
-def ri_as_tile_data(_):
-    return {}, [self]
+def ri_as_tile_data(ri):
+    return {}, [ri]

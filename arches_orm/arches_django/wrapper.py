@@ -10,7 +10,6 @@ import logging
 
 from arches_orm.wrapper import ResourceWrapper
 
-from .adapter import ArchesDjangoAdapter
 from .pseudo_nodes import PseudoNodeList, PseudoNodeValue
 
 logger = logging.getLogger(__name__)
@@ -35,7 +34,9 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
             if not all_values:
                 return []
             root = [
-                nodelist[0] for nodelist in all_values.values() if nodelist[0].node.nodegroup_id is None
+                nodelist[0]
+                for nodelist in all_values.values()
+                if nodelist[0].node.nodegroup_id is None
             ][0]
 
         combined_tiles = []
@@ -48,7 +49,7 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
                     tiles, root=pseudo_node, parent=parent
                 )
                 relationships += subrelationships
-            if not isinstance(pseudo_node, PseudoNodeList) and pseudo_node.node.nodegroup_id != parent.node.nodegroup_id:
+            if not isinstance(pseudo_node, PseudoNodeList):
                 t_and_r = pseudo_node.get_tile()
                 combined_tiles.append(t_and_r)
 
@@ -84,10 +85,7 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
         relationships = self._update_tiles(tiles, self._values)
 
         # parented tiles are saved hierarchically
-        resource.tiles = [
-            t
-            for t in sum((ts for ts in tiles.values()), [])
-        ]
+        resource.tiles = [t for t in sum((ts for ts in tiles.values()), [])]
 
         if not resource.createdtime:
             resource.createdtime = datetime.now()
@@ -101,7 +99,11 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
         self._pending_relationships = []
         do_final_save = False
         if not _no_save:
-            if self.id and resource.resourceinstanceid and self.id == resource.resourceinstanceid:
+            if (
+                self.id
+                and resource.resourceinstanceid
+                and self.id == resource.resourceinstanceid
+            ):
                 do_final_save = True
             else:
                 bypass = system_settings.BYPASS_REQUIRED_VALUE_TILE_VALIDATION
@@ -123,12 +125,15 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
 
         self.resource = resource
 
-        # Don't think we actually need this if the resource gets saved, as postsave RI datatype handles it.
-        # We do for sqlite at the very least, and likely gathering for bulk.
+        # Don't think we actually need this if the resource gets saved, as postsave RI
+        # datatype handles it. We do for sqlite at the very least, and likely gathering
+        # for bulk.
         if self.get_adapter().config.get("save_crosses", False):
             crosses = {
                 str(cross.tileid): cross
-                for cross in ResourceXResource.objects.filter(resourceinstanceidfrom=resource)
+                for cross in ResourceXResource.objects.filter(
+                    resourceinstanceidfrom=resource
+                )
             }
             for tile_ix, nodegroup_id, nodeid, related in relationships:
                 value = tiles[nodegroup_id][tile_ix].data[nodeid]
@@ -166,7 +171,11 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
                     "inverseOntologyProperty": "",
                 }
                 if isinstance(value, list):
-                    if not any(entry["resourceXresourceId"] == cross_value["resourceXresourceId"] for entry in value):
+                    if not any(
+                        entry["resourceXresourceId"]
+                        == cross_value["resourceXresourceId"]
+                        for entry in value
+                    ):
                         value.append(cross_value)
                 else:
                     value.update(cross_value)
@@ -497,7 +506,13 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
 
     @classmethod
     def values_from_resource(
-        cls, node_objs, nodegroup_objs, edges, resource, related_prefetch=None, wkri=None
+        cls,
+        node_objs,
+        nodegroup_objs,
+        edges,
+        resource,
+        related_prefetch=None,
+        wkri=None,
     ):
         """Populate fields from the ID-referenced Arches resource."""
 
@@ -507,13 +522,11 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
         resource.tiles = TileProxyModel.objects.filter(resourceinstance=resource)
 
         implied_nodegroups = set()
-        node_lists_by_parent = {}
+
         def _add_node(node, tile):
             key = node.alias
             all_values.setdefault(key, [])
-            pseudo_node = cls._make_pseudo_node_cls(
-                key, tile=tile, wkri=wkri
-            )
+            pseudo_node = cls._make_pseudo_node_cls(key, tile=tile, wkri=wkri)
             if key == "full_name" and tile is not None:
                 pseudo_node.get_tile()
             # We shouldn't have to take care of this case, as it should already
@@ -523,8 +536,8 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
                 if str(node.nodegroup_id) in ranges:
                     implied_nodegroups.add(
                         str(node_objs[domain].nodegroup_id)
-                        if node_objs[domain].nodegroup_id else
-                        str(node_objs[domain].nodeid) # for root
+                        if node_objs[domain].nodegroup_id
+                        else str(node_objs[domain].nodeid)  # for root
                     )
                     break
             if isinstance(pseudo_node, PseudoNodeList):
@@ -538,27 +551,31 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
                                 pseudo_node_list.append(ps)
                             return
             all_values[key].append(pseudo_node)
+
         for tile in resource.tiles:
             tile_nodes = dict(tile.data.items())
             tile_nodes.setdefault(tile.nodegroup_id, {})
             for nodeid, node_value in tile_nodes.items():
                 if nodeid in node_objs:
                     node = node_objs[nodeid]
-                    key = node_objs[nodeid].alias
+                    node_objs[nodeid].alias
                     if node_value is not None:
                         if node.nodegroup_id:
                             parent_node = node_objs[str(node_objs[nodeid].nodegroup_id)]
                             if parent_node.alias in all_values:
                                 collected_tiles = sum(
                                     (
-                                        [ps.tile for ps in pseudo_node] if isinstance(pseudo_node, PseudoNodeList) else [pseudo_node.tile]
+                                        [ps.tile for ps in pseudo_node]
+                                        if isinstance(pseudo_node, PseudoNodeList)
+                                        else [pseudo_node.tile]
                                         for pseudo_node in all_values[parent_node.alias]
-                                    ), []
+                                    ),
+                                    [],
                                 )
                             else:
                                 collected_tiles = []
 
-                            if not collected_tiles or not tile in collected_tiles:
+                            if not collected_tiles or tile not in collected_tiles:
                                 _add_node(parent_node, tile)
                                 if node == parent_node:
                                     continue
@@ -587,7 +604,9 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
 
         node = cls._node_objects_by_alias().get(key)
         if not node:
-            raise RuntimeError(f"This key {key} is not known on this model {cls.__name__}")
+            raise RuntimeError(
+                f"This key {key} is not known on this model {cls.__name__}"
+            )
         tiles = TileProxyModel.objects.filter(
             nodegroup_id=str(node.nodegroup_id),
             data__contains={str(node.nodeid): value},
@@ -656,7 +675,9 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
             cls.proxy = proxy
         if not cls.proxy:
             if not cls._graph().get_published_graph():
-                raise RuntimeError(f"Graph for {cls._model_name} is not published, so cannot be a WKRM")
+                raise RuntimeError(
+                    f"Graph for {cls._model_name} is not published, so cannot be a WKRM"
+                )
             cls._nodes_real = {}
             cls._nodegroup_objects_real = {}
             cls._build_nodes()
@@ -693,4 +714,5 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
     @staticmethod
     def get_adapter():
         from arches_orm import adapter
+
         return adapter.get_adapter(key="arches-django")
