@@ -59,10 +59,14 @@ def get_resource_models_for_adapter(adapter_name: str | None = None):
     adapter = get_adapter(adapter_name)
     if str(adapter) not in resource_models:
         resource_models[str(adapter)] = {}
-        resource_models[str(adapter)]["by-class"] = {
-            wkrm.model_class_name: _make_wkrm(wkrm, adapter)
-            for wkrm in WELL_KNOWN_RESOURCE_MODELS
-        }
+        resource_models[str(adapter)]["by-class"] = {}
+        for wkrm in WELL_KNOWN_RESOURCE_MODELS
+            try:
+                resource_models[str(adapter)]["by-class"][wkrm.model_class_name] = _make_wkrm(wkrm, adapter)
+            except Exception as exc:
+                logger.error("Could not load well-known resource model %s for adapter %s", str(wkrm.model_class_name), str(adapter))
+                logger.exception(exc)
+                logger.error("...continuing, to prevent circularity.")
         resource_models[str(adapter)]["by-graph-id"] = {
             rm.graphid: rm
             for rm in resource_models[str(adapter)]["by-class"].values()
