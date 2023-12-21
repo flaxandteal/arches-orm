@@ -674,10 +674,7 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
         if proxy is not None:
             cls.proxy = proxy
         if not cls.proxy:
-            if not cls._graph().get_published_graph():
-                raise RuntimeError(
-                    f"Graph for {cls._model_name} is not published, so cannot be a WKRM"
-                )
+            # We should not actually fail without a graph...
             cls._nodes_real = {}
             cls._nodegroup_objects_real = {}
             cls._build_nodes()
