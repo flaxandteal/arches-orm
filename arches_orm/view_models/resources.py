@@ -48,7 +48,7 @@ class RelatedResourceInstanceListViewModel(UserList, ViewModel):
         elif isinstance(item, dict) and "resourceId" in item:
             resource_instance_id = item["resourceId"]
 
-        value, _ = self._make_ri_cb(resource_instance or resource_instance_id)
+        value, _, __, ___ = self._make_ri_cb(resource_instance or resource_instance_id)
         if str(value._cross_record["wkriFrom"].id) != str(self._parent_wkri.id):
             raise NotImplementedError("Cannot currently reparent related resources")
 

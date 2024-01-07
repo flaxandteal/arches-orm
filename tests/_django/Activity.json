@@ -58,6 +58,14 @@
                 {
                     "description": null,
                     "domainnode_id": "2a5b99a9-fe48-11ea-9deb-f875a44e0e11",
+                    "edgeid": "4c200659-e258-469d-bcae-b1c5661a40f7",
+                    "graph_id": "22477f01-1a44-11e9-b0a9-000d3ab1e588",
+                    "name": null,
+                    "rangenode_id": "9f326ff8-78b4-48f7-89a0-ae9f5ad99b5e"
+                },
+                {
+                    "description": null,
+                    "domainnode_id": "2a5b99a9-fe48-11ea-9deb-f875a44e0e11",
                     "edgeid": "2a5c0ee4-fe48-11ea-a0d0-f875a44e0e11",
                     "graph_id": "b9e0701e-5463-11e9-b5f5-000d3ab1e588",
                     "name": null,
@@ -122,6 +130,25 @@
                     "nodeid": "2a5b99ac-fe48-11ea-a4f6-f875a44e0e11",
                     "ontologyclass": "http://www.cidoc-crm.org/cidoc-crm/E7_Activity",
                     "parentproperty": "http://www.cidoc-crm.org/cidoc-crm/P9_consists_of",
+                    "sortorder": 0
+                },
+                {
+                    "alias": "actor_name",
+                    "config": {},
+                    "datatype": "string",
+                    "description": null,
+                    "exportable": true,
+                    "fieldname": "ActorName",
+                    "graph_id": "b9e0701e-5463-11e9-b5f5-000d3ab1e588",
+                    "hascustomalias": false,
+                    "is_collector": false,
+                    "isrequired": false,
+                    "issearchable": true,
+                    "istopnode": false,
+                    "name": "Actor Name",
+                    "nodegroup_id": "2a5b99a9-fe48-11ea-9deb-f875a44e0e11",
+                    "nodeid": "9f326ff8-78b4-48f7-89a0-ae9f5ad99b5e",
+                    "parentproperty": "http://www.cidoc-crm.org/cidoc-crm/P3_has_note",
                     "sortorder": 0
                 },
                 {

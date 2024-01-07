@@ -26,7 +26,10 @@ fields.UUIDField.get_db_prep_value = _get_db_prep_value
 import django
 from django.core.management import call_command
 
-os.environ["DJANGO_SETTINGS_MODULE"] = "_django.settings"
+if os.environ.get("WITH_GRAPHQL", True):
+    os.environ["DJANGO_SETTINGS_MODULE"] = "_django.settings_graphql"
+else:
+    os.environ["DJANGO_SETTINGS_MODULE"] = "_django.settings"
 django.setup()
 
 import pytest_django as _
@@ -83,6 +86,11 @@ def arches_orm(search_engine, django_db_blocker, test_sql):
     from arches.app.datatypes.datatypes import ResourceInstanceDataType
     # No functions in Sqlite
     ResourceInstanceDataType.post_tile_save = lambda *args, **kwargs: ()
+    from arches.app.models.concept import Concept
+    Concept.get_child_collections = lambda *args, **kwargs: [
+        (None, "First", "Value1"),
+        (None, "Second", "Value2"),
+    ]
 
     from arches.app.utils.betterJSONSerializer import JSONDeserializer
     from arches.app.utils.data_management.resource_graphs.importer import (

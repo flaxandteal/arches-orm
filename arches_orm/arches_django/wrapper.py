@@ -7,6 +7,7 @@ from arches.app.models.graph import Graph
 from arches.app.models.tile import Tile as TileProxyModel
 from arches.app.models.system_settings import settings as system_settings
 import logging
+from arches_orm.datatypes import DataTypeNames
 
 from arches_orm.wrapper import ResourceWrapper
 
@@ -349,6 +350,27 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
         }.get("root")
 
     @classmethod
+    @property
+    def __fields__(cls):
+        cls._build_nodes()
+        pseudo_node = cls._get_root_pseudo_node()
+        def _fill_fields(pseudo_node):
+            typ, multiple = pseudo_node.get_type()
+            fields = {
+                "type": DataTypeNames(typ),
+                "multiple": multiple,
+                "nodeid": str(pseudo_node.node.nodeid)
+            }
+            if (child_types := pseudo_node.get_child_types()):
+                fields["children"] = {
+                    child: _fill_fields(child_node) for child, child_node in child_types.items()
+                }
+            return fields
+        if pseudo_node:
+            return _fill_fields(pseudo_node).get("children")
+        return {}
+
+    @classmethod
     def search(cls, text, fields=None, _total=None):
         """Search ES for resources of this model, and return as well-known resources."""
 
@@ -366,7 +388,7 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
         se = SearchEngineFactory().create()
         # TODO: permitted_nodegroups = get_permitted_nodegroups(request.user)
         permitted_nodegroups = [
-            node.nodegroup_id
+            str(node.nodegroup_id)
             for key, node in cls._node_objects_by_alias().items()
             if (fields is None or key in fields)
         ]
@@ -616,9 +638,6 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
             for tile in tiles
         ]
 
-    def _make_pseudo_node(self, key, single=False, tile=None):
-        return self._make_pseudo_node_cls(key, single=single, tile=tile, wkri=self)
-
     @classmethod
     def _make_pseudo_node_cls(cls, key, single=False, tile=None, wkri=None):
         node_obj = cls._node_objects_by_alias()[key]
@@ -634,6 +653,7 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
             value = PseudoNodeList(
                 node_obj,
                 parent=wkri,
+                parent_cls=cls,
             )
         if value is None or tile:
             child_nodes = {}
@@ -657,6 +677,7 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
                 node=node_obj,
                 value=None,
                 parent=wkri,
+                parent_cls=cls,
                 child_nodes=child_nodes,
             )
             # If we have a tile in a list, add it
@@ -683,6 +704,15 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
     def _add_events(cls):
         cls.post_save = Signal()
 
+    @classmethod
+    def _get_root_pseudo_node(cls):
+        if cls._root_node:
+            return cls._make_pseudo_node_cls(
+                cls._root_node.alias,
+                wkri=None
+            )
+        return None
+
     def get_root(self):
         if self._root_node:
             self._values.setdefault(self._root_node.alias, [])
@@ -691,8 +721,9 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
             if self._values[self._root_node.alias]:
                 value = self._values[self._root_node.alias][0]
             else:
-                value = self._make_pseudo_node(
+                value = self._make_pseudo_node_cls(
                     self._root_node.alias,
+                    wkri=self
                 )
                 self._values[self._root_node.alias] = [value]
             return value

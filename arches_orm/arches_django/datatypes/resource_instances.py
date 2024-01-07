@@ -16,6 +16,7 @@ def resource_instance_list(
     node,
     value: uuid.UUID | str | WKRI | Resource | ResourceInstance | None,
     parent,
+    parent_cls,
     child_nodes,
     datatype,
 ):
@@ -25,6 +26,7 @@ def resource_instance_list(
             node,
             value=value,
             parent=parent,
+            parent_cls=parent_cls,
             child_nodes=child_nodes,
             datatype="resource-instance",
         )
@@ -50,6 +52,7 @@ def resource_instance(
     node,
     value: uuid.UUID | str | WKRI | Resource | ResourceInstance | None,
     parent_wkri,
+    parent_cls,
     child_nodes,
     resource_instance_datatype,
 ):

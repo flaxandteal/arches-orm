@@ -63,6 +63,7 @@ class ViewModelRegister(UserDict):
         node: Node,
         value: Any = None,
         parent: Any = None,
+        parent_cls: Any = None,
         child_nodes: list = None,
         datatype: str = None,
     ):
@@ -86,19 +87,23 @@ class ViewModelRegister(UserDict):
 
         if datatype_name in self:
             registration = self[datatype_name]
-            record = registration(tile, node, value, parent, child_nodes, datatype)
-            return record, registration.transform_value_for_tile
+            record = registration(tile, node, value, parent, parent_cls, child_nodes, datatype)
+            return record, registration.transform_value_for_tile, datatype_name, datatype.collects_multiple_values()
         else:
-            return datatype.transform_value_for_tile(
-                value or tile.data, **(node.config or {})
-            ), lambda value: datatype.transform_value_for_tile(
+            if value or (tile and tile.data.get(node.nodeid)):
+                transformed = datatype.transform_value_for_tile(
+                    value or tile.data, **(node.config or {})
+                )
+            else:
+                transformed = None
+            return transformed, lambda value: datatype.transform_value_for_tile(
                 value, **(node.config or {})
-            )
+            ), datatype_name, datatype.collects_multiple_values()
 
 
-def get_view_model_for_datatype(tile, node, parent, child_nodes, value=None):
+def get_view_model_for_datatype(tile, node, parent, parent_cls, child_nodes, value=None):
     return REGISTER.make(
-        tile, node, value=value, parent=parent, child_nodes=child_nodes
+        tile, node, value=value, parent=parent, parent_cls=parent_cls, child_nodes=child_nodes
     )
 
 

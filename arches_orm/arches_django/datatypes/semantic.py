@@ -15,22 +15,27 @@ def semantic(
     node,
     value: uuid.UUID | str | WKRI | Resource | ResourceInstance | None,
     parent,
+    parent_cls,
     child_nodes,
     datatype,
 ):
     child_keys = {key: value[1] for key, value in child_nodes.items()}
 
     def make_pseudo_node(key):
-        child = parent._make_pseudo_node(
+        child = parent_cls._make_pseudo_node_cls(
             key,
             tile=(tile if child_nodes[key][1] else None),  # Does it share a tile
+            wkri=parent
         )
         child._parent_node = svm
-        parent._values.setdefault(key, [])
-        parent._values[key].append(child)
+        if parent:
+            parent._values.setdefault(key, [])
+            parent._values[key].append(child)
         return child
 
     def get_child_values(svm):
+        if not parent:
+            return {}
         children = {
             key: value
             for key, values in parent._values.items()
@@ -65,10 +70,11 @@ def semantic(
     svm = SemanticViewModel(
         parent,
         child_keys,
-        value,
         make_pseudo_node,
         get_child_values,
     )
+    if value:
+        svm.update(value)
     svm.get_children()
 
     return svm
@@ -80,6 +86,9 @@ def sm_as_tile_data(semantic):
     relationships = []
     for value in semantic.get_children(direct=True):
         # We do not use tile, because a child node will ignore its tile reference.
-        tile, subrelationships = value.get_tile()
+        _, subrelationships = value.get_tile()
         relationships += subrelationships
+    # This is none because the semantic type has no nodal value,
+    # only its children have nodal values, and the nodal value of this nodeid should
+    # not exist.
     return None, relationships

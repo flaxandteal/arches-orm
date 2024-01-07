@@ -5,7 +5,7 @@ from ._register import REGISTER
 
 
 @REGISTER("string")
-def string(tile, node, value: dict | None, _, __, string_datatype):
+def string(tile, node, value: dict | None, _, __, ___, string_datatype):
     if tile:
         tile.data.setdefault(str(node.nodeid), {})
         if value is not None:

@@ -176,6 +176,7 @@ class ResourceWrapper(Resource):
                 raise RuntimeError("Must try to wrap a real model")
 
             cls._model_name = well_known_resource_model.model_name
+            cls._model_class_name = well_known_resource_model.model_class_name
             cls.graphid = well_known_resource_model.graphid
             cls._wkrm = well_known_resource_model
             cls._add_events()

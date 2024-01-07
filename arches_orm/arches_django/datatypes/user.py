@@ -19,7 +19,7 @@ class UserViewModel(User, UserViewModelMixin):
 
 
 @REGISTER("user")
-def user(tile, node, value, _, __, user_datatype) -> UserProtocol:
+def user(tile, node, value, _, __, ___, user_datatype) -> UserProtocol:
     user = None
     value = value or tile.data.get(str(node.nodeid))
     if value:
