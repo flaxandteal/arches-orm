@@ -15,3 +15,7 @@ class DataTypeNames(enum.Enum):
     NUMBER  = "number"
     DATE  = "date"
     URL = "url"
+    DOMAIN_VALUE = "domain-value"
+    NODE_VALUE = "node-value"
+    BNGCENTREPOINT = "bngcentrepoint"
+    DOMAIN_VALUE_LIST = "domain-value-list"

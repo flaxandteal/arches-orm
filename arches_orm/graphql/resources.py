@@ -214,6 +214,9 @@ class DataTypes:
             graphene_type = graphene.Boolean()
         elif typ == DataTypeNames.NUMBER:
             graphene_type = graphene.Float() # No distinct int type
+        else:
+            # RMV
+            graphene_type = graphene.String if info["multiple"] else graphene.String()
         #elif isinstance(typ, str):
         #    return graphene.List(graphene.String())
 
@@ -345,6 +348,9 @@ class DataTypes:
             return graphene.List(graphene.String)
         elif typ == DataTypeNames.USER:
             return graphene.List(UserType) if info["multiple"] else graphene.Field(UserType)
+        else:
+            # RMV
+            graphene_type = graphene.String if info["multiple"] else graphene.String()
         return graphene.List(graphene_type) if info["multiple"] else graphene_type
 
 data_types = DataTypes()
@@ -508,6 +514,7 @@ async def mutate_bulk_create(parent, info, mutation, resource_cls, field_sets, d
 
 async def mutate_create(parent, info, mutation, resource_cls, field_set, do_index=True):
     # FIXME: proper authorization
+    print(context.data["user"])
     if not ALLOW_ANONYMOUS and not context.data["user"].is_superuser:
         return {
             snake(resource_cls.__name__): None,
@@ -515,8 +522,9 @@ async def mutate_create(parent, info, mutation, resource_cls, field_set, do_inde
         }
 
     resource = _build_resource(resource_cls, **field_set)
-    # FIXME: do_index not used
     await sync_to_async(resource.to_resource)()
+    if do_index:
+        await sync_to_async(resource.index)()
     ok = True
     kwargs = {
         snake(resource_cls.__name__): resource,
