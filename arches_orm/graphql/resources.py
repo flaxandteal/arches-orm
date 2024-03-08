@@ -514,7 +514,6 @@ async def mutate_bulk_create(parent, info, mutation, resource_cls, field_sets, d
 
 async def mutate_create(parent, info, mutation, resource_cls, field_set, do_index=True):
     # FIXME: proper authorization
-    print(context.data["user"])
     if not ALLOW_ANONYMOUS and not context.data["user"].is_superuser:
         return {
             snake(resource_cls.__name__): None,
@@ -523,8 +522,6 @@ async def mutate_create(parent, info, mutation, resource_cls, field_set, do_inde
 
     resource = _build_resource(resource_cls, **field_set)
     await sync_to_async(resource.to_resource)()
-    if do_index:
-        await sync_to_async(resource.index)()
     ok = True
     kwargs = {
         snake(resource_cls.__name__): resource,

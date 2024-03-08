@@ -139,6 +139,12 @@ class ResourceWrapper(Resource):
         for key, val in values.items():
             setattr(self, key, val)
 
+    def index(self):
+        """Index the underlying resource."""
+        resource = self.to_resource(strict=True, _no_save=False)
+        resource.index()
+        return self
+
     def save(self):
         """Rebuild and save the underlying resource."""
         resource = self.to_resource(strict=True, _no_save=False)
