@@ -34,7 +34,8 @@ graphql = [
     "django_oauth2_provider",
     "graphene_file_upload",
     "graphene",
-    "uvicorn[standard]"
+    "uvicorn[standard]",
+    "aiohttp"
 ]
 arches = [
     "arches",

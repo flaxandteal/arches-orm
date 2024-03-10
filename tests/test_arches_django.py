@@ -85,6 +85,41 @@ def test_can_save_with_blank_name(arches_orm):
     person.save()
 
 @pytest.mark.django_db
+def test_can_remap_and_set(arches_orm):
+    Person = arches_orm.models.Person
+    person = Person.create()
+    remapping = {
+        "name": "name*full_name",
+        "surname": "name*surnames.surname"
+    }
+    person._model_remapping = remapping
+    person.name.append("Ash")
+    person.surname.append("Ash2")
+    person.save()
+    reloaded_person = arches_orm.models.Person.find(person.id)
+    assert reloaded_person.name[1].surnames.surname == "Ash2"
+    reloaded_person._model_remapping = remapping
+    assert reloaded_person.name == ["Ash", None]
+    assert reloaded_person.surname == [None, "Ash2"]
+
+@pytest.mark.django_db
+def test_can_remap_loaded(arches_orm, person_ashs):
+    Person = arches_orm.models.Person
+    person_ashs._model_remapping = {"name": "name*full_name"}
+    assert person_ashs.name == ["Ash"]
+
+@pytest.mark.django_db
+def test_can_remap_and_set_loaded(arches_orm, person_ashs):
+    Person = arches_orm.models.Person
+    person_ashs._model_remapping = {"name": "name.full_name"}
+    person_ashs.name = "Noash"
+    assert person_ashs.name == "Noash"
+
+    person_ashs._model_remapping = {"name": "name*full_name"}
+    person_ashs.name = "Noash"
+    assert person_ashs.name == ["Noash"]
+
+@pytest.mark.django_db
 def test_can_save_two_names(arches_orm, person_ashs):
     asha = person_ashs.name.append()
     asha.full_name = "Asha"
@@ -96,6 +131,15 @@ def test_can_save_two_names(arches_orm, person_ashs):
     assert len(reloaded_person.name) == 2
     full_names = {name.full_name for name in reloaded_person.name}
     assert full_names == {"Ash", "Asha"}
+
+@pytest.mark.django_db
+def test_can_save_a_surname(arches_orm, person_ashs):
+    asha = person_ashs.name.append()
+    asha.surnames.surname = "Ashb"
+    person_ashs.save()
+
+    reloaded_person = arches_orm.models.Person.find(person_ashs.id)
+    assert person_ashs.name[1].surnames.surname == "Ashb"
 
 @pytest.mark.django_db
 def test_can_save_two_related_resources(arches_orm, person_ashs):

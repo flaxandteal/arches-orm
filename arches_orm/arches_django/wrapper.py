@@ -10,7 +10,9 @@ import logging
 from arches_orm.datatypes import DataTypeNames
 
 from arches_orm.wrapper import ResourceWrapper
+from arches_orm.graphql.utils import snake
 
+from .bulk_create import BulkImportWKRM
 from .pseudo_nodes import PseudoNodeList, PseudoNodeValue
 
 logger = logging.getLogger(__name__)
@@ -224,6 +226,13 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
 
     @classmethod
     @lru_cache
+    def _node_datatypes(cls):
+        return {
+            str(nodeid): node.datatype for nodeid, node in cls._node_objects().items()
+        }
+
+    @classmethod
+    @lru_cache
     def _graph(cls):
         return Graph.objects.get(graphid=cls.graphid)
 
@@ -353,7 +362,6 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
     @property
     def __fields__(cls):
         cls._build_nodes()
-        pseudo_node = cls._get_root_pseudo_node()
         def _fill_fields(pseudo_node):
             typ, multiple = pseudo_node.get_type()
             fields = {
@@ -366,8 +374,18 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
                     child: _fill_fields(child_node) for child, child_node in child_types.items()
                 }
             return fields
-        if pseudo_node:
-            return _fill_fields(pseudo_node).get("children")
+
+        if cls._remap and cls._model_remapping:
+            fields = {}
+            for field, target in cls._model_remapping.items():
+                _, target = target.split(".", -1)
+                pseudo_node = cls._make_pseudo_node_cls(target, wkri=None)
+                fields[snake(field)] = _fill_fields(pseudo_node)
+            return fields
+        else:
+            pseudo_node = cls._get_root_pseudo_node()
+            if pseudo_node:
+                return _fill_fields(pseudo_node).get("children")
         return {}
 
     @classmethod
@@ -660,7 +678,7 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
             if edges is not None:
                 child_nodes.update(
                     {
-                        n.alias: (n, False)
+                        n.alias: (n, not n.is_collector)
                         for n in cls._node_objects().values()
                         if str(n.nodeid) in edges
                     }
@@ -738,6 +756,20 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
         inst = super().create(_no_save=True, _do_index=_do_index, **kwargs)
         inst.to_resource(_no_save=_no_save, _do_index=_do_index)
         return inst
+
+    @classmethod
+    def create_bulk(cls, fields: list, do_index: bool = True):
+        requested_wkrms = []
+        for n, field_set in enumerate(fields):
+            try:
+                if n % 10 == 0:
+                    logger.info(f"create_bulk: {n} / {len(fields)}")
+                requested_wkrms.append(cls.create(_no_save=True, _do_index=do_index, **field_set))
+            except Exception as e:
+                logger.error(f"Failed item {n}")
+                raise
+        bulk_etl = BulkImportWKRM()
+        return bulk_etl.write(requested_wkrms, do_index=do_index)
 
     @staticmethod
     def get_adapter():

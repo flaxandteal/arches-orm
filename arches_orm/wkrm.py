@@ -18,16 +18,18 @@ class WKRM:
     model_name: str
     graphid: str
     nodes: dict
+    remapping: dict | None
     to_string: Callable
 
     @property
     def model_class_name(self):
         return self.model_name.replace(" ", "")
 
-    def __init__(self, model_name, graphid, __str__=None, **kwargs):
+    def __init__(self, model_name, graphid, __str__=None, remapping=None, **kwargs):
         self.model_name = model_name
         self.graphid = graphid
         self.to_string = __str__ or repr
+        self.remapping = remapping
         self.nodes = kwargs
 
 
