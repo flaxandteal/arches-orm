@@ -1,15 +1,11 @@
 import pytest
-from asgiref.sync import sync_to_async
 from httpx import AsyncClient
 from graphql import print_schema
-from starlette.responses import HTMLResponse
-from starlette.testclient import TestClient
 import arches_graphql_client
 import arches_orm.graphql.auth
 from unittest.mock import MagicMock
 
 import pytest_asyncio
-from test_arches_django import person_ashs, person_ash
 from django.contrib.auth.models import User
 
 @pytest.fixture

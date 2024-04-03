@@ -83,10 +83,11 @@ def test_can_save_with_concept(arches_orm):
     activity = Activity.create()
     StatusEnum = activity.record_status_assignment.record_status.__collection__
     activity.record_status_assignment.record_status = StatusEnum.BacklogDashSkeleton
+    assert activity.record_status_assignment.record_status == StatusEnum.BacklogDashSkeleton
     activity.save()
 
     reloaded_activity = arches_orm.models.Activity.find(activity.id)
-    assert activity.record_status_assignment.record_status == StatusEnum.BacklogDashSkeleton
+    assert reloaded_activity.record_status_assignment.record_status == StatusEnum.BacklogDashSkeleton
 
 @pytest.mark.django_db
 def test_can_save_with_blank_name(arches_orm):
@@ -115,13 +116,11 @@ def test_can_remap_and_set(arches_orm):
 
 @pytest.mark.django_db
 def test_can_remap_loaded(arches_orm, person_ashs):
-    Person = arches_orm.models.Person
     person_ashs._model_remapping = {"name": "name*full_name"}
     assert person_ashs.name == ["Ash"]
 
 @pytest.mark.django_db
 def test_can_remap_and_set_loaded(arches_orm, person_ashs):
-    Person = arches_orm.models.Person
     person_ashs._model_remapping = {"name": "name.full_name"}
     person_ashs.name = "Noash"
     assert person_ashs.name == "Noash"
@@ -150,7 +149,7 @@ def test_can_save_a_surname(arches_orm, person_ashs):
     person_ashs.save()
 
     reloaded_person = arches_orm.models.Person.find(person_ashs.id)
-    assert person_ashs.name[1].surnames.surname == "Ashb"
+    assert reloaded_person.name[1].surnames.surname == "Ashb"
 
 @pytest.mark.django_db
 def test_can_save_two_related_resources(arches_orm, person_ashs):

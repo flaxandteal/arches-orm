@@ -2,7 +2,6 @@ import logging
 
 from arches.app.datatypes.base import BaseDataType
 from arches.app.models.models import Widget
-from arches.app.models.system_settings import settings
 from django.contrib.auth.models import User
 
 text = Widget.objects.get(name="user")

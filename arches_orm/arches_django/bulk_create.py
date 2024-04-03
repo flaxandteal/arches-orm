@@ -1,35 +1,21 @@
-import csv
 from datetime import datetime
 import json
 import logging
-import os
 import uuid
-import zipfile
 import functools
 from arches.app.search.mappings import TERMS_INDEX, RESOURCES_INDEX
 from starlette_context import context
 from django.db import transaction, connection
 from arches.app.search.search_engine_factory import SearchEngineInstance as se
 from arches.app.models.system_settings import settings as system_settings
-from arches.app.models.models import ResourceXResource, TileModel, Node
+from arches.app.models.models import ResourceXResource, Node
 from arches.app.models import resource as resource_module
 from arches.app.datatypes import concept_types as concept_module
-from django.core.files import File
-from django.core.files.storage import default_storage
-from django.db import connection
-from django.db.models.functions import Lower
 from django.db.utils import IntegrityError, ProgrammingError
 from django.utils.translation import gettext as _, get_language
-from arches.app.datatypes.datatypes import DataTypeFactory
-from arches.app.models.models import GraphModel, Node, NodeGroup, FunctionXGraph
-from arches.app.models.system_settings import settings
-import arches.app.tasks as tasks
+from arches.app.models.models import FunctionXGraph
 from arches.app.utils.betterJSONSerializer import JSONSerializer
-from arches.app.utils.file_validator import FileValidator
-from arches.app.utils.index_database import index_resources_by_transaction
 from arches.app.etl_modules.base_import_module import BaseImportModule
-from arches.app.functions import primary_descriptors
-import arches.app.utils.task_management as task_management
 
 logger = logging.getLogger(__name__)
 FORMAT = '%(asctime)s %(message)s'
@@ -222,7 +208,7 @@ class BulkImportWKRM(BaseImportModule):
                         }
                     )
 
-        transaction_id = uuid.uuid1()
+        # transaction_id = uuid.uuid1()
         with transaction.atomic():
             bypass = system_settings.BYPASS_REQUIRED_VALUE_TILE_VALIDATION
             system_settings.BYPASS_REQUIRED_VALUE_TILE_VALIDATION = True

@@ -1,4 +1,5 @@
-from arches.settings import *
+from arches.settings import * # noqa: F403
+from arches.settings import DATATYPE_LOCATIONS
 
 INSTALLED_APPS = (
     "django.contrib.auth",

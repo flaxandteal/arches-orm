@@ -10,17 +10,16 @@ from starlette.middleware.authentication import AuthenticationMiddleware
 from starlette.responses import PlainTextResponse
 from starlette.routing import Route
 from starlette.endpoints import HTTPEndpoint
-from starlette.responses import PlainTextResponse
 from starlette_graphene3 import GraphQLApp, make_graphiql_handler
 from starlette.applications import Starlette
 
 from starlette_context import plugins
 from starlette_context.middleware import RawContextMiddleware
 
-DEBUG = os.getenv("DEBUG", "False") == "True"
-
 from .auth import BasicAuthBackend
 from .resources import ResourceQuery, FullResourceMutation
+
+DEBUG = os.getenv("DEBUG", "False") == "True"
 
 resources_schema = graphene.Schema(query=ResourceQuery, mutation=FullResourceMutation)
 

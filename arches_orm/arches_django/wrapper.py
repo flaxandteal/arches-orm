@@ -10,7 +10,7 @@ import logging
 from arches_orm.datatypes import DataTypeNames
 
 from arches_orm.wrapper import ResourceWrapper
-from arches_orm.graphql.utils import snake
+from arches_orm.utils import snake
 
 from .bulk_create import BulkImportWKRM
 from .pseudo_nodes import PseudoNodeList, PseudoNodeValue
@@ -765,7 +765,7 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
                 if n % 10 == 0:
                     logger.info(f"create_bulk: {n} / {len(fields)}")
                 requested_wkrms.append(cls.create(_no_save=True, _do_index=do_index, **field_set))
-            except Exception as e:
+            except Exception:
                 logger.error(f"Failed item {n}")
                 raise
         bulk_etl = BulkImportWKRM()

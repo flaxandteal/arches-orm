@@ -1,4 +1,3 @@
-import spatialite
 import os
 import sys
 import pytest
@@ -23,8 +22,7 @@ def _get_db_prep_value(self, value, connection, prepared=False):
 
 fields.UUIDField.get_db_prep_value = _get_db_prep_value
 
-import django
-from django.core.management import call_command
+import django # noqa: E402
 
 if os.environ.get("WITH_GRAPHQL", True):
     os.environ["DJANGO_SETTINGS_MODULE"] = "_django.settings_graphql"
@@ -32,8 +30,7 @@ else:
     os.environ["DJANGO_SETTINGS_MODULE"] = "_django.settings"
 django.setup()
 
-import pytest_django as _
-from django.db import connection
+from django.db import connection # noqa: E402
 
 
 @pytest.fixture(scope="session")
@@ -45,7 +42,6 @@ def django_db_use_migrations():
 def search_engine():
     sef = Mock()
     sys.modules["arches.app.search.search_engine_factory"] = sef
-    se = Mock()
     search_results = {"hits": {"hits": []}}
     sef.SearchEngineInstance.search = lambda *args, **kwargs: search_results
     sys.modules["arches.app.search.search_engine_factory"] = sef

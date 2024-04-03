@@ -1,8 +1,4 @@
 import logging
-import uuid
-from abc import abstractmethod, abstractclassmethod, abstractstaticmethod, ABC
-from collections.abc import Callable
-from collections import UserList
 from .wrapper import ResourceWrapper
 
 
@@ -42,11 +38,11 @@ class DummyResourceWrapper(ResourceWrapper):
 
     def find(cls, resourceinstanceid):
         """Find an individual well-known resource by instance ID."""
-        return _DUMMY_STORE[resourcinstanceid]
+        return _DUMMY_STORE[resourceinstanceid]
 
     def delete(self):
         """Delete the underlying resource."""
-        del _DUMMY_STORE[resourcinstanceid]
+        del _DUMMY_STORE[self.id]
 
     def remove(self):
         """When called via a relationship (dot), remove the relationship."""

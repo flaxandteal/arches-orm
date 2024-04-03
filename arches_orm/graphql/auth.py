@@ -1,7 +1,6 @@
 import os
 import binascii
 from asgiref.sync import sync_to_async
-from oauth2_provider.models import AccessToken, get_application_model
 from oauth2_provider.oauth2_backends import OAuthLibCore
 from oauthlib.common import Request as OauthlibRequest
 
@@ -34,7 +33,7 @@ class BasicAuthBackend(AuthenticationBackend):
             if scheme.lower() not in ('basic', 'bearer'):
                 raise AuthenticationError('Invalid basic/bearer auth credentials')
 
-        except (ValueError, UnicodeDecodeError, binascii.Error) as exc:
+        except (ValueError, UnicodeDecodeError, binascii.Error):
             raise AuthenticationError('Invalid basic auth credentials')
 
         uri = conn.url.path
