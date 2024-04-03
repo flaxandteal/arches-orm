@@ -57,7 +57,7 @@ class DataTypes:
         self.related_nodes = {}
 
     def demap(self, model, field, value):
-        if value is None:
+        if value == None: # must be == not is, as we have an Empty concept type, for example.
             return None
         if (closure := self.demapped.get((model, field), None)):
             res = closure(value)
@@ -152,6 +152,7 @@ class DataTypes:
         elif typ in (DataTypeNames.CONCEPT, DataTypeNames.CONCEPT_LIST):
             nodeid = info["nodeid"]
             collection = Concept().get_child_collections(models.Node.objects.get(nodeid=nodeid).config["rdmCollection"])
+            print(collection)
             self.collections[nodeid] = {
                 "forward": {f"{string_to_enum(field)}.{string_to_enum(label[1])}": label[2] for label in collection},
                 "back": {label[2]: string_to_enum(label[1]) for label in collection}

@@ -8,6 +8,8 @@ from unittest.mock import MagicMock
 import pytest_asyncio
 from django.contrib.auth.models import User
 
+from fixtures import person_ash, person_ashs
+
 @pytest.fixture
 def agc():
     arches_graphql_client.config._CONFIGURATION["server"]
