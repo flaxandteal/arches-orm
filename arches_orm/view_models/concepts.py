@@ -1,4 +1,5 @@
-from typing import Union, Callable, Protocol
+from enum import Enum
+from typing import Union, Callable, Protocol, Any
 import uuid
 from functools import lru_cache
 from collections import UserList
@@ -15,7 +16,26 @@ class ConceptProtocol(Protocol):
     language: str
 
 
-class ConceptValueViewModel(str, ViewModel):
+class CollectionChild:
+    _collection_id: uuid.UUID
+    _collection_cb: Callable[[uuid.UUID], Enum]
+
+    def __init__(self, collection_id: uuid.UUID, retrieve_collection_cb: Callable[[uuid.UUID], Enum]):
+        self._collection_id = collection_id
+        self._collection_cb = retrieve_collection_cb
+
+    @property
+    def __collection__(self) -> Enum:
+        return self._collection_cb(self._collection_id)
+
+class EmptyConceptValueViewModel(CollectionChild, ViewModel):
+    def __bool__(self) -> bool:
+        return False
+
+    def __eq__(self, other: Any) -> bool:
+        return other is None or isinstance(other, EmptyConceptValueViewModel)
+
+class ConceptValueViewModel(str, CollectionChild, ViewModel):
     """Wraps a concept, allowing interrogation.
 
     Subclasses str, so it can be handled like a string enum, but keeps
@@ -25,26 +45,41 @@ class ConceptValueViewModel(str, ViewModel):
 
     _concept_value_id: uuid.UUID
     _concept_value_cb: Callable[[uuid.UUID], ConceptProtocol]
+    _collection_id: uuid.UUID
+    _collection_cb: Callable[[uuid.UUID], Enum]
 
     def __hash__(self):
         return hash(self._concept_value_id)
 
     def __eq__(self, other):
+        if isinstance(other, Enum):
+            other = other.value
         return str(self._concept_value_id) == str(other._concept_value_id)
+
+    def __init__(self, *args, **kwargs):
+        ...
 
     def __new__(
         cls,
         concept_value_id: Union[str, uuid.UUID],
         concept_value_cb,
+        collection_id: uuid.UUID,
+        retrieve_collection_cb: Callable[[uuid.UUID], Enum]
     ):
         _concept_value_id: uuid.UUID = (
             concept_value_id
-            if isinstance(concept_value_id, uuid.UUID)
-            else uuid.UUID(concept_value_id)
+            if isinstance(concept_value_id, uuid.UUID) else
+            concept_value_id.value._concept_value_id
+            if isinstance(concept_value_id, Enum) else
+            concept_value_id._concept_value_id
+            if isinstance(concept_value_id, ConceptValueViewModel) else
+            uuid.UUID(concept_value_id)
         )
         mystr = super(ConceptValueViewModel, cls).__new__(cls, str(_concept_value_id))
         mystr._concept_value_id = _concept_value_id
         mystr._concept_value_cb = concept_value_cb
+        mystr._collection_id = collection_id
+        mystr._collection_cb = retrieve_collection_cb
         return mystr
 
     @property

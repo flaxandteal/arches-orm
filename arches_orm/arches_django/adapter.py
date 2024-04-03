@@ -45,3 +45,7 @@ class ArchesDjangoAdapter(Adapter):
         from .hooks import HOOKS
 
         return HOOKS
+
+    def get_wkrm_definitions(self):
+        from django.conf import settings
+        return settings.WELL_KNOWN_RESOURCE_MODELS

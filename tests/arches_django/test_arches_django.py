@@ -78,6 +78,17 @@ def test_can_save_with_name(arches_orm):
     person.save()
 
 @pytest.mark.django_db
+def test_can_save_with_concept(arches_orm):
+    Activity = arches_orm.models.Activity
+    activity = Activity.create()
+    StatusEnum = activity.record_status_assignment.record_status.__collection__
+    activity.record_status_assignment.record_status = StatusEnum.BacklogDashSkeleton
+    activity.save()
+
+    reloaded_activity = arches_orm.models.Activity.find(activity.id)
+    assert activity.record_status_assignment.record_status == StatusEnum.BacklogDashSkeleton
+
+@pytest.mark.django_db
 def test_can_save_with_blank_name(arches_orm):
     Person = arches_orm.models.Person
     person = Person.create()

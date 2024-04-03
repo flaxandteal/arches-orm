@@ -12,7 +12,7 @@ from starlette.authentication import (
 from django.contrib.auth import authenticate
 from django.http.request import HttpRequest
 
-ALLOW_ANONYMOUS = os.environ.get("ALLOW_ANONYMOUS", False)
+ALLOW_ANONYMOUS = os.environ.get("ALLOW_ANONYMOUS", True)
 
 oauth_lib = OAuthLibCore()
 authenticator = oauth_lib.server.request_validator.authenticate_client

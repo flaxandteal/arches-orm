@@ -1,5 +1,4 @@
 import logging
-from django.conf import settings
 from typing import Callable
 from .adapter import get_adapter
 
@@ -34,7 +33,7 @@ class WKRM:
 
 
 WELL_KNOWN_RESOURCE_MODELS = [
-    WKRM(**model) for model in settings.WELL_KNOWN_RESOURCE_MODELS
+    WKRM(**model) for model in get_adapter().get_wkrm_definitions()
 ]
 
 
@@ -64,7 +63,9 @@ def get_resource_models_for_adapter(adapter_name: str | None = None):
         resource_models[str(adapter)]["by-class"] = {}
         for wkrm in WELL_KNOWN_RESOURCE_MODELS:
             try:
+                print("A")
                 resource_models[str(adapter)]["by-class"][wkrm.model_class_name] = _make_wkrm(wkrm, adapter)
+                print("B")
             except Exception as exc:
                 logger.error("Could not load well-known resource model %s for adapter %s", str(wkrm.model_class_name), str(adapter))
                 logger.exception(exc)
@@ -74,6 +75,7 @@ def get_resource_models_for_adapter(adapter_name: str | None = None):
             for rm in resource_models[str(adapter)]["by-class"].values()
             if rm
         }
+    print(resource_models)
     return resource_models[str(adapter)]
 
 

@@ -66,6 +66,7 @@ def arches_orm(search_engine, django_db_blocker, test_sql):
     # Sqlite cannot handle JSON-contains filtering, or jsonb_set
     from arches.app.models import tile
     from arches.app.models.fields import i18n
+    from arches.app.utils.skos import SKOSReader
 
     tile.Tile._getFunctionClassInstances = lambda _: []
     I18n_String_orig = i18n.I18n_String.as_sql
@@ -87,10 +88,28 @@ def arches_orm(search_engine, django_db_blocker, test_sql):
     # No functions in Sqlite
     ResourceInstanceDataType.post_tile_save = lambda *args, **kwargs: ()
     from arches.app.models.concept import Concept
-    Concept.get_child_collections = lambda *args, **kwargs: [
-        (None, "First", "Value1"),
-        (None, "Second", "Value2"),
-    ]
+    def _get_child_collections(_, conceptid, child_valuetypes=None, parent_valuetype="prefLabel", columns=None, depth_limit=None):
+        child_valuetypes = child_valuetypes if child_valuetypes else ["prefLabel"]
+        # Ignores children!
+        sql = """
+        SELECT r.conceptidto, valueto.value as valueto, valueto.valueid as valueidto
+            FROM relations r
+            JOIN "values" valueto ON r.conceptidto=valueto.conceptid
+            JOIN "values" valuefrom ON(r.conceptidfrom = valuefrom.conceptid)
+            WHERE r.conceptidfrom = %(conceptid)s AND r.relationtype = 'member'
+            AND valueto.valuetype in (%(child_valuetypes)s)
+            AND valuefrom.valuetype in (%(child_valuetypes)s)
+        """
+        cursor = connection.cursor()
+        cursor.execute(
+            sql,
+            {
+                "conceptid": conceptid,
+                "child_valuetypes": "', '".join(child_valuetypes)
+            }
+        )
+        return cursor.fetchall()
+    Concept.get_child_collections = _get_child_collections
 
     from arches.app.utils.betterJSONSerializer import JSONDeserializer
     from arches.app.utils.data_management.resource_graphs.importer import (
@@ -98,6 +117,11 @@ def arches_orm(search_engine, django_db_blocker, test_sql):
     )
 
     with django_db_blocker.unblock():
+        skos = SKOSReader()
+        for rdf_file in ("collections.xml", "Record_Status.xml"):
+            rdf = skos.read_file(str(Path(__file__).parent / "_django" / rdf_file))
+            skos.save_concepts_from_skos(rdf, "overwrite", "keep", prevent_indexing=True)
+
         for model in ("Activity.json", "Person.json"):
             with (Path(__file__).parent / "_django" / model).open("r") as f:
                 archesfile = JSONDeserializer().deserialize(f)

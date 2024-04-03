@@ -1,6 +1,6 @@
 import logging
 import uuid
-from abc import abstractmethod, abstractclassmethod, abstractstaticmethod
+from abc import abstractmethod, abstractclassmethod, abstractstaticmethod, ABC
 from collections.abc import Callable
 from collections import UserList
 from .view_models import WKRI as Resource
@@ -10,7 +10,7 @@ from .view_models.node_list import RemappedNodeListViewModel
 logger = logging.getLogger(__name__)
 
 
-class ResourceWrapper(Resource):
+class ResourceWrapper(Resource, ABC):
     """Superclass of all well-known resources.
 
     When you use, `Person`, etc. it will be this class in disguise.
@@ -248,6 +248,10 @@ class ResourceWrapper(Resource):
             cls.graphid = well_known_resource_model.graphid
             cls._wkrm = well_known_resource_model
             cls._add_events()
+
+    @abstractclassmethod
+    def _add_events(cls):
+        """Add events to this model."""
 
     @abstractclassmethod
     def search(cls, text, fields=None, _total=None):

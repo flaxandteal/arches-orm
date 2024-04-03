@@ -17,7 +17,7 @@ from arches_orm.arches_django import pseudo_nodes
 from arches_orm.view_models.semantic import SemanticViewModel
 from arches_orm.view_models.string import StringViewModel
 
-from .utils import snake, string_to_enum
+from arches_orm.utils import snake, string_to_enum
 
 import graphene
 from graphene_file_upload.scalars import Upload
