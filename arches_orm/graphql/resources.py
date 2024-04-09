@@ -28,6 +28,7 @@ import arches.app.models.resource
 
 from arches.app.datatypes.datatypes import DataTypeFactory
 from arches_orm.datatypes import DataTypeNames
+from arches_orm.utils import is_unset
 from starlette_context import context
 
 ALLOW_ANONYMOUS = os.environ.get("ALLOW_ANONYMOUS", False)
@@ -57,7 +58,7 @@ class DataTypes:
         self.related_nodes = {}
 
     def demap(self, model, field, value):
-        if value == None: # must be == not is, as we have an Empty concept type, for example.
+        if is_unset(value):
             return None
         if (closure := self.demapped.get((model, field), None)):
             res = closure(value)

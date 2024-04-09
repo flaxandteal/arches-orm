@@ -92,3 +92,12 @@ def camel(string, studly=False):
     string = ((string[0].upper() if studly else string[0].lower()) + string.replace("_", " ").title()[1:]).replace(" ", "")
     return string
 studly = partial(camel, studly=True)
+
+def is_unset(variable):
+    if variable is None:
+        return True
+    try:
+        return hash(variable) == hash(None)
+    except TypeError:
+        ...
+    return False

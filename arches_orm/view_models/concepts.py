@@ -32,6 +32,9 @@ class EmptyConceptValueViewModel(CollectionChild, ViewModel):
     def __bool__(self) -> bool:
         return False
 
+    def __hash__(self) -> int:
+        return hash(None)
+
     def __eq__(self, other: Any) -> bool:
         return other is None or isinstance(other, EmptyConceptValueViewModel)
 

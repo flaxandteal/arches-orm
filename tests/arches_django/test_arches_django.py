@@ -1,6 +1,5 @@
 import pytest
 import json
-from fixtures import person_ash, person_ashs
 
 JSON_PERSON = """
 {
