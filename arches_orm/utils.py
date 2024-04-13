@@ -3,8 +3,6 @@ import slugify
 import re
 from functools import partial
 
-from .adapter import get_adapter
-
 logger = logging.getLogger(__name__)
 
 _SYMBOL_NAMES = {
