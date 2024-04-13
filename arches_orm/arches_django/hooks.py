@@ -2,7 +2,7 @@ from django.dispatch import receiver
 from django.db.models.signals import post_delete, post_save
 from arches.app.models.tile import Tile
 
-from arches_orm.utils import get_well_known_resource_model_by_graph_id
+from arches_orm.wkrm import get_well_known_resource_model_by_graph_id
 
 
 @receiver(post_save, sender=Tile)

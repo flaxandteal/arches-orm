@@ -177,7 +177,7 @@ def test_hooks_setup(arches_orm):
 
 @pytest.mark.skip(reason="dummy is WIP")
 def test_can_create_create_by_class_name(arches_orm):
-    from arches_orm.utils import get_well_known_resource_model_by_class_name
+    from arches_orm.wkrm import get_well_known_resource_model_by_class_name
     Person = get_well_known_resource_model_by_class_name("Person")
     assert Person == arches_orm.models.Person
 

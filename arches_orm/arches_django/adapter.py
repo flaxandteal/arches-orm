@@ -23,7 +23,7 @@ class ArchesDjangoAdapter(Adapter):
         return ArchesDjangoResourceWrapper
 
     def load_from_id(self, resource_id, from_prefetch=None):
-        from arches_orm.utils import get_resource_models_for_adapter
+        from arches_orm.wkrm import get_resource_models_for_adapter
         from arches.app.models.resource import Resource
 
         resource = (

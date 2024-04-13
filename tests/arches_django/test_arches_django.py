@@ -188,13 +188,13 @@ def test_hooks_setup(arches_orm):
 
 @pytest.mark.django_db
 def test_can_create_create_by_class_name(arches_orm):
-    from arches_orm.utils import get_well_known_resource_model_by_class_name
+    from arches_orm.wkrm import get_well_known_resource_model_by_class_name
     Person = get_well_known_resource_model_by_class_name("Person")
     assert Person == arches_orm.models.Person
 
 @pytest.mark.django_db
 def test_can_retrieve_by_resource_id(arches_orm, person_ashs):
-    from arches_orm.utils import attempt_well_known_resource_model
+    from arches_orm.wkrm import attempt_well_known_resource_model
     person = attempt_well_known_resource_model(person_ashs.id)
     assert person.__eq__(person_ashs)
 

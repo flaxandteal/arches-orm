@@ -56,7 +56,7 @@ def resource_instance(
     child_nodes,
     resource_instance_datatype,
 ):
-    from arches_orm.utils import (
+    from arches_orm.wkrm import (
         get_well_known_resource_model_by_graph_id,
         attempt_well_known_resource_model,
     )
