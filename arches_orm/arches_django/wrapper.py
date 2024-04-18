@@ -721,6 +721,7 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
     @classmethod
     def _add_events(cls):
         cls.post_save = Signal()
+        cls.post_related_to = Signal()
 
     @classmethod
     def _get_root_pseudo_node(cls):
