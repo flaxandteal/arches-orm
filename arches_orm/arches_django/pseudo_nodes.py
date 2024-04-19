@@ -160,6 +160,7 @@ class PseudoNodeValue:
             else:
                 data = self._value
 
+            print("DATA", data, self.node.datatype, self.node.nodeid, self.tile.data)
             self._value, self._as_tile_data, self._datatype, self._multiple = get_view_model_for_datatype(
                 self.tile,
                 self.node,
@@ -168,7 +169,7 @@ class PseudoNodeValue:
                 parent_cls=self._parent_cls,
                 child_nodes=self._child_nodes,
             )
-            if self._value is not None:
+            if self._value is not None and isinstance(self._value, ViewModel):
                 self._value._parent_pseudo_node = self
             if self._value is not None:
                 self._value_loaded = True

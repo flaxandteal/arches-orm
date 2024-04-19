@@ -1,12 +1,17 @@
+import logging
 import uuid
 from arches.app.models.models import ResourceInstance
 from arches.app.models.resource import Resource
 
+from arches_orm.adapter import get_adapter
 from arches_orm.view_models import (
     WKRI,
     SemanticViewModel,
 )
 from ._register import REGISTER
+
+
+logger = logging.getLogger(__name__)
 
 
 @REGISTER("semantic")
@@ -19,7 +24,7 @@ def semantic(
     child_nodes,
     datatype,
 ):
-    child_keys = {key: value[1] for key, value in child_nodes.items()}
+    child_keys = {key: child_value[1] for key, child_value in child_nodes.items()}
 
     def make_pseudo_node(key):
         child = parent_cls._make_pseudo_node_cls(
@@ -74,7 +79,13 @@ def semantic(
         get_child_values,
     )
     if value:
-        svm.update(value)
+        try:
+            svm.update(value)
+        except Exception as exc:
+            if not get_adapter().config.get("suppress-tile-loading-errors"):
+                raise exc
+            elif not get_adapter().config.get("silence-tile-loading-errors"):
+                logging.warning("Suppressed a tile loading error (tile: %s; node: %s): %s", str(tile), str(node), exc)
     svm.get_children()
 
     return svm

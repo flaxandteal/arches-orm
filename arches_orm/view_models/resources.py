@@ -4,21 +4,11 @@ from ._base import ViewModel, WKRI
 
 
 class RelatedResourceInstanceViewModelMixin(ViewModel):
-    """Wraps a resource instance.
-
-    Subclasses str, so it can be handled like a string enum, but keeps
-    the `.value`, `.lang` and `.text` properties cached, so you can
-    find out more.
-    """
+    """Wraps a resource instance."""
 
 
 class RelatedResourceInstanceListViewModel(UserList, ViewModel):
-    """Wraps a concept list, allowing interrogation.
-
-    Subclasses list, so its members can be handled like a string enum, but keeps
-    the `.value`, `.lang` and `.text` properties cached, so you can
-    find out more.
-    """
+    """Wraps a resource list, allowing interrogation."""
 
     def __init__(
         self,
