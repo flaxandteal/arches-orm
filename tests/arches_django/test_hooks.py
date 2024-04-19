@@ -1,5 +1,6 @@
 import pytest
 from collections import Counter
+from functools import partial
 import json
 
 JSON_PERSON = """
@@ -70,39 +71,42 @@ def test_can_hook_saving_relationship(arches_orm, person_ashs):
     add_hooks()
 
     calls = Counter()
-    def activity_related(sender, reason=None, **kwargs):
-        assert reason == "relationship-to saved"
-        calls["activity"] += 1
+    def on_related(entity, direction, sender, reason=None, **kwargs):
+        if reason == "relationship deleted":
+            calls[f"{entity}-{direction}-deleted"] += 1
+        else:
+            assert reason in "relationship saved"
+            calls[f"{entity}-{direction}"] += 1
 
-    def person_related(sender, **kwargs):
-        assert reason == "relationship-to saved"
-        calls["person"] += 1
+    arches_orm.models.Activity.post_related_to.connect(partial(on_related, "Activity", "to"), weak=False)
+    arches_orm.models.Person.post_related_to.connect(partial(on_related, "Person", "to"), weak=False)
+    arches_orm.models.Activity.post_related_from.connect(partial(on_related, "Activity", "from"), weak=False)
+    arches_orm.models.Person.post_related_from.connect(partial(on_related, "Person", "from"), weak=False)
 
-    arches_orm.models.Activity.post_related_to.connect(activity_related)
-    arches_orm.models.Person.post_related_to.connect(person_related)
-
-    expected_activity_calls = 0
+    expected_activity_to_calls = 0
 
     act_1 = arches_orm.models.Activity()
     person_ashs.associated_activities.append(act_1)
     person_ashs.save()
-    expected_activity_calls += 1
+    expected_activity_to_calls += 1
     assert len(person_ashs.associated_activities) == 1
-    assert calls["activity"] == expected_activity_calls
+    assert calls["Activity-to"] == expected_activity_to_calls
 
     reloaded_person = arches_orm.models.Person.find(person_ashs.id)
     assert len(reloaded_person.name) == 1
     act_2 = arches_orm.models.Activity()
     reloaded_person.associated_activities.append(act_2)
     reloaded_person.save()
-    expected_activity_calls += 2
+    expected_activity_to_calls += 2
     assert len(reloaded_person.associated_activities) == 2
 
     # One call for original as well.
-    assert calls["activity"] == expected_activity_calls
+    assert calls["Activity-to"] == expected_activity_to_calls
 
     reloaded_person = arches_orm.models.Person.find(person_ashs.id)
     assert len(reloaded_person.associated_activities) == 2
 
-    assert calls["activity"] == expected_activity_calls
-    assert calls["person"] == 0
+    assert calls["Activity-to"] == expected_activity_to_calls
+    assert calls["Person-to"] == 0
+    assert calls["Person-from"] == calls["Activity-to"]
+    assert calls["Activity-from"] == calls["Person-to"]

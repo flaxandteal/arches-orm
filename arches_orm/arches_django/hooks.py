@@ -12,13 +12,11 @@ def check_resource_instance_on_tile_save(sender, instance, **kwargs):
     """Catch saves on tiles for resources."""
     if instance.data:
         for key, values in instance.data.items():
-            print(values, key)
             if values:
                 if not isinstance(values, list):
                     values = [values]
                 for value in values:
                     if value and isinstance(value, dict):
-                        print(value, "VALUE")
                         if (rXr_id := value.get("resourceXresourceId")) and (rto_id := value.get("resourceId")):
                             # TODO: inefficient
                             rto = ResourceInstance.objects.get(resourceinstanceid=rto_id)
@@ -31,7 +29,7 @@ def check_resource_instance_on_tile_save(sender, instance, **kwargs):
                                     resourceinstanceto_graphid=rto.graph
                                 )
                                 if relationship.resourceinstanceto_graphid:
-                                    check_related_to(sender, relationship, "relationship-to saved", tile=instance, nodeid=key, **kwargs)
+                                    check_related_to(sender, relationship, "relationship saved", tile=instance, nodeid=key, **kwargs)
     if instance.resourceinstance and instance.resourceinstance.resourceinstanceid:
         check_resource_instance(sender, instance, "tile saved", **kwargs)
 
@@ -43,44 +41,48 @@ def check_resource_instance_on_tile_delete(sender, instance, **kwargs):
         check_resource_instance(sender, instance, "tile deleted", **kwargs)
 
 
-@receiver(post_save, sender=ResourceXResource)
-def check_resource_instance_on_related_to_save(sender, instance, **kwargs):
-    """Catch saves on tiles for resources."""
-    if instance.resourceinstanceto_graphid:
-        check_related_to(sender, instance, "relationship-to saved", **kwargs)
-
 @receiver(post_delete, sender=ResourceXResource)
 def check_resource_instance_on_related_to_delete(sender, instance, **kwargs):
     """Catch deletions on tiles for resources."""
     if instance.resourceinstanceto_graphid:
-        check_related_to(sender, instance, "relationship-to deleted", **kwargs)
+        check_related_to(sender, instance, "relationship deleted", **kwargs)
 
 def check_related_to(sender: type[ResourceInstance], instance: ResourceXResource, reason: str, tile = None, nodeid = None, **kwargs: Any) -> None:
-    graph_id = (
+    graph_id_from = (
+        instance.resourceinstancefrom_graphid.graphid
+        if isinstance(instance.resourceinstancefrom_graphid, GraphModel) else
+        instance.resourceinstancefrom_graphid.graphid
+    )
+    graph_id_to = (
         instance.resourceinstanceto_graphid.graphid
         if isinstance(instance.resourceinstanceto_graphid, GraphModel) else
         instance.resourceinstanceto_graphid.graphid
     )
-    if graph_id:
-        model_cls = get_well_known_resource_model_by_graph_id(
-            graph_id
+    model_cls_from = None
+    model_cls_to = None
+    if graph_id_from:
+        model_cls_from = get_well_known_resource_model_by_graph_id(
+            graph_id_from
         )
-        if model_cls and model_cls.post_related_to.has_listeners() and instance.resourceinstanceidto:
-            resource_instance_to = model_cls.from_resource_instance(instance.resourceinstanceidto)
-            resource_instance_from = None
-            graph_id_from = (
-                instance.resourceinstancefrom_graphid.graphid
-                if isinstance(instance.resourceinstancefrom_graphid, GraphModel) else
-                instance.resourceinstancefrom_graphid.graphid
+    if graph_id_to:
+        model_cls_to = get_well_known_resource_model_by_graph_id(
+            graph_id_to
+        )
+    if (model_cls_to and model_cls_to.post_related_to.has_listeners()) or (model_cls_from and model_cls_from.post_related_to.has_listeners()):
+        resource_instance_from = None
+        resource_instance_to = None
+        if model_cls_from and instance.resourceinstanceidfrom:
+            resource_instance_from = model_cls_from.from_resource_instance(instance.resourceinstanceidfrom)
+        if model_cls_to and instance.resourceinstanceidto:
+            resource_instance_to = model_cls_to.from_resource_instance(instance.resourceinstanceidto)
+
+        if model_cls_to and resource_instance_to:
+            model_cls_to.post_related_to.send(
+                model_cls_to, resource_instance_to=resource_instance_to, resource_instance_from=resource_instance_from, relationship=instance, reason=reason, tile=tile, nodeid=nodeid
             )
-            if graph_id_from:
-                model_cls_from = get_well_known_resource_model_by_graph_id(
-                    graph_id_from
-                )
-                if model_cls_from and instance.resourceinstanceidfrom:
-                    resource_instance_from = model_cls_from.from_resource_instance(instance.resourceinstanceidfrom)
-            model_cls.post_related_to.send(
-                model_cls, resource_instance_to=resource_instance_to, resource_instance_from=resource_instance_from, relationship=instance, reason=reason, tile=tile, nodeid=nodeid
+        if model_cls_from and resource_instance_from:
+            model_cls_from.post_related_from.send(
+                model_cls_from, resource_instance_to=resource_instance_to, resource_instance_from=resource_instance_from, relationship=instance, reason=reason, tile=tile, nodeid=nodeid
             )
 
 
