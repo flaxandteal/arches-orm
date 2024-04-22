@@ -142,6 +142,11 @@ class PseudoNodeValue:
         tile = self.tile if self.node.is_collector else None
         return tile, relationships
 
+    def clear(self):
+        self._value = None
+        if self.tile and self.tile.data and str(self.node.nodeid) in self.tile.data:
+            del self.tile.data[str(self.node.nodeid)]
+
     def _update_value(self):
         if not self.tile:
             if not self.node:
@@ -160,7 +165,6 @@ class PseudoNodeValue:
             else:
                 data = self._value
 
-            print("DATA", data, self.node.datatype, self.node.nodeid, self.tile.data)
             self._value, self._as_tile_data, self._datatype, self._multiple = get_view_model_for_datatype(
                 self.tile,
                 self.node,

@@ -153,6 +153,10 @@ class ResourceWrapper(Resource, ABC):
         for key, value in kwargs.items():
             setattr(self, key, value)
 
+    @property
+    def resourceinstanceid(self):
+        return self.id
+
     @classmethod
     def create_bulk(cls, fields: list, do_index: bool = True):
         raise NotImplementedError("The bulk_create module needs to be rewritten")

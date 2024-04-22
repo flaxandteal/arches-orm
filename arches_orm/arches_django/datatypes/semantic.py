@@ -64,10 +64,11 @@ def semantic(
         for key, value in children.items():
             value._parent_node = svm
             if key in svm._child_values:
-                raise RuntimeError(
+                reason = (
                     "Semantic view model construction error - "
-                    f"duplicate keys outside node list: {key}"
+                    f"duplicate keys outside node list: {key}: %s"
                 )
+                _tile_loading_error(reason, RuntimeError(reason))
             svm._child_values[key] = value
 
         return children
@@ -82,14 +83,17 @@ def semantic(
         try:
             svm.update(value)
         except Exception as exc:
-            if not get_adapter().config.get("suppress-tile-loading-errors"):
-                raise exc
-            elif not get_adapter().config.get("silence-tile-loading-errors"):
-                logging.warning("Suppressed a tile loading error (tile: %s; node: %s): %s", str(tile), str(node), exc)
+            _tile_loading_error("Suppressed a tile loading error: %s (tile: %s; node: %s)", exc, str(tile), str(node))
     svm.get_children()
 
     return svm
 
+
+def _tile_loading_error(reason, exc, *args):
+    if not get_adapter().config.get("suppress-tile-loading-errors"):
+        raise exc
+    elif not get_adapter().config.get("silence-tile-loading-errors"):
+        logging.warning(reason, exc, *args)
 
 @semantic.as_tile_data
 def sm_as_tile_data(semantic):

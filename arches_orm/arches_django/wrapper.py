@@ -131,58 +131,64 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
         # Don't think we actually need this if the resource gets saved, as postsave RI
         # datatype handles it. We do for sqlite at the very least, and likely gathering
         # for bulk.
-        if self.get_adapter().config.get("save_crosses", False):
-            crosses = {
-                str(cross.tileid): cross
-                for cross in ResourceXResource.objects.filter(
-                    resourceinstanceidfrom=resource
+        _no_save = _no_save or not (self.get_adapter().config.get("save_crosses", False))
+        # TODO: fix expectation of one cross per tile
+
+        crosses = {}
+        for cross in ResourceXResource.objects.filter(
+            resourceinstanceidfrom=resource
+        ):
+            crosses.setdefault(str(cross.tileid), [])
+            crosses[str(cross.tileid)].append(cross)
+        for tile_ix, nodegroup_id, nodeid, related in relationships:
+            value = tiles[nodegroup_id][tile_ix].data[nodeid]
+            tileid = str(tiles[nodegroup_id][tile_ix].tileid)
+            if not related.id:
+                if save_related_if_missing:
+                    related.save()
+                else:
+                    logger.warning("Not saving a related model as not requested")
+                    continue
+            need_cross = not (tileid in crosses)
+            cross_resourcexid = None
+            if tileid in crosses:
+                for cross in crosses[tileid]:
+                    if (
+                        str(cross.resourceinstanceidto_id) == str(related.id) and
+                        str(cross.resourceinstanceidfrom_id) == str(resource.id)
+                    ):
+                        need_cross = False
+                        cross_resourcexid = str(cross.resourcexid)
+            if need_cross:
+                cross = ResourceXResource(
+                    resourceinstanceidfrom=resource,
+                    resourceinstanceidto_id=related.id,
                 )
-            }
-            for tile_ix, nodegroup_id, nodeid, related in relationships:
-                value = tiles[nodegroup_id][tile_ix].data[nodeid]
-                tileid = str(tiles[nodegroup_id][tile_ix].tileid)
-                if not related.id:
-                    if save_related_if_missing:
-                        related.save()
-                    else:
-                        logger.warning("Not saving a related model as not requested")
-                        continue
                 if _no_save:
                     self._pending_relationships.append((value, related, self))
-                elif tileid not in crosses:
-                    cross = ResourceXResource(
-                        resourceinstanceidfrom=resource,
-                        resourceinstanceidto_id=related.id,
-                    )
+                else:
                     cross.save()
-                else:
-                    cross = crosses[tileid]
-                    save_cross = False
-                    if str(cross.resourceinstanceidto_id) != str(related.id):
-                        cross.resourceinstanceidto_id = related.id
-                        save_cross = True
-                    if str(cross.resourceinstanceidfrom_id) != str(resource.id):
-                        cross.resourceinstanceidfrom_id = resource.id
-                        save_cross = True
-                    if save_cross:
-                        cross.save()
+                    cross_resourcexid = str(cross.resourcexid)
 
-                cross_value = {
-                    "resourceId": str(cross.resourceinstanceidto_id),
-                    "ontologyProperty": "",
-                    "resourceXresourceId": str(cross.resourcexid),
-                    "inverseOntologyProperty": "",
-                }
-                if isinstance(value, list):
-                    if not any(
-                        entry["resourceXresourceId"]
-                        == cross_value["resourceXresourceId"]
-                        for entry in value
-                    ):
-                        value.append(cross_value)
-                else:
-                    value.update(cross_value)
-                do_final_save = True
+            cross_value = {
+                "resourceId": str(cross.resourceinstanceidto_id),
+                "ontologyProperty": "",
+                "resourceXresourceId": cross_resourcexid,
+                "inverseOntologyProperty": "",
+            }
+            if isinstance(value, list):
+                if not any(
+                    (entry["resourceId"] == cross_value["resourceId"]) or
+                    (
+                        entry["resourceXresourceId"] is not None and
+                        entry["resourceXresourceId"] == cross_value["resourceXresourceId"]
+                    )
+                    for entry in value
+                ):
+                    value.append(cross_value)
+            else:
+                value.update(cross_value)
+            do_final_save = True
         if do_final_save:
             resource.save()
 
@@ -481,27 +487,31 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
         if not self._cross_record:
             raise NotImplementedError("This method is only implemented for relations")
 
+        from arches_orm.view_models.resources import RelatedResourceInstanceViewModelMixin, RelatedResourceInstanceListViewModel
+
         wkfm = self._cross_record["wkriFrom"]
         key = self._cross_record["wkriFromKey"]
-        wkfm.save()
-        resource = wkfm.to_resource()
-        tile = resource.tiles
-        nodeid = str(wkfm._nodes()[key].nodeid)
-        nodegroupid = str(wkfm._nodes()[key].nodegroup_id)
-        for tile in resource.tiles:
-            if nodegroupid == str(tile.nodegroup_id):
-                ResourceXResource.objects.filter(
-                    resourceinstanceidfrom=wkfm.resource,
-                    resourceinstanceidto=self.resource,
-                ).delete()
-                del tile.data[nodeid]
+        pseudo_node_list = wkfm._values[key]
+        if not isinstance(pseudo_node_list, PseudoNodeList) and not isinstance(pseudo_node_list, list):
+            pseudo_node_list = [pseudo_node_list]
 
-        # This is required to avoid e.g. missing related models preventing
-        # saving (as we cannot import those via CSV on first step)
-        bypass = system_settings.BYPASS_REQUIRED_VALUE_TILE_VALIDATION
-        system_settings.BYPASS_REQUIRED_VALUE_TILE_VALIDATION = True
-        resource.save()
-        system_settings.BYPASS_REQUIRED_VALUE_TILE_VALIDATION = bypass
+        for pseudo_node in pseudo_node_list:
+            if isinstance(pseudo_node.value, RelatedResourceInstanceListViewModel):
+                pseudo_node.value.remove(self)
+            elif isinstance(pseudo_node.value, RelatedResourceInstanceViewModelMixin):
+                # if str(pseudo_node.value.resourceinstanceid) != str(self.id):
+                #     raise RuntimeError(
+                #         f"Mix-up when removing a related resource for {key} of {wkfm.id},"
+                #         f" which should be {self.id} but is {pseudo_node.value.resourceinstanceid}"
+                #     )
+                if str(pseudo_node.value.resourceinstanceid) == str(self.id):
+                    pseudo_node.clear()
+            # else:
+            #     raise RuntimeError(
+            #         f"Mix-up when removing a related resource for {key} of {wkfm.id},"
+            #         f" which should be a related resource, but is {type(pseudo_node.value)}"
+            #     )
+        wkfm.save()
 
     def append(self, _no_save=False):
         """When called via a relationship (dot), append to the relationship."""
@@ -525,14 +535,15 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
                     resourceinstanceidto=self.resource,
                 )
                 cross.save()
-                value = [
+                value = (tile.data or {}).get(nodeid, [])
+                value.append(
                     {
                         "resourceId": str(self.resource.resourceinstanceid),
                         "ontologyProperty": "",
                         "resourceXresourceId": str(cross.resourcexid),
                         "inverseOntologyProperty": "",
                     }
-                ]
+                )
                 tile.data.update({nodeid: value})
 
         # This is required to avoid e.g. missing related models preventing
@@ -567,6 +578,7 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
             key = node.alias
             all_values.setdefault(key, [])
             pseudo_node = cls._make_pseudo_node_cls(key, tile=tile, wkri=wkri)
+            # RMV: is this necessary?
             if key == "full_name" and tile is not None:
                 pseudo_node.get_tile()
             # We shouldn't have to take care of this case, as it should already

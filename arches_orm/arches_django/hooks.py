@@ -1,35 +1,72 @@
 from typing import Any
 from django.dispatch import receiver
-from django.db.models.signals import post_delete, post_save
+from django.db.models.signals import post_delete, post_save, post_init
 from arches.app.models.tile import Tile
 from arches.app.models.models import ResourceXResource, ResourceInstance, GraphModel
+from copy import deepcopy
 
 from arches_orm.wkrm import get_well_known_resource_model_by_graph_id, attempt_well_known_resource_model
 
+
+@receiver(post_init, sender=Tile)
+def check_resource_instance_on_tile_capture(sender, instance, **kwargs):
+    instance._original_data = None
+    if instance.data:
+        instance._original_data = deepcopy(instance.data)
+    elif instance.tileid and isinstance(instance.tileid, dict) and "_original_data" in instance.tileid:
+        instance._original_data = deepcopy(instance.tileid["_original_data"])
 
 @receiver(post_save, sender=Tile)
 def check_resource_instance_on_tile_save(sender, instance, **kwargs):
     """Catch saves on tiles for resources."""
     if instance.data:
+        seen = set()
+        if instance._original_data:
+            for key, original_values in instance._original_data.items():
+                if not isinstance(original_values, list):
+                    original_values = [original_values]
+                for value in original_values:
+                    if value and isinstance(value, dict):
+                        # If resourceXresourceId is unset, then this may only be a temporary value, from
+                        # arches/app/views/tile.py:136 Tile(data)
+                        # TODO: confirm behaviour with save_crosses=True
+                        if value.get("resourceXresourceId") and (rto_id := value.get("resourceId")):
+                            seen.add((key, rto_id))
+
         for key, values in instance.data.items():
             if values:
                 if not isinstance(values, list):
                     values = [values]
                 for value in values:
                     if value and isinstance(value, dict):
+                        # Should always be a resourceXresourceId when this is saved.
                         if (rXr_id := value.get("resourceXresourceId")) and (rto_id := value.get("resourceId")):
-                            # TODO: inefficient
-                            rto = ResourceInstance.objects.get(resourceinstanceid=rto_id)
-                            if rto:
-                                relationship = ResourceXResource(
-                                    resourcexid=rXr_id,
-                                    resourceinstanceidfrom=instance.resourceinstance,
-                                    resourceinstanceidto=rto,
-                                    resourceinstancefrom_graphid=instance.resourceinstance.graph,
-                                    resourceinstanceto_graphid=rto.graph
-                                )
-                                if relationship.resourceinstanceto_graphid:
-                                    check_related_to(sender, relationship, "relationship saved", tile=instance, nodeid=key, **kwargs)
+                            if (key, rto_id) in seen:
+                                seen.remove((key, rto_id))
+                            else:
+                                # TODO: inefficient
+                                rto = ResourceInstance.objects.get(resourceinstanceid=rto_id)
+                                if rto:
+                                    relationship = ResourceXResource(
+                                        resourcexid=rXr_id,
+                                        resourceinstanceidfrom=instance.resourceinstance,
+                                        resourceinstanceidto=rto,
+                                        resourceinstancefrom_graphid=instance.resourceinstance.graph,
+                                        resourceinstanceto_graphid=rto.graph
+                                    )
+                                    if relationship.resourceinstanceto_graphid:
+                                        check_related_to(sender, relationship, "relationship saved", tile=instance, nodeid=key, **kwargs)
+        for key, rto_id in seen:
+            rto = ResourceInstance.objects.get(resourceinstanceid=rto_id)
+            if rto:
+                relationship = ResourceXResource(
+                    resourceinstanceidfrom=instance.resourceinstance,
+                    resourceinstanceidto=rto,
+                    resourceinstancefrom_graphid=instance.resourceinstance.graph,
+                    resourceinstanceto_graphid=rto.graph
+                )
+                if relationship.resourceinstanceto_graphid:
+                    check_related_to(sender, relationship, "relationship deleted", tile=instance, nodeid=key, **kwargs)
     if instance.resourceinstance and instance.resourceinstance.resourceinstanceid:
         check_resource_instance(sender, instance, "tile saved", **kwargs)
 
@@ -68,7 +105,7 @@ def check_related_to(sender: type[ResourceInstance], instance: ResourceXResource
         model_cls_to = get_well_known_resource_model_by_graph_id(
             graph_id_to
         )
-    if (model_cls_to and model_cls_to.post_related_to.has_listeners()) or (model_cls_from and model_cls_from.post_related_to.has_listeners()):
+    if (model_cls_to and model_cls_to.post_related_to.has_listeners()) or (model_cls_from and model_cls_from.post_related_from.has_listeners()):
         resource_instance_from = None
         resource_instance_to = None
         if model_cls_from and instance.resourceinstanceidfrom:
