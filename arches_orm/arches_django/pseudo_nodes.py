@@ -106,6 +106,8 @@ class PseudoNodeValue:
         self._parent_node = None
         self._child_nodes = child_nodes
         self._value = value
+        self._accessed = False
+        self._original_tile = tile
 
     def __str__(self):
         return f"{{{self.value}}}"
@@ -147,7 +149,13 @@ class PseudoNodeValue:
         if self.tile and self.tile.data and str(self.node.nodeid) in self.tile.data:
             del self.tile.data[str(self.node.nodeid)]
 
+    @property
+    def accessed(self) -> bool:
+        return self._accessed
+
     def _update_value(self):
+        self._accessed = True
+
         if not self.tile:
             if not self.node:
                 raise RuntimeError("Empty tile")

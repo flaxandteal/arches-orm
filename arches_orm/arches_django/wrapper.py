@@ -47,14 +47,22 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
         if not isinstance(root, PseudoNodeList):
             parent = root
         for pseudo_node in root.get_children():
-            if len(pseudo_node):
-                subrelationships = self._update_tiles(
-                    tiles, root=pseudo_node, parent=parent
-                )
-                relationships += subrelationships
-            if not isinstance(pseudo_node, PseudoNodeList):
-                t_and_r = pseudo_node.get_tile()
-                combined_tiles.append(t_and_r)
+            if pseudo_node.accessed:
+                if len(pseudo_node):
+                    subrelationships = self._update_tiles(
+                        tiles, root=pseudo_node, parent=parent
+                    )
+                    relationships += subrelationships
+                if not isinstance(pseudo_node, PseudoNodeList):
+                    t_and_r = pseudo_node.get_tile()
+                    combined_tiles.append(t_and_r)
+            # This avoids loading a tile as a set of view models, simply to re-save it.
+            elif not isinstance(pseudo_node, PseudoNodeList) and pseudo_node._original_tile:
+                # TODO: NOTE THAT THIS DOES NOT CAPTURE RELATIONSHIPS THAT HAVE NOT BEEN ACCESSED
+                combined_tiles.append((
+                    pseudo_node._original_tile,
+                    []
+                ))
 
         for tile, subrelationships in combined_tiles:
             if tile:

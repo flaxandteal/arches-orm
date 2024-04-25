@@ -39,6 +39,9 @@ class RelatedResourceInstanceListViewModel(UserList, ViewModel):
             resource_instance_id = item["resourceId"]
 
         value, _, __, ___ = self._make_ri_cb(resource_instance or resource_instance_id)
+
+        if not value:
+            raise RuntimeError(f"Could not append {item} to resource list within {self._parent_wkri}")
         if str(value._cross_record["wkriFrom"].id) != str(self._parent_wkri.id):
             raise NotImplementedError("Cannot currently reparent related resources")
 
