@@ -64,7 +64,19 @@ def test_can_save_with_name(arches_orm):
     person.save()
 
 @pytest.mark.django_db
-def test_can_save_with_concept(arches_orm):
+@pytest.mark.parametrize("lazy", [False, True])
+def test_can_save_with_county_value(arches_orm, lazy):
+    Person = arches_orm.models.Person
+    person = Person.create()
+    person.location_data.append().county.county_value = "Antrim"
+    person.save()
+
+    reloaded_person = arches_orm.models.Person.find(person.id, lazy=lazy)
+    assert person.location_data[0].county.county_value == "Antrim"
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("lazy", [False, True])
+def test_can_save_with_concept(arches_orm, lazy):
     Activity = arches_orm.models.Activity
     activity = Activity.create()
     StatusEnum = activity.record_status_assignment.record_status.__collection__
@@ -72,7 +84,8 @@ def test_can_save_with_concept(arches_orm):
     assert activity.record_status_assignment.record_status == StatusEnum.BacklogDashSkeleton
     activity.save()
 
-    reloaded_activity = arches_orm.models.Activity.find(activity.id)
+    print("REL")
+    reloaded_activity = arches_orm.models.Activity.find(activity.id, lazy=lazy)
     assert reloaded_activity.record_status_assignment.record_status == StatusEnum.BacklogDashSkeleton
 
 @pytest.mark.django_db
@@ -83,7 +96,8 @@ def test_can_save_with_blank_name(arches_orm):
     person.save()
 
 @pytest.mark.django_db
-def test_can_remap_and_set(arches_orm):
+@pytest.mark.parametrize("lazy", [False, True])
+def test_can_remap_and_set(arches_orm, lazy):
     Person = arches_orm.models.Person
     person = Person.create()
     remapping = {
@@ -94,7 +108,7 @@ def test_can_remap_and_set(arches_orm):
     person.name.append("Ash")
     person.surname.append("Ash2")
     person.save()
-    reloaded_person = arches_orm.models.Person.find(person.id)
+    reloaded_person = arches_orm.models.Person.find(person.id, lazy=lazy)
     assert reloaded_person.name[1].surnames.surname == "Ash2"
     reloaded_person._model_remapping = remapping
     assert reloaded_person.name == ["Ash", None]
@@ -116,60 +130,67 @@ def test_can_remap_and_set_loaded(arches_orm, person_ashs):
     assert person_ashs.name == ["Noash"]
 
 @pytest.mark.django_db
-def test_can_save_two_names(arches_orm, person_ashs):
+@pytest.mark.parametrize("lazy", [False, True])
+def test_can_save_two_names(arches_orm, person_ashs, lazy):
     asha = person_ashs.name.append()
     asha.full_name = "Asha"
     assert len(person_ashs.name) == 2
     person_ashs.save()
     assert len(person_ashs.name) == 2
 
-    reloaded_person = arches_orm.models.Person.find(person_ashs.id)
+    reloaded_person = arches_orm.models.Person.find(person_ashs.id, lazy=lazy)
     assert len(reloaded_person.name) == 2
     full_names = {name.full_name for name in reloaded_person.name}
     assert full_names == {"Ash", "Asha"}
 
 @pytest.mark.django_db
-def test_can_save_a_surname(arches_orm, person_ashs):
+@pytest.mark.parametrize("lazy", [False, True])
+def test_can_save_a_surname(arches_orm, person_ashs, lazy):
     asha = person_ashs.name.append()
     asha.surnames.surname = "Ashb"
     person_ashs.save()
 
-    reloaded_person = arches_orm.models.Person.find(person_ashs.id)
+    reloaded_person = arches_orm.models.Person.find(person_ashs.id, lazy=lazy)
     assert reloaded_person.name[1].surnames.surname == "Ashb"
 
 @pytest.mark.django_db
-def test_can_save_two_related_resources(arches_orm, person_ashs):
+@pytest.mark.parametrize("lazy", [False, True])
+def test_can_save_two_related_resources(arches_orm, person_ashs, lazy):
     act_1 = arches_orm.models.Activity()
     person_ashs.associated_activities.append(act_1)
     person_ashs.save()
     assert len(person_ashs.associated_activities) == 1
 
-    reloaded_person = arches_orm.models.Person.find(person_ashs.id)
+    reloaded_person = arches_orm.models.Person.find(person_ashs.id, lazy=lazy)
     assert len(reloaded_person.name) == 1
     act_2 = arches_orm.models.Activity()
     reloaded_person.associated_activities.append(act_2)
     reloaded_person.save()
     assert len(reloaded_person.associated_activities) == 2
 
-    reloaded_person = arches_orm.models.Person.find(person_ashs.id)
+    reloaded_person = arches_orm.models.Person.find(person_ashs.id, lazy=lazy)
     assert len(reloaded_person.associated_activities) == 2
 
 @pytest.mark.django_db
-def test_unsaved_json(person_ash):
+@pytest.mark.parametrize("lazy", [False, True])
+def test_unsaved_json(person_ash, lazy):
     resource = person_ash.to_resource()
     assert resource.to_json() == json.loads(JSON_PERSON)
 
 @pytest.mark.django_db
-def test_find(arches_orm, person_ashs):
-    reloaded_person = arches_orm.models.Person.find(person_ashs.id)
+@pytest.mark.parametrize("lazy", [False, True])
+def test_find(arches_orm, person_ashs, lazy):
+    reloaded_person = arches_orm.models.Person.find(person_ashs.id, lazy=lazy)
     assert reloaded_person.name[0].full_name == "Ash"
 
 @pytest.mark.django_db
-def test_empty_node_is_falsy(arches_orm, person_ashs):
+@pytest.mark.parametrize("lazy", [False, True])
+def test_empty_node_is_falsy(arches_orm, person_ashs, lazy):
     assert not person_ashs.user_account
 
 @pytest.mark.django_db
-def test_user_account(arches_orm, person_ashs):
+@pytest.mark.parametrize("lazy", [False, True])
+def test_user_account(arches_orm, person_ashs, lazy):
     from django.contrib.auth.models import User
     user_account = User(email="ash@example.com")
     user_account.save()
@@ -178,34 +199,39 @@ def test_user_account(arches_orm, person_ashs):
 
     person_ashs.save()
 
-    reloaded_person = arches_orm.models.Person.find(person_ashs.id)
+    reloaded_person = arches_orm.models.Person.find(person_ashs.id, lazy=lazy)
     assert reloaded_person.user_account.email == "ash@example.com"
 
 @pytest.mark.django_db
-def test_hooks_setup(arches_orm):
+@pytest.mark.parametrize("lazy", [False, True])
+def test_hooks_setup(arches_orm, lazy):
     hooks = arches_orm.add_hooks()
     assert hooks == {"post_save", "post_delete"}
 
 @pytest.mark.django_db
-def test_can_create_create_by_class_name(arches_orm):
+@pytest.mark.parametrize("lazy", [False, True])
+def test_can_create_create_by_class_name(arches_orm, lazy):
     from arches_orm.wkrm import get_well_known_resource_model_by_class_name
     Person = get_well_known_resource_model_by_class_name("Person")
     assert Person == arches_orm.models.Person
 
 @pytest.mark.django_db
-def test_can_retrieve_by_resource_id(arches_orm, person_ashs):
+@pytest.mark.parametrize("lazy", [False, True])
+def test_can_retrieve_by_resource_id(arches_orm, person_ashs, lazy):
     from arches_orm.wkrm import attempt_well_known_resource_model
-    person = attempt_well_known_resource_model(person_ashs.id)
+    person = attempt_well_known_resource_model(person_ashs.id, lazy=lazy)
     assert person.__eq__(person_ashs)
 
 @pytest.mark.django_db
-def test_can_attach_related(arches_orm, person_ashs):
+@pytest.mark.parametrize("lazy", [False, True])
+def test_can_attach_related(arches_orm, person_ashs, lazy):
     activity = arches_orm.models.Activity()
     person_ashs.associated_activities.append(activity)
     assert len(person_ashs.associated_activities) == 1
 
 @pytest.mark.django_db
-def test_can_attach_related_then_save(arches_orm, person_ashs):
+@pytest.mark.parametrize("lazy", [False, True])
+def test_can_attach_related_then_save(arches_orm, person_ashs, lazy):
     activity = arches_orm.models.Activity()
     person_ashs.associated_activities.append(activity)
     assert len(person_ashs.associated_activities) == 1

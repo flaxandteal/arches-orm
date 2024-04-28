@@ -49,6 +49,8 @@ class ResourceWrapper(Resource, ABC):
             "id",
             "_new_id",
             "_values",
+            "_values_real",
+            "_values_list",
             "resource",
             "_root_node",
             "_cross_record",

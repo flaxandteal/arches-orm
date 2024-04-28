@@ -41,13 +41,15 @@ def semantic(
     def get_child_values(svm):
         if not parent:
             return {}
+        for key in child_nodes:
+            res = parent._values.get(key)
         children = {
             key: value
             for key, values in parent._values.items()
             for value in values
             if key in child_keys
             and value is not None
-            and value._parent_node is None
+            and (value._parent_node is None or value._parent_node == svm)
             and (
                 (tile and value.parenttile_id == tile.tileid)
                 or (
@@ -63,12 +65,6 @@ def semantic(
         }
         for key, value in children.items():
             value._parent_node = svm
-            if key in svm._child_values:
-                reason = (
-                    "Semantic view model construction error - "
-                    f"duplicate keys outside node list: {key}: %s"
-                )
-                _tile_loading_error(reason, RuntimeError(reason))
             svm._child_values[key] = value
 
         return children
