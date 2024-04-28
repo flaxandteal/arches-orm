@@ -173,6 +173,32 @@ def test_can_save_two_related_resources(arches_orm, person_ashs, lazy):
 
 @pytest.mark.django_db
 @pytest.mark.parametrize("lazy", [False, True])
+def test_can_save_two_related_resources_many_times(arches_orm, lazy):
+    Person = arches_orm.models.Person
+    for i in range(20):
+        person = Person.create()
+        ash = person.name.append()
+        ash.full_name = "Ash"
+        ash.surnames.surname = str(i)
+        person.save()
+
+        act_1 = arches_orm.models.Activity()
+        person.associated_activities.append(act_1)
+        person.save()
+        assert len(person.associated_activities) == 1
+
+        reloaded_person = arches_orm.models.Person.find(person.id, lazy=lazy)
+        assert len(reloaded_person.name) == 1
+        act_2 = arches_orm.models.Activity()
+        reloaded_person.associated_activities.append(act_2)
+        reloaded_person.save()
+        assert len(reloaded_person.associated_activities) == 2
+
+        reloaded_person = arches_orm.models.Person.find(person.id, lazy=lazy)
+        assert len(reloaded_person.associated_activities) == 2
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("lazy", [False, True])
 def test_unsaved_json(person_ash, lazy):
     resource = person_ash.to_resource()
     assert resource.to_json() == json.loads(JSON_PERSON)
