@@ -1,5 +1,6 @@
 from arches.app.models.resource import Resource
 from django.dispatch import Signal
+from collections import UserDict
 from functools import lru_cache
 from datetime import datetime
 from arches.app.models.models import ResourceXResource, Node, NodeGroup, Edge
@@ -7,9 +8,12 @@ from arches.app.models.graph import Graph
 from arches.app.models.tile import Tile as TileProxyModel
 from arches.app.models.system_settings import settings as system_settings
 import logging
+from arches_orm.datatypes import DataTypeNames
 
 from arches_orm.wrapper import ResourceWrapper
+from arches_orm.utils import snake
 
+from .bulk_create import BulkImportWKRM
 from .pseudo_nodes import PseudoNodeList, PseudoNodeValue
 
 logger = logging.getLogger(__name__)
@@ -19,13 +23,84 @@ LOAD_FULL_NODE_OBJECTS = True
 LOAD_ALL_NODES = True
 
 
+class ValueList(UserDict):
+    def __init__(self, values, wkri, related_prefetch):
+        self._wkri = wkri
+        self._related_prefetch = related_prefetch
+        self._values = values
+
+    @property
+    def data(self):
+        return {
+            k: v for k, v in self._values.items() if v is not False
+        }
+
+    def setdefault(self, key, value):
+        # Gives us a chance to lazy-load
+        self._get(key, value, raise_error=False)
+        self._values.setdefault(key, value)
+
+    def __setitem__(self, key, value):
+        self._values[key] = value
+
+    def __getitem__(self, key):
+        result = self._values[key]
+        return self._get(key, default=result, raise_error=True)
+
+    def _get(self, key, default=None, raise_error=False):
+        result = self._values.get(key, default)
+        if result is False:
+            if self._wkri.resource:
+                # Will KeyError if we do not have it.
+                node = self._wkri._nodes[key]
+                ng = self._wkri._ensure_nodegroup(
+                    self._values,
+                    node.nodegroup_id,
+                    self._wkri._node_objects(),
+                    self._wkri._nodegroup_objects(),
+                    self._wkri._edges(),
+                    self._wkri.resource,
+                    related_prefetch=self._related_prefetch,
+                    wkri=self._wkri,
+                )
+                self._values.update(ng)
+            else:
+                del self._values[key]
+        if raise_error:
+            return self.data[key]
+        else:
+            return self.data.get(key, default)
+
 class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
     _nodes_real: dict = None
     _nodegroup_objects_real: dict = None
     _root_node: Node | None = None
+    _values_list: ValueList | None = None
+    _values_real: list | None = None
     __datatype_factory = None
 
     """Provides functionality for translating to/from Arches types."""
+
+    @property
+    def _values(self):
+        if self._values_list is None:
+            self._values_list = ValueList(
+                self._values_real,
+                self,
+                related_prefetch=self._related_prefetch
+            )
+        return self._values_list
+
+    @_values.setter
+    def _values(self, values: dict | ValueList):
+        if isinstance(values, ValueList):
+            self._values_list = values
+        else:
+            self._values_list = ValueList(
+                values,
+                self,
+                related_prefetch=self._related_prefetch
+            )
 
     def _update_tiles(
         self, tiles, all_values=None, nodegroup_id=None, root=None, parent=None
@@ -44,14 +119,22 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
         if not isinstance(root, PseudoNodeList):
             parent = root
         for pseudo_node in root.get_children():
-            if len(pseudo_node):
-                subrelationships = self._update_tiles(
-                    tiles, root=pseudo_node, parent=parent
-                )
-                relationships += subrelationships
-            if not isinstance(pseudo_node, PseudoNodeList):
-                t_and_r = pseudo_node.get_tile()
-                combined_tiles.append(t_and_r)
+            if isinstance(pseudo_node, PseudoNodeList) or pseudo_node.accessed:
+                if len(pseudo_node):
+                    subrelationships = self._update_tiles(
+                        tiles, root=pseudo_node, parent=parent
+                    )
+                    relationships += subrelationships
+                if not isinstance(pseudo_node, PseudoNodeList):
+                    t_and_r = pseudo_node.get_tile()
+                    combined_tiles.append(t_and_r)
+            # This avoids loading a tile as a set of view models, simply to re-save it.
+            elif not isinstance(pseudo_node, PseudoNodeList) and pseudo_node._original_tile:
+                # TODO: NOTE THAT THIS DOES NOT CAPTURE RELATIONSHIPS THAT HAVE NOT BEEN ACCESSED
+                combined_tiles.append((
+                    pseudo_node._original_tile,
+                    []
+                ))
 
         for tile, subrelationships in combined_tiles:
             if tile:
@@ -128,58 +211,64 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
         # Don't think we actually need this if the resource gets saved, as postsave RI
         # datatype handles it. We do for sqlite at the very least, and likely gathering
         # for bulk.
-        if self.get_adapter().config.get("save_crosses", False):
-            crosses = {
-                str(cross.tileid): cross
-                for cross in ResourceXResource.objects.filter(
-                    resourceinstanceidfrom=resource
+        _no_save = _no_save or not (self.get_adapter().config.get("save_crosses", False))
+        # TODO: fix expectation of one cross per tile
+
+        crosses = {}
+        for cross in ResourceXResource.objects.filter(
+            resourceinstanceidfrom=resource
+        ):
+            crosses.setdefault(str(cross.tileid), [])
+            crosses[str(cross.tileid)].append(cross)
+        for tile_ix, nodegroup_id, nodeid, related in relationships:
+            value = tiles[nodegroup_id][tile_ix].data[nodeid]
+            tileid = str(tiles[nodegroup_id][tile_ix].tileid)
+            if not related.id:
+                if save_related_if_missing:
+                    related.save()
+                else:
+                    logger.warning("Not saving a related model as not requested")
+                    continue
+            need_cross = tileid not in crosses
+            cross_resourcexid = None
+            if tileid in crosses:
+                for cross in crosses[tileid]:
+                    if (
+                        str(cross.resourceinstanceidto_id) == str(related.id) and
+                        str(cross.resourceinstanceidfrom_id) == str(resource.id)
+                    ):
+                        need_cross = False
+                        cross_resourcexid = str(cross.resourcexid)
+            if need_cross:
+                cross = ResourceXResource(
+                    resourceinstanceidfrom=resource,
+                    resourceinstanceidto_id=related.id,
                 )
-            }
-            for tile_ix, nodegroup_id, nodeid, related in relationships:
-                value = tiles[nodegroup_id][tile_ix].data[nodeid]
-                tileid = str(tiles[nodegroup_id][tile_ix].tileid)
-                if not related.id:
-                    if save_related_if_missing:
-                        related.save()
-                    else:
-                        logger.warning("Not saving a related model as not requested")
-                        continue
                 if _no_save:
                     self._pending_relationships.append((value, related, self))
-                elif tileid not in crosses:
-                    cross = ResourceXResource(
-                        resourceinstanceidfrom=resource,
-                        resourceinstanceidto_id=related.id,
-                    )
+                else:
                     cross.save()
-                else:
-                    cross = crosses[tileid]
-                    save_cross = False
-                    if str(cross.resourceinstanceidto_id) != str(related.id):
-                        cross.resourceinstanceidto_id = related.id
-                        save_cross = True
-                    if str(cross.resourceinstanceidfrom_id) != str(resource.id):
-                        cross.resourceinstanceidfrom_id = resource.id
-                        save_cross = True
-                    if save_cross:
-                        cross.save()
+                    cross_resourcexid = str(cross.resourcexid)
 
-                cross_value = {
-                    "resourceId": str(cross.resourceinstanceidto_id),
-                    "ontologyProperty": "",
-                    "resourceXresourceId": str(cross.resourcexid),
-                    "inverseOntologyProperty": "",
-                }
-                if isinstance(value, list):
-                    if not any(
-                        entry["resourceXresourceId"]
-                        == cross_value["resourceXresourceId"]
-                        for entry in value
-                    ):
-                        value.append(cross_value)
-                else:
-                    value.update(cross_value)
-                do_final_save = True
+            cross_value = {
+                "resourceId": str(cross.resourceinstanceidto_id),
+                "ontologyProperty": "",
+                "resourceXresourceId": cross_resourcexid,
+                "inverseOntologyProperty": "",
+            }
+            if isinstance(value, list):
+                if not any(
+                    (entry["resourceId"] == cross_value["resourceId"]) or
+                    (
+                        entry["resourceXresourceId"] is not None and
+                        entry["resourceXresourceId"] == cross_value["resourceXresourceId"]
+                    )
+                    for entry in value
+                ):
+                    value.append(cross_value)
+            else:
+                value.update(cross_value)
+            do_final_save = True
         if do_final_save:
             resource.save()
 
@@ -223,6 +312,13 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
 
     @classmethod
     @lru_cache
+    def _node_datatypes(cls):
+        return {
+            str(nodeid): node.datatype for nodeid, node in cls._node_objects().items()
+        }
+
+    @classmethod
+    @lru_cache
     def _graph(cls):
         return Graph.objects.get(graphid=cls.graphid)
 
@@ -258,12 +354,12 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
         return cls._nodegroup_objects_real
 
     @classmethod
-    def from_resource_instance(cls, resourceinstance, cross_record=None):
+    def from_resource_instance(cls, resourceinstance, cross_record=None, lazy=False):
         """Build a well-known resource from a resource instance."""
         resource = Resource(resourceinstance.resourceinstanceid)
-        return cls.from_resource(resource, cross_record=cross_record)
+        return cls.from_resource(resource, cross_record=cross_record, lazy=lazy)
 
-    def reload(self, ignore_prefetch=True):
+    def reload(self, ignore_prefetch=True, lazy=False):
         """Reload field values, but not node values for class."""
         if not self.id:
             raise RuntimeError("Cannot reload without a database ID")
@@ -292,12 +388,13 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
             resource,
             related_prefetch=self._related_prefetch,
             wkri=self,
+            lazy=lazy,
         )
-        self._values.update(values)
+        self._values = values
         return self
 
     @classmethod
-    def from_resource(cls, resource, cross_record=None, related_prefetch=None):
+    def from_resource(cls, resource, cross_record=None, related_prefetch=None, lazy=False):
         """Build a well-known resource from an Arches resource."""
 
         node_objs = cls._node_objects()
@@ -316,8 +413,13 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
             resource,
             related_prefetch=related_prefetch,
             wkri=wkri,
+            lazy=lazy,
         )
-        wkri._values = values
+        wkri._values = ValueList(
+            values,
+            wkri,
+            related_prefetch=related_prefetch
+        )
         return wkri
 
     @classmethod
@@ -349,6 +451,36 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
         }.get("root")
 
     @classmethod
+    @property
+    def __fields__(cls):
+        cls._build_nodes()
+        def _fill_fields(pseudo_node):
+            typ, multiple = pseudo_node.get_type()
+            fields = {
+                "type": DataTypeNames(typ),
+                "multiple": multiple,
+                "nodeid": str(pseudo_node.node.nodeid)
+            }
+            if (child_types := pseudo_node.get_child_types()):
+                fields["children"] = {
+                    child: _fill_fields(child_node) for child, child_node in child_types.items()
+                }
+            return fields
+
+        if cls._remap and cls._model_remapping:
+            fields = {}
+            for field, target in cls._model_remapping.items():
+                _, target = target.split(".", -1)
+                pseudo_node = cls._make_pseudo_node_cls(target, wkri=None)
+                fields[snake(field)] = _fill_fields(pseudo_node)
+            return fields
+        else:
+            pseudo_node = cls._get_root_pseudo_node()
+            if pseudo_node:
+                return _fill_fields(pseudo_node).get("children")
+        return {}
+
+    @classmethod
     def search(cls, text, fields=None, _total=None):
         """Search ES for resources of this model, and return as well-known resources."""
 
@@ -366,7 +498,7 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
         se = SearchEngineFactory().create()
         # TODO: permitted_nodegroups = get_permitted_nodegroups(request.user)
         permitted_nodegroups = [
-            node.nodegroup_id
+            str(node.nodegroup_id)
             for key, node in cls._node_objects_by_alias().items()
             if (fields is None or key in fields)
         ]
@@ -408,17 +540,17 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
         )
 
     @classmethod
-    def all(cls, related_prefetch=None):
+    def all(cls, related_prefetch=None, lazy=False):
         """Get all resources of this type."""
 
         resources = Resource.objects.filter(graph_id=cls.graphid).all()
         return [
-            cls.from_resource(resource, related_prefetch=related_prefetch)
+            cls.from_resource(resource, related_prefetch=related_prefetch, lazy=lazy)
             for resource in resources
         ]
 
     @classmethod
-    def find(cls, resourceinstanceid, from_prefetch=None):
+    def find(cls, resourceinstanceid, from_prefetch=None, lazy=False):
         """Find an individual well-known resource by instance ID."""
 
         resource = (
@@ -432,7 +564,7 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
                     f"Using find against wrong resource type: {resource.graph_id} for"
                     f" {cls.graphid}"
                 )
-            return cls.from_resource(resource)
+            return cls.from_resource(resource, lazy=lazy)
         return None
 
     def remove(self):
@@ -441,27 +573,31 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
         if not self._cross_record:
             raise NotImplementedError("This method is only implemented for relations")
 
+        from arches_orm.view_models.resources import RelatedResourceInstanceViewModelMixin, RelatedResourceInstanceListViewModel
+
         wkfm = self._cross_record["wkriFrom"]
         key = self._cross_record["wkriFromKey"]
-        wkfm.save()
-        resource = wkfm.to_resource()
-        tile = resource.tiles
-        nodeid = str(wkfm._nodes()[key].nodeid)
-        nodegroupid = str(wkfm._nodes()[key].nodegroup_id)
-        for tile in resource.tiles:
-            if nodegroupid == str(tile.nodegroup_id):
-                ResourceXResource.objects.filter(
-                    resourceinstanceidfrom=wkfm.resource,
-                    resourceinstanceidto=self.resource,
-                ).delete()
-                del tile.data[nodeid]
+        pseudo_node_list = wkfm._values[key]
+        if not isinstance(pseudo_node_list, PseudoNodeList) and not isinstance(pseudo_node_list, list):
+            pseudo_node_list = [pseudo_node_list]
 
-        # This is required to avoid e.g. missing related models preventing
-        # saving (as we cannot import those via CSV on first step)
-        bypass = system_settings.BYPASS_REQUIRED_VALUE_TILE_VALIDATION
-        system_settings.BYPASS_REQUIRED_VALUE_TILE_VALIDATION = True
-        resource.save()
-        system_settings.BYPASS_REQUIRED_VALUE_TILE_VALIDATION = bypass
+        for pseudo_node in pseudo_node_list:
+            if isinstance(pseudo_node.value, RelatedResourceInstanceListViewModel):
+                pseudo_node.value.remove(self)
+            elif isinstance(pseudo_node.value, RelatedResourceInstanceViewModelMixin):
+                # if str(pseudo_node.value.resourceinstanceid) != str(self.id):
+                #     raise RuntimeError(
+                #         f"Mix-up when removing a related resource for {key} of {wkfm.id},"
+                #         f" which should be {self.id} but is {pseudo_node.value.resourceinstanceid}"
+                #     )
+                if str(pseudo_node.value.resourceinstanceid) == str(self.id):
+                    pseudo_node.clear()
+            # else:
+            #     raise RuntimeError(
+            #         f"Mix-up when removing a related resource for {key} of {wkfm.id},"
+            #         f" which should be a related resource, but is {type(pseudo_node.value)}"
+            #     )
+        wkfm.save()
 
     def append(self, _no_save=False):
         """When called via a relationship (dot), append to the relationship."""
@@ -485,14 +621,15 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
                     resourceinstanceidto=self.resource,
                 )
                 cross.save()
-                value = [
+                value = (tile.data or {}).get(nodeid, [])
+                value.append(
                     {
                         "resourceId": str(self.resource.resourceinstanceid),
                         "ontologyProperty": "",
                         "resourceXresourceId": str(cross.resourcexid),
                         "inverseOntologyProperty": "",
                     }
-                ]
+                )
                 tile.data.update({nodeid: value})
 
         # This is required to avoid e.g. missing related models preventing
@@ -513,22 +650,116 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
         resource,
         related_prefetch=None,
         wkri=None,
+        lazy=False,
     ):
         """Populate fields from the ID-referenced Arches resource."""
 
-        all_values = {}
+        all_values = {
+            node_objs[str(ng)].alias: False
+            for ng, nodegroup in nodegroup_objs.items()
+        }
 
-        # load_tiles thins by user
-        resource.tiles = TileProxyModel.objects.filter(resourceinstance=resource)
+        if not lazy:
+            tiles = TileProxyModel.objects.filter(resourceinstance=resource)
+            for ng, nodegroup in nodegroup_objs.items():
+                all_values.update(
+                    cls._ensure_nodegroup(
+                        all_values,
+                        ng,
+                        node_objs,
+                        nodegroup_objs,
+                        edges,
+                        resource,
+                        related_prefetch=related_prefetch,
+                        wkri=wkri,
+                        tiles=tiles
+                    )
+                )
+        return all_values
+
+    @classmethod
+    def _ensure_nodegroup(
+        cls,
+        all_values,
+        nodegroup_id,
+        node_objs,
+        nodegroup_objs,
+        edges,
+        resource,
+        related_prefetch=None,
+        wkri=None,
+        add_if_missing=False,
+        tiles=None,
+    ):
+        nodegroup_id = str(nodegroup_id)
+        node = node_objs[nodegroup_id]
+        implied_nodegroups = set()
+        value = all_values.get(node.alias, None)
+        if value is False or (add_if_missing and value is None):
+            if node.alias in all_values:
+                del all_values[node.alias]
+            if tiles is None:
+                nodegroup_tiles = TileProxyModel.objects.filter(resourceinstance=resource, nodegroup_id=nodegroup_id)
+            else:
+                nodegroup_tiles = [tile for tile in tiles if str(tile.nodegroup_id) == nodegroup_id]
+            if not nodegroup_tiles and add_if_missing:
+                nodegroup_tiles = [None]
+            new_values, new_implied_nodegroups = cls._values_from_resource_nodegroup(
+                all_values,
+                nodegroup_tiles,
+                nodegroup_id,
+                node_objs,
+                nodegroup_objs,
+                edges,
+                resource,
+                related_prefetch=related_prefetch,
+                wkri=wkri,
+            )
+            all_values.update(new_values)
+            implied_nodegroups |= new_implied_nodegroups
+
+        while implied_nodegroups:
+            seen_nodegroups = set(implied_nodegroups)
+            for nodegroup_id in seen_nodegroups:
+                all_values = cls._ensure_nodegroup(
+                    all_values,
+                    nodegroup_id,
+                    node_objs,
+                    nodegroup_objs,
+                    edges,
+                    resource,
+                    related_prefetch=related_prefetch,
+                    wkri=wkri,
+                    add_if_missing=True,
+                )
+            implied_nodegroups -= seen_nodegroups
+
+        return all_values
+
+    @classmethod
+    def _values_from_resource_nodegroup(
+        cls,
+        existing_values,
+        nodegroup_tiles,
+        nodegroup_id,
+        node_objs,
+        nodegroup_objs,
+        edges,
+        resource,
+        related_prefetch=None,
+        wkri=None,
+    ):
+        """Populate fields from the ID-referenced Arches resource."""
+        all_values = {}
 
         implied_nodegroups = set()
 
-        def _add_node(node, tile):
+        def _add_node(node: Node, tile: TileProxyModel | None) -> None:
             key = node.alias
+            if existing_values.get(key, False) is not False:
+                raise RuntimeError(f"Tried to load node twice: {key}")
             all_values.setdefault(key, [])
             pseudo_node = cls._make_pseudo_node_cls(key, tile=tile, wkri=wkri)
-            if key == "full_name" and tile is not None:
-                pseudo_node.get_tile()
             # We shouldn't have to take care of this case, as it should already
             # be included below.
             # if tile.parenttile_id:
@@ -541,7 +772,7 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
                     )
                     break
             if isinstance(pseudo_node, PseudoNodeList):
-                if key in all_values:
+                if all_values.get(key, False) is not False:
                     for pseudo_node_list in all_values[key]:
                         if not isinstance(pseudo_node_list, PseudoNodeList):
                             raise RuntimeError("Should be all lists")
@@ -552,44 +783,24 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
                             return
             all_values[key].append(pseudo_node)
 
-        for tile in resource.tiles:
-            tile_nodes = dict(tile.data.items())
-            tile_nodes.setdefault(tile.nodegroup_id, {})
-            for nodeid, node_value in tile_nodes.items():
-                if nodeid in node_objs:
-                    node = node_objs[nodeid]
-                    node_objs[nodeid].alias
-                    if node_value is not None:
-                        if node.nodegroup_id:
-                            parent_node = node_objs[str(node_objs[nodeid].nodegroup_id)]
-                            if parent_node.alias in all_values:
-                                collected_tiles = sum(
-                                    (
-                                        [ps.tile for ps in pseudo_node]
-                                        if isinstance(pseudo_node, PseudoNodeList)
-                                        else [pseudo_node.tile]
-                                        for pseudo_node in all_values[parent_node.alias]
-                                    ),
-                                    [],
-                                )
-                            else:
-                                collected_tiles = []
+        for tile in nodegroup_tiles:
+            parent_node = node_objs[nodegroup_id]
+            _add_node(parent_node, tile)
 
-                            if not collected_tiles or tile not in collected_tiles:
-                                _add_node(parent_node, tile)
-                                if node == parent_node:
-                                    continue
+            if tile:
+                tile_nodes = dict(tile.data.items())
+                tile_nodes.setdefault(tile.nodegroup_id, {})
+                for nodeid, node_value in tile_nodes.items():
+                    nodeid = str(nodeid)
+                    if nodeid == nodegroup_id:
+                        continue
+                    node = node_objs[nodeid]
+                    if node_value is not None:
                         _add_node(node, tile)
-        while implied_nodegroups:
-            seen_nodegroups = set(implied_nodegroups)
-            for nodegroup_id in implied_nodegroups:
-                node_obj = node_objs[nodegroup_id]
-                _add_node(node_obj, None)
-            implied_nodegroups -= seen_nodegroups
-        return all_values
+        return all_values, implied_nodegroups
 
     @classmethod
-    def where(cls, cross_record=None, **kwargs):
+    def where(cls, cross_record=None, lazy=False, **kwargs):
         """Do a filtered query returning a list of well-known resources."""
         # TODO: replace with proper query
         unknown_keys = set(kwargs) - set(cls._node_objects_by_alias())
@@ -612,12 +823,9 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
             data__contains={str(node.nodeid): value},
         )
         return [
-            cls.from_resource_instance(tile.resourceinstance, cross_record=cross_record)
+            cls.from_resource_instance(tile.resourceinstance, cross_record=cross_record, lazy=lazy)
             for tile in tiles
         ]
-
-    def _make_pseudo_node(self, key, single=False, tile=None):
-        return self._make_pseudo_node_cls(key, single=single, tile=tile, wkri=self)
 
     @classmethod
     def _make_pseudo_node_cls(cls, key, single=False, tile=None, wkri=None):
@@ -634,13 +842,14 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
             value = PseudoNodeList(
                 node_obj,
                 parent=wkri,
+                parent_cls=cls,
             )
         if value is None or tile:
             child_nodes = {}
             if edges is not None:
                 child_nodes.update(
                     {
-                        n.alias: (n, False)
+                        n.alias: (n, not n.is_collector)
                         for n in cls._node_objects().values()
                         if str(n.nodeid) in edges
                     }
@@ -657,6 +866,7 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
                 node=node_obj,
                 value=None,
                 parent=wkri,
+                parent_cls=cls,
                 child_nodes=child_nodes,
             )
             # If we have a tile in a list, add it
@@ -682,6 +892,17 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
     @classmethod
     def _add_events(cls):
         cls.post_save = Signal()
+        cls.post_related_to = Signal()
+        cls.post_related_from = Signal()
+
+    @classmethod
+    def _get_root_pseudo_node(cls):
+        if cls._root_node:
+            return cls._make_pseudo_node_cls(
+                cls._root_node.alias,
+                wkri=None
+            )
+        return None
 
     def get_root(self):
         if self._root_node:
@@ -691,8 +912,9 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
             if self._values[self._root_node.alias]:
                 value = self._values[self._root_node.alias][0]
             else:
-                value = self._make_pseudo_node(
+                value = self._make_pseudo_node_cls(
                     self._root_node.alias,
+                    wkri=self
                 )
                 self._values[self._root_node.alias] = [value]
             return value
@@ -707,6 +929,20 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
         inst = super().create(_no_save=True, _do_index=_do_index, **kwargs)
         inst.to_resource(_no_save=_no_save, _do_index=_do_index)
         return inst
+
+    @classmethod
+    def create_bulk(cls, fields: list, do_index: bool = True):
+        requested_wkrms = []
+        for n, field_set in enumerate(fields):
+            try:
+                if n % 10 == 0:
+                    logger.info(f"create_bulk: {n} / {len(fields)}")
+                requested_wkrms.append(cls.create(_no_save=True, _do_index=do_index, **field_set))
+            except Exception:
+                logger.error(f"Failed item {n}")
+                raise
+        bulk_etl = BulkImportWKRM()
+        return bulk_etl.write(requested_wkrms, do_index=do_index)
 
     @staticmethod
     def get_adapter():

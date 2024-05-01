@@ -12,12 +12,22 @@ class SemanticViewModel(ViewModel):
     _get_child_values = None
     _child_values = None
 
-    def __init__(self, parent_wkri, child_keys, values, make_child, get_child_values):
+    def __init__(self, parent_wkri, child_keys, make_child, get_child_values):
         self._child_keys = child_keys
         self._child_values = {}
         self._parent_wkri = parent_wkri
         self._make_child = make_child
         self._get_child_values = get_child_values
+
+    def update(self, values):
+        for key, value in values.items():
+            setattr(self, key, value)
+
+    def get_child_types(self):
+        return {
+            key: self._get_child_value(key)
+            for key in self._child_keys
+        }
 
     def get_children(self, direct=None):
         items = dict(self._get_child_values(self))
@@ -33,6 +43,10 @@ class SemanticViewModel(ViewModel):
         if key in self.__dict__:
             return super().__getattr__(key)
 
+        child_value = self._get_child_value(key)
+        return child_value.value
+
+    def _get_child_value(self, key):
         if key not in self._child_keys:
             raise AttributeError(f"Semantic node does not have this key: {key}")
 
@@ -41,7 +55,7 @@ class SemanticViewModel(ViewModel):
                 child = self._make_child(key)
             self._child_values[key] = child
             child._parent_node = self
-        return self._child_values[key].value
+        return self._child_values[key]
 
     def __setattr__(self, key, value):
         if key in (

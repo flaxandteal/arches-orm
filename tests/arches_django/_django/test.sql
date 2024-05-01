@@ -1,3 +1,5 @@
+--- Licensed AGPL as from ARCHES (TODO: tidy license string)
+
 INSERT INTO languages(code, name, default_direction, scope, isdefault) VALUES ('en-US', 'ENGLISH', 'rtl', 'system', true);
 INSERT INTO languages(code, name, default_direction, scope, isdefault) VALUES ('en', 'ENGLISH', 'rtl', 'system', true);
 INSERT INTO languages(code, name, default_direction, scope, isdefault) VALUES ('fr', 'FRENCH', 'rtl', 'system', true);
@@ -272,3 +274,79 @@ INSERT INTO cards(cardid, name, description, instructions,
     VALUES ('22200000-0000-0000-0000-900000000001', '{"en": "Node/Node Type"}', '{"en": "Represents a node and node type pairing"}', '{"en": ""}',
         '20000000-0000-0000-0000-100000000001', '22000000-0000-0000-0000-000000000001', 't', 't', 'f', '4e40b397-d6bc-4660-a398-4a72c90dba07');
 -- End Node/NodeType graph
+
+INSERT INTO d_value_types VALUES ('scopeNote', 'note', null, 'skos', 'text');
+INSERT INTO d_value_types VALUES ('definition', 'note', null, 'skos', 'text');
+INSERT INTO d_value_types VALUES ('example', 'note', null, 'skos', 'text');
+INSERT INTO d_value_types VALUES ('historyNote', 'note', null, 'skos', 'text');
+INSERT INTO d_value_types VALUES ('editorialNote', 'note', null, 'skos', 'text');
+INSERT INTO d_value_types VALUES ('changeNote', 'note', null, 'skos', 'text');
+INSERT INTO d_value_types VALUES ('note', 'note', null, 'skos', 'text');
+
+--SKOS Lexical Properties
+INSERT INTO d_value_types VALUES ('prefLabel', 'label', null, 'skos', 'text');
+INSERT INTO d_value_types VALUES ('altLabel', 'label', null, 'skos', 'text');
+INSERT INTO d_value_types VALUES ('hiddenLabel', 'label', null, 'skos', 'text');
+
+--SKOS Notation (A notation is different from a lexical label in that a notation is not normally recognizable as a word or sequence of words in any natural language. (ie sortorder))
+INSERT INTO d_value_types VALUES ('notation', 'notation', null, 'skos', 'text');
+
+--NON-SKOS
+INSERT INTO d_value_types VALUES ('image', 'image', null, 'arches', 'text');
+
+--DUBLIN CORE
+INSERT INTO d_value_types VALUES ('title', 'label', null, 'dcterms', 'text');
+INSERT INTO d_value_types VALUES ('description', 'note', null, 'dcterms', 'text');
+INSERT INTO d_value_types VALUES ('collector', 'undefined', null, 'arches', 'text');
+
+--ARCHES PROPERTIES
+INSERT INTO d_value_types VALUES ('sortorder', 'undefined', null, 'arches', 'text');
+INSERT INTO d_value_types VALUES ('min_year', 'undefined', null, 'arches', 'text');
+INSERT INTO d_value_types VALUES ('max_year', 'undefined', null, 'arches', 'text');
+INSERT INTO d_value_types VALUES ('identifier', 'identifiers', null, 'dcterms', 'text');
+
+--SKOS Mapping Properties (relationships between concepts across schemes)
+INSERT INTO d_relation_types VALUES ('closeMatch', 'Mapping Properties', 'skos');
+INSERT INTO d_relation_types VALUES ('mappingRelation', 'Mapping Properties', 'skos');
+INSERT INTO d_relation_types VALUES ('narrowMatch', 'Mapping Properties', 'skos');
+INSERT INTO d_relation_types VALUES ('relatedMatch', 'Mapping Properties', 'skos');
+INSERT INTO d_relation_types VALUES ('broadMatch', 'Mapping Properties', 'skos');
+INSERT INTO d_relation_types VALUES ('exactMatch', 'Mapping Properties', 'skos');
+
+--SKOS Semantic Relations (relationship between concepts within a scheme)
+INSERT INTO d_relation_types VALUES ('broader', 'Semantic Relations', 'skos');
+INSERT INTO d_relation_types VALUES ('broaderTransitive', 'Semantic Relations', 'skos');
+INSERT INTO d_relation_types VALUES ('narrower', 'Semantic Relations', 'skos');
+INSERT INTO d_relation_types VALUES ('narrowerTransitive', 'Semantic Relations', 'skos');
+INSERT INTO d_relation_types VALUES ('related', 'Semantic Relations', 'skos');
+INSERT INTO d_relation_types VALUES ('member', 'Concept Collections', 'skos');
+INSERT INTO d_relation_types VALUES ('hasTopConcept', 'Properties', 'skos');
+
+--Arches entityttype relations to concepts
+INSERT INTO d_relation_types VALUES ('hasCollection', 'Entitytype Relations', 'arches');
+
+--OWL Class types and Arches specific types
+INSERT INTO d_node_types VALUES ('ConceptScheme', 'skos');
+INSERT INTO d_node_types VALUES ('Concept', 'skos');
+INSERT INTO d_node_types VALUES ('Collection', 'skos');
+
+
+INSERT INTO concepts(conceptid, nodetype, legacyoid) VALUES ('00000000-0000-0000-0000-000000000001', 'ConceptScheme', 'ARCHES');
+INSERT INTO concepts(conceptid, nodetype, legacyoid) VALUES ('00000000-0000-0000-0000-000000000004', 'Concept', 'ARCHES RESOURCE CROSS-REFERENCE RELATIONSHIP TYPES CONCEPT');
+INSERT INTO concepts(conceptid, nodetype, legacyoid) VALUES ('00000000-0000-0000-0000-000000000005', 'Collection', 'ARCHES RESOURCE CROSS-REFERENCE RELATIONSHIP TYPES COLLECTION');
+INSERT INTO concepts(conceptid, nodetype, legacyoid) VALUES ('00000000-0000-0000-0000-000000000006', 'ConceptScheme', 'CANDIDATES');
+INSERT INTO concepts(conceptid, nodetype, legacyoid) VALUES ('00000000-0000-0000-0000-000000000007', 'Concept', 'DEFAULT RESOURCE TO RESOURCE RELATIONSHIP TYPE');
+
+
+INSERT INTO "values"(valueid, conceptid, valuetype, value, languageid) VALUES ('d8c60bf4-e786-11e6-905a-b756ec83dad5', '00000000-0000-0000-0000-000000000001', 'prefLabel', 'Arches', 'en-US');
+INSERT INTO "values"(valueid, conceptid, valuetype, value, languageid) VALUES ('c12e7e6c-e417-11e6-b14b-0738913905b4', '00000000-0000-0000-0000-000000000004', 'prefLabel', 'Resource To Resource Relationship Types', 'en-US');
+INSERT INTO "values"(valueid, conceptid, valuetype, value, languageid) VALUES ('d8c622f6-e786-11e6-905a-475a5eee86f5', '00000000-0000-0000-0000-000000000005', 'prefLabel', 'Resource To Resource Relationship Types', 'en-US');
+INSERT INTO "values"(valueid, conceptid, valuetype, value, languageid) VALUES ('fee39428-e83f-11e6-b49d-9b976819ac02', '00000000-0000-0000-0000-000000000006', 'prefLabel', 'Candidates', 'en-US');
+INSERT INTO "values"(valueid, conceptid, valuetype, value, languageid) VALUES ('ac41d9be-79db-4256-b368-2f4559cfbe55', '00000000-0000-0000-0000-000000000007', 'prefLabel', 'is related to', 'en-US');
+
+
+INSERT INTO relations(relationid, conceptidfrom, conceptidto, relationtype)
+    VALUES ('0158f687-c0c5-4675-817f-9682a613bb13', '00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000004', 'hasTopConcept');
+
+INSERT INTO relations(relationid, conceptidfrom, conceptidto, relationtype)
+    VALUES ('f552511a-26a1-4e70-ae01-b511bb022460', '00000000-0000-0000-0000-000000000005', '00000000-0000-0000-0000-000000000007', 'member');

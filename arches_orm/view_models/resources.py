@@ -4,21 +4,11 @@ from ._base import ViewModel, WKRI
 
 
 class RelatedResourceInstanceViewModelMixin(ViewModel):
-    """Wraps a resource instance.
-
-    Subclasses str, so it can be handled like a string enum, but keeps
-    the `.value`, `.lang` and `.text` properties cached, so you can
-    find out more.
-    """
+    """Wraps a resource instance."""
 
 
 class RelatedResourceInstanceListViewModel(UserList, ViewModel):
-    """Wraps a concept list, allowing interrogation.
-
-    Subclasses list, so its members can be handled like a string enum, but keeps
-    the `.value`, `.lang` and `.text` properties cached, so you can
-    find out more.
-    """
+    """Wraps a resource list, allowing interrogation."""
 
     def __init__(
         self,
@@ -48,7 +38,10 @@ class RelatedResourceInstanceListViewModel(UserList, ViewModel):
         elif isinstance(item, dict) and "resourceId" in item:
             resource_instance_id = item["resourceId"]
 
-        value, _ = self._make_ri_cb(resource_instance or resource_instance_id)
+        value, _, __, ___ = self._make_ri_cb(resource_instance or resource_instance_id)
+
+        if not value:
+            raise RuntimeError(f"Could not append {item} to resource list within {self._parent_wkri}")
         if str(value._cross_record["wkriFrom"].id) != str(self._parent_wkri.id):
             raise NotImplementedError("Cannot currently reparent related resources")
 

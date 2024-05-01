@@ -5,6 +5,40 @@
             "cards": [
                 {
                     "active": true,
+                    "cardid": "5f930490-80a9-11ea-915d-f875a44e0e11",
+                    "component_id": "f05e4d3a-53c1-11e8-b0ea-784f435179ea",
+                    "config": null,
+                    "constraints": [
+                        {
+                            "card_id": "5f930490-80a9-11ea-915d-f875a44e0e11",
+                            "constraintid": "88dd26f1-851a-4bee-8b3b-d5c032d862ac",
+                            "nodes": [],
+                            "uniquetoallinstances": false
+                        }
+                    ],
+                    "cssclass": null,
+                    "description": "",
+                    "graph_id": "22477f01-1a44-11e9-b0a9-000d3ab1e588",
+                    "helpenabled": false,
+                    "helptext": {
+                        "en": null
+                    },
+                    "helptitle": {
+                        "en": null
+                    },
+                    "instructions": {
+                        "en": null
+                    },
+                    "is_editable": true,
+                    "name": {
+                        "en": "Addresses"
+                    },
+                    "nodegroup_id": "5f93048e-80a9-11ea-b0da-f875a44e0e11",
+                    "sortorder": 5,
+                    "visible": true
+                },
+                {
+                    "active": true,
                     "cardid": "25b3afc9-186c-11eb-bbd2-f875a44e0e11",
                     "component_id": "f05e4d3a-53c1-11e8-b0ea-784f435179ea",
                     "config": null,

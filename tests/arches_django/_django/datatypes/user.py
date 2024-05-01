@@ -2,7 +2,7 @@ import logging
 
 from arches.app.datatypes.base import BaseDataType
 from arches.app.models.models import Widget
-from arches.app.models.system_settings import settings
+from arches.app.models.fields.i18n import I18n_String
 from django.contrib.auth.models import User
 
 text = Widget.objects.get(name="user")
@@ -32,12 +32,13 @@ class UserDataType(BaseDataType):
     def get_search_terms(self, nodevalue, nodeid=None):
         if nodevalue:
             user = User.objects.get(pk=int(nodevalue))
-            return [user.email]
+            return [I18n_String(user.email)]
         return []
 
     def get_display_value(self, tile, node, **kwargs):
         if user := self.get_user(tile, node):
-            return user.email
+            # We need an internationalized string for searching, even if it doesn't make sense here
+            return I18n_String(value=user.email)
         return None
 
     def get_user(self, tile, node):

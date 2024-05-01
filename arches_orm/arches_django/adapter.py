@@ -22,8 +22,8 @@ class ArchesDjangoAdapter(Adapter):
 
         return ArchesDjangoResourceWrapper
 
-    def load_from_id(self, resource_id, from_prefetch=None):
-        from arches_orm.utils import get_resource_models_for_adapter
+    def load_from_id(self, resource_id, from_prefetch=None, lazy=False):
+        from arches_orm.wkrm import get_resource_models_for_adapter
         from arches.app.models.resource import Resource
 
         resource = (
@@ -38,10 +38,14 @@ class ArchesDjangoAdapter(Adapter):
             logger.error("Tried to load non-existent WKRM: %s", resource_id)
             return None
         return resource_models_by_graph_id[str(resource.graph_id)].from_resource(
-            resource, related_prefetch=from_prefetch
+            resource, related_prefetch=from_prefetch, lazy=lazy
         )
 
     def get_hooks(self):
         from .hooks import HOOKS
 
         return HOOKS
+
+    def get_wkrm_definitions(self):
+        from django.conf import settings
+        return settings.WELL_KNOWN_RESOURCE_MODELS

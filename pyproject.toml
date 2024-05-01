@@ -23,3 +23,28 @@ classifiers = [
 dependencies = [
     "tabulate"
 ]
+
+[project.optional-dependencies]
+graphql = [
+    "starlette",
+    "starlette-context",
+    "starlette_graphene3",
+    "oauth2_provider",
+    "aiodataloader",
+    "django_oauth2_provider",
+    "graphene_file_upload",
+    "graphene",
+    "uvicorn[standard]",
+    "aiohttp"
+]
+arches = [
+    "arches",
+]
+test = [
+    "pytest",
+    "httpx",
+    "spatialite",
+    "pytest_django",
+    "arches_graphql_client",
+    "pytest-asyncio"
+]

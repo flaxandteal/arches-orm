@@ -1,13 +1,16 @@
 import logging
 import uuid
-from abc import abstractmethod, abstractclassmethod, abstractstaticmethod
+from abc import abstractmethod, abstractclassmethod, abstractstaticmethod, ABC
 from collections.abc import Callable
+from collections import UserList
 from .view_models import WKRI as Resource
+from .view_models.node_list import RemappedNodeListViewModel
+
 
 logger = logging.getLogger(__name__)
 
 
-class ResourceWrapper(Resource):
+class ResourceWrapper(Resource, ABC):
     """Superclass of all well-known resources.
 
     When you use, `Person`, etc. it will be this class in disguise.
@@ -20,6 +23,8 @@ class ResourceWrapper(Resource):
     _cross_record: dict | None = None
     _pending_relationships: list | None = None
     _related_prefetch: Callable | None = None
+    _remap: bool = True
+    _model_remapping: dict
     resource: Resource
     proxy: bool = False
 
@@ -44,20 +49,78 @@ class ResourceWrapper(Resource):
             "id",
             "_new_id",
             "_values",
+            "_values_real",
+            "_values_list",
             "resource",
             "_root_node",
             "_cross_record",
             "_related_prefetch",
             "_pending_relationships",
+            "_model_remapping", # NOTE: Note that this is not safe against rewriting
             "__class__",
         ):
             super().__setattr__(key, value)
         else:
-            setattr(self.get_root().value, key, value)
+            if self._remap and self._model_remapping is not None:
+                if key in self._model_remapping:
+                    real_key = self._model_remapping[key].replace("*", ".")
+                    if "." in real_key:
+                        to_get, to_set = real_key.split(".", -1)
+                    got = self._get_remap(to_get)
+                    if isinstance(got, UserList):
+                        if len(got) == 0:
+                            got = got.append()
+                        elif len(got) == 1:
+                            got = got[0]
+                        else:
+                            raise RuntimeError("Cannot set single value when multiplicity present")
+                    setattr(got, to_set, value)
+                else:
+                    raise AttributeError("Field not available in remapped model")
+            else:
+                setattr(self.get_root().value, key, value)
+
+    def _get_remap(self, real_key: str):
+        if real_key is None:
+            raise AttributeError("Attribute not available")
+        elif real_key:
+            cmpt = self.get_root().value
+            many = real_key.find("*")
+            if many > 0:
+                if "*" in real_key[many + 1:]:
+                    raise RuntimeError("Can only remap a single key to one iterable")
+                to_many, to_one = real_key.split("*")
+                for ckey in to_many.split("."):
+                    if isinstance(cmpt, UserList):
+                        if len(cmpt) > 1:
+                            raise RuntimeError("Can only pull out a remapped key if it has at most one >1 iterable in node hierarchy")
+                        elif len(cmpt) == 1:
+                            cmpt = cmpt[0]
+                        else:
+                            cmpt = cmpt.append()
+                    cmpt = getattr(cmpt, ckey)
+                if not isinstance(cmpt, UserList):
+                    raise RuntimeError("Cannot have additions to a remapped multiple node unless the node has multiplicity")
+                return RemappedNodeListViewModel(cmpt.nodelist, to_one)
+            for ckey in real_key.split("."):
+                if isinstance(cmpt, UserList):
+                    if len(cmpt) > 1:
+                        raise RuntimeError("Can only pull out a remapped key without a * if it has no >1 iterable in node hierarchy")
+                    elif len(cmpt) == 1:
+                        cmpt = cmpt[0]
+                    else:
+                        cmpt = cmpt.append()
+                cmpt = getattr(cmpt, ckey)
+            return cmpt
 
     def __getattr__(self, key):
         """Retrieve Python values for nodes attributes."""
 
+        if self._remap and self._model_remapping is not None:
+            if key not in self._model_remapping:
+                raise AttributeError("Field not available in remapped model")
+            real_key = self._model_remapping[key]
+            return self._get_remap(real_key)
         val = getattr(self.get_root().value, key)
         return val
 
@@ -91,6 +154,10 @@ class ResourceWrapper(Resource):
 
         for key, value in kwargs.items():
             setattr(self, key, value)
+
+    @property
+    def resourceinstanceid(self):
+        return self.id
 
     @classmethod
     def create_bulk(cls, fields: list, do_index: bool = True):
@@ -139,6 +206,12 @@ class ResourceWrapper(Resource):
         for key, val in values.items():
             setattr(self, key, val)
 
+    def index(self):
+        """Index the underlying resource."""
+        resource = self.to_resource(strict=True, _no_save=False)
+        resource.index()
+        return self
+
     def save(self):
         """Rebuild and save the underlying resource."""
         resource = self.to_resource(strict=True, _no_save=False)
@@ -176,9 +249,15 @@ class ResourceWrapper(Resource):
                 raise RuntimeError("Must try to wrap a real model")
 
             cls._model_name = well_known_resource_model.model_name
+            cls._model_class_name = well_known_resource_model.model_class_name
+            cls._model_remapping = well_known_resource_model.remapping
             cls.graphid = well_known_resource_model.graphid
             cls._wkrm = well_known_resource_model
             cls._add_events()
+
+    @abstractclassmethod
+    def _add_events(cls):
+        """Add events to this model."""
 
     @abstractclassmethod
     def search(cls, text, fields=None, _total=None):

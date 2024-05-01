@@ -16,6 +16,7 @@ def resource_instance_list(
     node,
     value: uuid.UUID | str | WKRI | Resource | ResourceInstance | None,
     parent,
+    parent_cls,
     child_nodes,
     datatype,
 ):
@@ -25,6 +26,7 @@ def resource_instance_list(
             node,
             value=value,
             parent=parent,
+            parent_cls=parent_cls,
             child_nodes=child_nodes,
             datatype="resource-instance",
         )
@@ -50,10 +52,11 @@ def resource_instance(
     node,
     value: uuid.UUID | str | WKRI | Resource | ResourceInstance | None,
     parent_wkri,
+    parent_cls,
     child_nodes,
     resource_instance_datatype,
 ):
-    from arches_orm.utils import (
+    from arches_orm.wkrm import (
         get_well_known_resource_model_by_graph_id,
         attempt_well_known_resource_model,
     )
@@ -76,7 +79,9 @@ def resource_instance(
         else:
             return None
 
-    if not isinstance(resource_instance, WKRI):
+    if not resource_instance:
+        return None
+    elif not isinstance(resource_instance, WKRI):
         wkrm = get_well_known_resource_model_by_graph_id(
             resource_instance.graph_id, default=None
         )
