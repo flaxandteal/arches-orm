@@ -229,7 +229,7 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
                 else:
                     logger.warning("Not saving a related model as not requested")
                     continue
-            need_cross = not (tileid in crosses)
+            need_cross = tileid not in crosses
             cross_resourcexid = None
             if tileid in crosses:
                 for cross in crosses[tileid]:

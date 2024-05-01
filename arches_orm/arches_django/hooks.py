@@ -5,7 +5,7 @@ from arches.app.models.tile import Tile
 from arches.app.models.models import ResourceXResource, ResourceInstance, GraphModel
 from copy import deepcopy
 
-from arches_orm.wkrm import get_well_known_resource_model_by_graph_id, attempt_well_known_resource_model
+from arches_orm.wkrm import get_well_known_resource_model_by_graph_id
 
 
 @receiver(post_init, sender=Tile)

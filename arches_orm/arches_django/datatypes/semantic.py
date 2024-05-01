@@ -41,8 +41,6 @@ def semantic(
     def get_child_values(svm):
         if not parent:
             return {}
-        for key in child_nodes:
-            res = parent._values.get(key)
         children = {
             key: value
             for key, values in parent._values.items()
