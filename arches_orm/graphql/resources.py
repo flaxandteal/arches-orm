@@ -153,7 +153,6 @@ class DataTypes:
         elif typ in (DataTypeNames.CONCEPT, DataTypeNames.CONCEPT_LIST):
             nodeid = info["nodeid"]
             collection = Concept().get_child_collections(models.Node.objects.get(nodeid=nodeid).config["rdmCollection"])
-            print(collection)
             self.collections[nodeid] = {
                 "forward": {f"{string_to_enum(field)}.{string_to_enum(label[1])}": label[2] for label in collection},
                 "back": {label[2]: string_to_enum(label[1]) for label in collection}

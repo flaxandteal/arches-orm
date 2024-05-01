@@ -84,7 +84,6 @@ def test_can_save_with_concept(arches_orm, lazy):
     assert activity.record_status_assignment.record_status == StatusEnum.BacklogDashSkeleton
     activity.save()
 
-    print("REL")
     reloaded_activity = arches_orm.models.Activity.find(activity.id, lazy=lazy)
     assert reloaded_activity.record_status_assignment.record_status == StatusEnum.BacklogDashSkeleton
 
