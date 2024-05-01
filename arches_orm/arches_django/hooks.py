@@ -13,6 +13,8 @@ def check_resource_instance_on_tile_capture(sender, instance, **kwargs):
     instance._original_data = None
     if instance.data:
         instance._original_data = deepcopy(instance.data)
+    # This happens (briefly) as a result of Arches creating a Tile (arches/app/views/tile.py:138) with a dict
+    # and calling super in the model.
     elif instance.tileid and isinstance(instance.tileid, dict) and "_original_data" in instance.tileid:
         instance._original_data = deepcopy(instance.tileid["_original_data"])
 
@@ -21,7 +23,7 @@ def check_resource_instance_on_tile_save(sender, instance, **kwargs):
     """Catch saves on tiles for resources."""
     if instance.data:
         seen = set()
-        if instance._original_data:
+        if hasattr(instance, "_original_data") and instance._original_data:
             for key, original_values in instance._original_data.items():
                 if not isinstance(original_values, list):
                     original_values = [original_values]
@@ -138,4 +140,4 @@ def check_resource_instance(sender, instance, reason, **kwargs):
         )
 
 
-HOOKS = {"post_save", "post_delete"}
+HOOKS = {"post_init", "post_save", "post_delete"}

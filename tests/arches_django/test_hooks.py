@@ -97,7 +97,7 @@ def test_can_hook_saving_relationship(arches_orm, person_ashs):
     act_2 = arches_orm.models.Activity()
     reloaded_person.associated_activities.append(act_2)
     reloaded_person.save()
-    expected_activity_to_calls += 2
+    expected_activity_to_calls += 1
     assert len(reloaded_person.associated_activities) == 2
 
     # One call for original as well.
