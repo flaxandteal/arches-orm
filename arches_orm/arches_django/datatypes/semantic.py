@@ -42,7 +42,7 @@ def semantic(
         if not parent:
             return {}
         for key in child_nodes:
-            res = parent._values.get(key)
+            parent._values.get(key)
         children = {
             key: value
             for key, values in parent._values.items()
