@@ -45,6 +45,9 @@ def get_related(graph_id):
     ).select_related("function")
 def temp_get_descriptor(self, descriptor, context):
     graph_function = get_related(self.graph_id)
+    
+    if context is None:
+        context = {}
 
     if self.descriptors is None:
         self.descriptors = {}
