@@ -25,6 +25,8 @@ class ResourceWrapper(Resource, ABC):
     _related_prefetch: Callable | None = None
     _remap: bool = True
     _model_remapping: dict
+    _name: str | None = None
+    _description: str | None = None
     resource: Resource
     proxy: bool = False
 
@@ -53,6 +55,8 @@ class ResourceWrapper(Resource, ABC):
             "_values_list",
             "resource",
             "_root_node",
+            "_name",
+            "_description",
             "_cross_record",
             "_related_prefetch",
             "_pending_relationships",

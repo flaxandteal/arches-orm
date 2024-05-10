@@ -81,6 +81,32 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
 
     """Provides functionality for translating to/from Arches types."""
 
+    def __str__(self):
+        return self._name()
+
+    @property
+    def __doc__(self):
+        return self._description()
+
+    def _get_descriptor(self, descriptor, context=None):
+        #if context is None and (lang := self._context_get("language")):
+        #    context = {
+        #        "language": context
+        #    }
+        if not self.resource:
+            raise NotImplementedError()
+        return self.resource.get_descriptor(descriptor, context)
+
+    def _name(self):
+        return self._get_descriptor("name")
+
+    def _description(self):
+        return self._get_descriptor("description")
+
+    @property
+    def _map_popup(self):
+        return self._get_descriptor("name")
+
     @property
     def _values(self):
         if self._values_list is None:

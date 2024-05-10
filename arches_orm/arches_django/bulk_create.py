@@ -74,7 +74,7 @@ def temp_get_descriptor(self, descriptor, context):
         self.descriptors[language][descriptor] = None
 
     return self.descriptors[language][descriptor]
-resource_module.Resource.get_descriptor = temp_get_descriptor
+#resource_module.Resource.get_descriptor = temp_get_descriptor
 
 # # FIXME: can we find a better way of memoizing this?
 # Now made more efficient upstream
