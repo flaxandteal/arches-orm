@@ -350,3 +350,13 @@ INSERT INTO relations(relationid, conceptidfrom, conceptidto, relationtype)
 
 INSERT INTO relations(relationid, conceptidfrom, conceptidto, relationtype)
     VALUES ('f552511a-26a1-4e70-ae01-b511bb022460', '00000000-0000-0000-0000-000000000005', '00000000-0000-0000-0000-000000000007', 'member');
+
+INSERT INTO functions(functionid, modulename, classname, functiontype, name, description, defaultconfig, component)
+    VALUES ('60000000-0000-0000-0000-000000000000', 'local_file_storage.py', 'LocalFileStorageFunction', 'node', 'Local File Upload', 'Sets the default storage mechanism for uploaded files', '{}', 'views/components/functions/local-file-storage');
+
+INSERT INTO functions(functionid, modulename, classname, functiontype, name, description, defaultconfig, component)
+    VALUES ('60000000-0000-0000-0000-000000000001', 'primary_descriptors.py', 'PrimaryDescriptorsFunction', 'primarydescriptors', 'Define Resource Descriptors', 'Configure the name, description, and map popup of a resource', '{"module": "arches.app.functions.primary_descriptors", "class_name":"PrimaryDescriptorsFunction", "descriptor_types": {"name": {"nodegroup_id": "", "string_template": ""}, "description": {"nodegroup_id": "", "string_template":""}, "map_popup": {"nodegroup_id": "", "string_template":""}} }', 'views/components/functions/primary-descriptors');
+
+INSERT INTO functions(functionid, modulename, classname, functiontype, name, description, defaultconfig, component)
+    VALUES ('60000000-0000-0000-0000-000000000002', 'required_nodes.py', 'RequiredNodesFunction', 'validation', 'Define Required Nodes', 'Define which values are required for a user to save card', '{"required_nodes":"{}"}', 'views/components/functions/required-nodes');
+INSERT INTO auth_user(username, password, is_superuser, first_name, last_name, email, is_staff, is_active, date_joined) VALUES ('anonymous', '', false, 'Anonymous', 'User', '', false, true, datetime());

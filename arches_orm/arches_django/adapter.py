@@ -14,8 +14,7 @@ class ArchesDjangoAdapter(Adapter):
     #      whether to save, or cache, resourceXresource models explicitly
     #      or leave it for Postgres
 
-    def __str__(self):
-        return "arches-django"
+    key = "arches-django"
 
     def get_wrapper(self):
         from .wrapper import ArchesDjangoResourceWrapper
@@ -26,12 +25,14 @@ class ArchesDjangoAdapter(Adapter):
         from arches_orm.wkrm import get_resource_models_for_adapter
         from arches.app.models.resource import Resource
 
+        # Note that this will load an unpermissioned resource before
+        # checking resources. This may be avoidable...
         resource = (
             from_prefetch(resource_id)
             if from_prefetch is not None
             else Resource.objects.get(pk=resource_id)
         )
-        resource_models_by_graph_id = get_resource_models_for_adapter(str(self))[
+        resource_models_by_graph_id = get_resource_models_for_adapter(self.key)[
             "by-graph-id"
         ]
         if str(resource.graph_id) not in resource_models_by_graph_id:

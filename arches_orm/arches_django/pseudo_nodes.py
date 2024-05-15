@@ -1,7 +1,7 @@
 from arches.app.models.tile import Tile as TileProxyModel
 from collections import UserList
 
-from arches_orm.view_models import ViewModel, NodeListViewModel
+from arches_orm.view_models import ViewModel, NodeListViewModel, UnavailableViewModel
 
 from .datatypes import get_view_model_for_datatype
 
@@ -232,3 +232,41 @@ class PseudoNodeValue:
 
     def __bool__(self):
         return bool(self.value)
+
+class PseudoNodeUnavailable:
+    def __init__(self, node, parent=None, child_nodes=None, parent_cls=None):
+        self.node = node
+        if parent_cls is None:
+            if parent is None:
+                raise RuntimeError("Must have a parent or parent class for a pseudo-node")
+            parent_cls = parent.__class__
+        self._parent = parent
+        self._parent_cls = parent_cls
+        self._parent_node = None
+        self._child_nodes = child_nodes
+
+    def __str__(self):
+        return "[UNAVAILABLE]"
+
+    def __repr__(self):
+        return str(self)
+
+    @property
+    def parenttile_id(self):
+        return None
+
+    def get_tile(self):
+        raise RuntimeError("Node unavailable, likely due to permissions.")
+
+    def clear(self):
+        ...
+
+    @property
+    def value(self):
+        return UnavailableViewModel
+
+    def __len__(self):
+        return 0
+
+    def get_children(self, direct=None):
+        return []

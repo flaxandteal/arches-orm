@@ -1,3 +1,5 @@
+from typing import Any
+import json
 from arches.app.models.resource import Resource
 from django.dispatch import Signal
 from collections import UserDict
@@ -7,14 +9,24 @@ from arches.app.models.models import ResourceXResource, Node, NodeGroup, Edge
 from arches.app.models.graph import Graph
 from arches.app.models.tile import Tile as TileProxyModel
 from arches.app.models.system_settings import settings as system_settings
+from arches.app.utils.permission_backend import get_nodegroups_by_perm
+from contextvars import ContextVar
 import logging
+from arches.app.utils.permission_backend import (
+    user_can_read_resource,
+    user_can_edit_resource,
+    user_can_delete_resource,
+    user_can_read_graph
+)
 from arches_orm.datatypes import DataTypeNames
 
 from arches_orm.wrapper import ResourceWrapper
 from arches_orm.utils import snake
+from arches_orm.errors import WKRIPermissionDenied, WKRMPermissionDenied, DescriptorsNotYetSet
 
 from .bulk_create import BulkImportWKRM
-from .pseudo_nodes import PseudoNodeList, PseudoNodeValue
+from .pseudo_nodes import PseudoNodeList, PseudoNodeValue, PseudoNodeUnavailable
+from .filters import SearchMixin
 
 logger = logging.getLogger(__name__)
 
@@ -23,9 +35,15 @@ LOAD_FULL_NODE_OBJECTS = True
 LOAD_ALL_NODES = True
 
 
+def get_permitted_nodegroups(user):
+    # To separate read and write, we need to know which tile nodes
+    # have changed when saving (reliably).
+    nodegroups = get_nodegroups_by_perm(user, "models.write_nodegroup")
+    return nodegroups
+
 class ValueList(UserDict):
-    def __init__(self, values, wkri, related_prefetch):
-        self._wkri = wkri
+    def __init__(self, values, wrapper, related_prefetch):
+        self._wrapper = wrapper
         self._related_prefetch = related_prefetch
         self._values = values
 
@@ -50,18 +68,18 @@ class ValueList(UserDict):
     def _get(self, key, default=None, raise_error=False):
         result = self._values.get(key, default)
         if result is False:
-            if self._wkri.resource:
+            if self._wrapper.resource:
                 # Will KeyError if we do not have it.
-                node = self._wkri._nodes[key]
-                ng = self._wkri._ensure_nodegroup(
+                node = self._wrapper._nodes[key]
+                ng = self._wrapper._ensure_nodegroup(
                     self._values,
                     node.nodegroup_id,
-                    self._wkri._node_objects(),
-                    self._wkri._nodegroup_objects(),
-                    self._wkri._edges(),
-                    self._wkri.resource,
+                    self._wrapper._node_objects(),
+                    self._wrapper._nodegroup_objects(),
+                    self._wrapper._edges(),
+                    self._wrapper.resource,
                     related_prefetch=self._related_prefetch,
-                    wkri=self._wkri,
+                    wkri=self._wrapper.view_model_inst,
                 )
                 self._values.update(ng)
             else:
@@ -71,7 +89,8 @@ class ValueList(UserDict):
         else:
             return self.data.get(key, default)
 
-class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
+class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
+    _context: ContextVar[dict[str, Any] | None] | None = None
     _nodes_real: dict = None
     _nodegroup_objects_real: dict = None
     _root_node: Node | None = None
@@ -81,25 +100,57 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
 
     """Provides functionality for translating to/from Arches types."""
 
-    def __str__(self):
-        return self._name()
+    def _can_delete_resource(self, resource=None):
+        if (user := self._context_get("user")):
+            resource = resource or self.resource
+            if resource and hasattr(resource, "resourceinstanceid"):
+                resource = resource.resourceinstanceid
+            return user_can_delete_resource(user, resource)
+        # Context-free
+        return True
 
-    @property
-    def __doc__(self):
-        return self._description()
+    def _can_read_resource(self, resource=None):
+        if (user := self._context_get("user")):
+            resource = resource or self.resource
+            if resource and hasattr(resource, "resourceinstanceid"):
+                resource = resource.resourceinstanceid
+            return user_can_read_resource(user, resource)
+        # Context-free
+        return True
+
+    def _can_edit_resource(self, resource=None):
+        if (user := self._context_get("user")):
+            resource = resource or self.resource
+            if resource and hasattr(resource, "resourceinstanceid"):
+                resource = resource.resourceinstanceid
+            return user_can_edit_resource(user, resource)
+        # Context-free
+        return True
+
+    def to_string(self):
+        try:
+            name = self._name
+        except NotImplementedError:
+            name = super().to_string()
+        return super().to_string() if name is None else name
 
     def _get_descriptor(self, descriptor, context=None):
-        #if context is None and (lang := self._context_get("language")):
-        #    context = {
-        #        "language": context
-        #    }
+        if context is None and (lang := self._context_get("language")):
+            context = {
+                "language": context
+            }
         if not self.resource:
             raise NotImplementedError()
-        return self.resource.get_descriptor(descriptor, context)
+        descriptor = self.resource.get_descriptor(descriptor, context)
+        if descriptor is None:
+            raise DescriptorsNotYetSet()
+        return descriptor
 
+    @property
     def _name(self):
         return self._get_descriptor("name")
 
+    @property
     def _description(self):
         return self._get_descriptor("description")
 
@@ -112,7 +163,7 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
         if self._values_list is None:
             self._values_list = ValueList(
                 self._values_real,
-                self,
+                wrapper=self,
                 related_prefetch=self._related_prefetch
             )
         return self._values_list
@@ -124,12 +175,12 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
         else:
             self._values_list = ValueList(
                 values,
-                self,
+                wrapper=self,
                 related_prefetch=self._related_prefetch
             )
 
     def _update_tiles(
-        self, tiles, all_values=None, nodegroup_id=None, root=None, parent=None
+        self, tiles, all_values=None, nodegroup_id=None, root=None, parent=None, permitted_nodegroups: None | list[str]=None
     ):
         if not root:
             if not all_values:
@@ -148,12 +199,19 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
             if isinstance(pseudo_node, PseudoNodeList) or pseudo_node.accessed:
                 if len(pseudo_node):
                     subrelationships = self._update_tiles(
-                        tiles, root=pseudo_node, parent=parent
+                        tiles, root=pseudo_node, parent=parent, permitted_nodegroups=permitted_nodegroups
                     )
                     relationships += subrelationships
                 if not isinstance(pseudo_node, PseudoNodeList):
-                    t_and_r = pseudo_node.get_tile()
-                    combined_tiles.append(t_and_r)
+                    t, r = pseudo_node.get_tile()
+                    if t is not None and permitted_nodegroups is not None and (t.nodegroup_id is None or str(t.nodegroup_id) not in permitted_nodegroups):
+                        # Warn if we can
+                        if pseudo_node._original_tile and hasattr(pseudo_node._original_tile, "_original_data"):
+                            if t.data == pseudo_node._original_tile._original_data:
+                                continue
+                        raise RuntimeError(f"Attempt to modify data that this user does not have permissions to: {t.nodegroup_id}")
+                    else:
+                        combined_tiles.append((t, r))
             # This avoids loading a tile as a set of view models, simply to re-save it.
             elif not isinstance(pseudo_node, PseudoNodeList) and pseudo_node._original_tile:
                 # TODO: NOTE THAT THIS DOES NOT CAPTURE RELATIONSHIPS THAT HAVE NOT BEEN ACCESSED
@@ -189,9 +247,13 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
         This may be new or existing, for this well-known resource.
         """
 
+        if not _no_save and not self._can_edit_resource():
+            raise WKRIPermissionDenied()
+
         resource = Resource(resourceinstanceid=self.id, graph_id=self.graphid)
         tiles = {}
-        relationships = self._update_tiles(tiles, self._values)
+        permitted_nodegroups = self._permitted_nodegroups()
+        relationships = self._update_tiles(tiles, self._values, permitted_nodegroups=permitted_nodegroups)
 
         # parented tiles are saved hierarchically
         resource.tiles = [t for t in sum((ts for ts in tiles.values()), [])]
@@ -295,8 +357,11 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
             else:
                 value.update(cross_value)
             do_final_save = True
+
         if do_final_save:
             resource.save()
+            resource = Resource.objects.get(resourceinstanceid=self.id)
+            self.resource = resource
 
         return resource
 
@@ -315,12 +380,86 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
         return self._node_objects_by_alias()
 
     @classmethod
-    @lru_cache
     def _node_objects_by_alias(cls):
         if hasattr(cls.__bases__[0], "_node_objects_by_alias") and cls.proxy:
             return cls.__bases__[0]._node_objects_by_alias()
 
         return {node.alias: node for node in cls._node_objects().values()}
+
+    @classmethod
+    def _context_req(cls, key):
+        return self._context_get(cls, key, required=True)
+
+    @classmethod
+    def _context_get(cls, key, default=None, required=False):
+        try:
+            context = cls._context.get()
+        except LookupError:
+            logger.error("Need to set a context before using the ORM, or mark adapter context-free.")
+            raise
+
+        if context is None: # context-free, no restrictions
+            if required:
+                raise LookupError(f"Call cannot be done when context-free (needs {key})")
+            return default
+        if required and key not in context:
+            raise LookupError(f"Context needs {key} for this call")
+        return context.get(key, default)
+
+    @classmethod
+    def _can_read_graph(cls):
+        try:
+            context = cls._context.get()
+        except LookupError:
+            logger.error("Need to set a context before using the ORM, or mark adapter context-free.")
+            raise
+
+        if context is None: # Context-free, no restrictions
+            return True
+
+        context.setdefault("user_graphs", {})
+        user = context.get("user")
+        user_graphs = context["user_graphs"]
+
+        # If set to False, rather than unset, then no.
+        if (user_graph := user_graphs.get(str(cls))) is None:
+            user_graph = bool(user_can_read_graph(user, str(cls.graphid)))
+            user_graphs[str(cls)] = (
+                {}
+                if user_graph else
+                False
+            )
+        elif user_graph is False:
+            ...
+        else:
+            user_graph = True
+        return user_graph
+
+    @classmethod
+    def _permitted_nodegroups(cls):
+        if not cls ._can_read_graph():
+            return []
+
+        try:
+            context = cls._context.get()
+        except LookupError:
+            logger.error("Need to set a context before using the ORM, or mark adapter context-free.")
+            raise
+
+        if context is None: # Context-free, no restrictions
+            return list(cls._nodegroup_objects())
+
+        if (permitted_nodegroups := context.get("user_graphs", {}).get(str(cls))):
+            return permitted_nodegroups
+
+        user = context.get("user")
+        permitted_nodegroups = [
+            key for key in cls._nodegroup_objects()
+            if key in get_permitted_nodegroups(user)
+        ] + [None]
+        context.setdefault("user_graphs", {})
+        context["user_graphs"][str(cls)] = permitted_nodegroups
+        return permitted_nodegroups
 
     @classmethod
     @lru_cache
@@ -382,11 +521,19 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
     @classmethod
     def from_resource_instance(cls, resourceinstance, cross_record=None, lazy=False):
         """Build a well-known resource from a resource instance."""
+
+        if not cls ._can_read_graph():
+            raise WKRMPermissionDenied()
+
         resource = Resource(resourceinstance.resourceinstanceid)
         return cls.from_resource(resource, cross_record=cross_record, lazy=lazy)
 
     def reload(self, ignore_prefetch=True, lazy=False):
         """Reload field values, but not node values for class."""
+
+        if not self._can_read_graph():
+            raise WKRMPermissionDenied()
+
         if not self.id:
             raise RuntimeError("Cannot reload without a database ID")
 
@@ -413,7 +560,7 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
             edges,
             resource,
             related_prefetch=self._related_prefetch,
-            wkri=self,
+            wkri=self.view_model_inst,
             lazy=lazy,
         )
         self._values = values
@@ -423,13 +570,18 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
     def from_resource(cls, resource, cross_record=None, related_prefetch=None, lazy=False):
         """Build a well-known resource from an Arches resource."""
 
+        if not cls._can_read_graph():
+            raise WKRMPermissionDenied()
+
         node_objs = cls._node_objects()
-        wkri = cls(
+        wkri = cls.view_model(
             id=resource.resourceinstanceid,
             resource=resource,
             cross_record=cross_record,
             related_prefetch=related_prefetch,
         )
+        if not wkri._._can_read_resource():
+            raise WKRIPermissionDenied()
         nodegroup_objs = cls._nodegroup_objects()
         edges = cls._edges()
         values = cls.values_from_resource(
@@ -443,7 +595,7 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
         )
         wkri._values = ValueList(
             values,
-            wkri,
+            wkri._,
             related_prefetch=related_prefetch
         )
         return wkri
@@ -507,57 +659,11 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
         return {}
 
     @classmethod
-    def search(cls, text, fields=None, _total=None):
-        """Search ES for resources of this model, and return as well-known resources."""
-
-        from arches.app.search.search_engine_factory import SearchEngineFactory
-        from arches.app.views.search import RESOURCES_INDEX
-        from arches.app.search.elasticsearch_dsl_builder import (
-            Bool,
-            Match,
-            Query,
-            Nested,
-            Terms,
-        )
-
-        # AGPL Arches
-        se = SearchEngineFactory().create()
-        # TODO: permitted_nodegroups = get_permitted_nodegroups(request.user)
-        permitted_nodegroups = [
-            str(node.nodegroup_id)
-            for key, node in cls._node_objects_by_alias().items()
-            if (fields is None or key in fields)
-        ]
-
-        query = Query(se)
-        string_filter = Bool()
-        string_filter.should(
-            Match(field="strings.string", query=text, type="phrase_prefix")
-        )
-        string_filter.should(
-            Match(field="strings.string.folded", query=text, type="phrase_prefix")
-        )
-        string_filter.filter(
-            Terms(field="strings.nodegroup_id", terms=permitted_nodegroups)
-        )
-        nested_string_filter = Nested(path="strings", query=string_filter)
-        total_filter = Bool()
-        total_filter.must(nested_string_filter)
-        query.add_query(total_filter)
-        query.min_score("0.01")
-
-        query.include("resourceinstanceid")
-        results = query.search(index=RESOURCES_INDEX, id=None)
-
-        results = [
-            hit["_source"]["resourceinstanceid"] for hit in results["hits"]["hits"]
-        ]
-        total_count = query.count(index=RESOURCES_INDEX)
-        return results, total_count
-
-    @classmethod
     def all_ids(cls):
         """Get IDs for all resources of this type."""
+
+        if not cls ._can_read_graph():
+            raise WKRMPermissionDenied()
 
         return list(
             Resource.objects.filter(graph_id=cls.graphid).values_list(
@@ -569,6 +675,9 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
     def all(cls, related_prefetch=None, lazy=False):
         """Get all resources of this type."""
 
+        if not cls ._can_read_graph():
+            raise WKRMPermissionDenied()
+
         resources = Resource.objects.filter(graph_id=cls.graphid).all()
         return [
             cls.from_resource(resource, related_prefetch=related_prefetch, lazy=lazy)
@@ -578,6 +687,9 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
     @classmethod
     def find(cls, resourceinstanceid, from_prefetch=None, lazy=False):
         """Find an individual well-known resource by instance ID."""
+
+        if not cls ._can_read_graph():
+            raise WKRMPermissionDenied()
 
         resource = (
             from_prefetch(resourceinstanceid)
@@ -598,6 +710,9 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
 
         if not self._cross_record:
             raise NotImplementedError("This method is only implemented for relations")
+
+        if not self._can_edit_resource():
+            raise WKRIPermissionDenied()
 
         from arches_orm.view_models.resources import RelatedResourceInstanceViewModelMixin, RelatedResourceInstanceListViewModel
 
@@ -628,6 +743,9 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
     def append(self, _no_save=False):
         """When called via a relationship (dot), append to the relationship."""
 
+        if not self._can_edit_resource() and not _no_save:
+            raise WKRIPermissionDenied()
+
         if not self._cross_record:
             raise NotImplementedError("This method is only implemented for relations")
 
@@ -635,7 +753,7 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
         key = self._cross_record["wkriFromKey"]
         if not _no_save:
             wkfm.save()
-            wkfm.to_resource()
+            wkfm._.to_resource()
         resource = wkfm.resource
         tile = resource.tiles
         nodeid = str(wkfm._nodes()[key].nodeid)
@@ -680,13 +798,16 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
     ):
         """Populate fields from the ID-referenced Arches resource."""
 
+        if not cls ._can_read_graph():
+            raise WKRMPermissionDenied()
+
         all_values = {
             node_objs[str(ng)].alias: False
             for ng, nodegroup in nodegroup_objs.items()
         }
 
         if not lazy:
-            tiles = TileProxyModel.objects.filter(resourceinstance=resource)
+            tiles = cls._get_allowed_tiles(resourceinstance=resource)
             for ng, nodegroup in nodegroup_objs.items():
                 all_values.update(
                     cls._ensure_nodegroup(
@@ -702,6 +823,26 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
                     )
                 )
         return all_values
+
+    @classmethod
+    def _get_allowed_tiles(
+            cls,
+            **kwargs
+    ):
+        permitted = cls._permitted_nodegroups()
+        if "nodegroup_id" in kwargs:
+            nodegroup_id = kwargs["nodegroup_id"]
+            if nodegroup_id is None or nodegroup_id not in permitted:
+                return []
+        elif any(arg.startswith("nodegroup_id") for arg in kwargs):
+            raise NotImplementedError(
+                "Cannot currently filter for permitted nodegroups "
+                "using non-identity nodegroup ID filters."
+            )
+        else:
+            kwargs["nodegroup_id__in"] = permitted
+
+        return TileProxyModel.objects.filter(**kwargs)
 
     @classmethod
     def _ensure_nodegroup(
@@ -725,7 +866,7 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
             if node.alias in all_values:
                 del all_values[node.alias]
             if tiles is None:
-                nodegroup_tiles = TileProxyModel.objects.filter(resourceinstance=resource, nodegroup_id=nodegroup_id)
+                nodegroup_tiles = cls._get_allowed_tiles(resourceinstance=resource, nodegroup_id=nodegroup_id)
             else:
                 nodegroup_tiles = [tile for tile in tiles if str(tile.nodegroup_id) == nodegroup_id]
             if not nodegroup_tiles and add_if_missing:
@@ -826,8 +967,22 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
         return all_values, implied_nodegroups
 
     @classmethod
-    def where(cls, cross_record=None, lazy=False, **kwargs):
+    def first(cls, cross_record=None, lazy=False, case_i=False, **kwargs):
+        if not cls ._can_read_graph():
+            raise WKRMPermissionDenied()
+
+        found = cls.where(cross_record=cross_record, lazy=lazy, case_i=case_i, **kwargs)
+        if not found:
+            raise RuntimeError(f"No results for search of {', '.join(kwargs.keys())}")
+        return found[0]
+
+    @classmethod
+    def where(cls, cross_record=None, lazy=False, case_i=False, **kwargs):
         """Do a filtered query returning a list of well-known resources."""
+
+        if not cls ._can_read_graph():
+            raise WKRMPermissionDenied()
+
         # TODO: replace with proper query
         unknown_keys = set(kwargs) - set(cls._node_objects_by_alias())
         if unknown_keys:
@@ -844,10 +999,20 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
             raise RuntimeError(
                 f"This key {key} is not known on this model {cls.__name__}"
             )
-        tiles = TileProxyModel.objects.filter(
-            nodegroup_id=str(node.nodegroup_id),
-            data__contains={str(node.nodeid): value},
-        )
+
+        # TODO: fix properly with Sqlite JSON
+        contains_value: str | dict[str, Any] = {str(node.nodeid): value}
+        if case_i:
+            contains_key = "data__icontains"
+            contains_value = json.dumps(contains_value)
+        else:
+            contains_key = "data__contains"
+
+        filter_args = {
+            "nodegroup_id": str(node.nodegroup_id),
+            contains_key: contains_value
+        }
+        tiles = cls._get_allowed_tiles(**filter_args)
         return [
             cls.from_resource_instance(tile.resourceinstance, cross_record=cross_record, lazy=lazy)
             for tile in tiles
@@ -857,6 +1022,14 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
     def _make_pseudo_node_cls(cls, key, single=False, tile=None, wkri=None):
         node_obj = cls._node_objects_by_alias()[key]
         nodegroups = cls._nodegroup_objects()
+
+        permitted = cls._permitted_nodegroups()
+        if node_obj.nodegroup_id is not None and str(node_obj.nodegroup_id) not in permitted:
+            return PseudoNodeUnavailable(
+                node=node_obj,
+                parent=wkri,
+                parent_cls=cls.view_model,
+            )
         edges = cls._edges().get(str(node_obj.nodeid))
         value = None
         if (
@@ -868,7 +1041,7 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
             value = PseudoNodeList(
                 node_obj,
                 parent=wkri,
-                parent_cls=cls,
+                parent_cls=cls.view_model,
             )
         if value is None or tile:
             child_nodes = {}
@@ -892,7 +1065,7 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
                 node=node_obj,
                 value=None,
                 parent=wkri,
-                parent_cls=cls,
+                parent_cls=cls.view_model,
                 child_nodes=child_nodes,
             )
             # If we have a tile in a list, add it
@@ -903,9 +1076,9 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
 
         return value
 
-    def __init_subclass__(cls, well_known_resource_model=None, proxy=None):
+    def __init_subclass__(cls, well_known_resource_model=None, proxy=None, context=None):
         super().__init_subclass__(
-            well_known_resource_model=well_known_resource_model, proxy=proxy
+            well_known_resource_model=well_known_resource_model, proxy=proxy, context=context
         )
         if proxy is not None:
             cls.proxy = proxy
@@ -940,7 +1113,7 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
             else:
                 value = self._make_pseudo_node_cls(
                     self._root_node.alias,
-                    wkri=self
+                    wkri=self.view_model_inst
                 )
                 self._values[self._root_node.alias] = [value]
             return value
@@ -951,13 +1124,19 @@ class ArchesDjangoResourceWrapper(ResourceWrapper, proxy=True):
 
     @classmethod
     def create(cls, _no_save=False, _do_index=True, **kwargs):
+        if not cls ._can_read_graph():
+            raise WKRMPermissionDenied()
+
         # We have our own way of saving a resource in Arches.
         inst = super().create(_no_save=True, _do_index=_do_index, **kwargs)
-        inst.to_resource(_no_save=_no_save, _do_index=_do_index)
+        inst._.to_resource(_no_save=_no_save, _do_index=_do_index)
         return inst
 
     @classmethod
     def create_bulk(cls, fields: list, do_index: bool = True):
+        if not cls ._can_read_graph():
+            raise WKRMPermissionDenied()
+
         requested_wkrms = []
         for n, field_set in enumerate(fields):
             try:

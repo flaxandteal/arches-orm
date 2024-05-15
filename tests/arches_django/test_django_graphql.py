@@ -1,18 +1,25 @@
 import pytest
+import os
 from httpx import AsyncClient
 from graphql import print_schema
 import arches_graphql_client
 import arches_orm.graphql.auth
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest_asyncio
 from django.contrib.auth.models import User
 
 
+def nope(*args, **kwargs):
+    return False
+
+def yep(*args, **kwargs):
+    return True
+
 @pytest.fixture
 def agc():
     arches_graphql_client.config._CONFIGURATION["server"]
-    return 
+    return
 
 @pytest.fixture
 def anon_app(arches_orm):
@@ -46,7 +53,9 @@ def resource_client(anon_app):
     OauthlibRequest = arches_orm.graphql.auth.OauthlibRequest
     arches_orm.graphql.auth.OauthlibRequest = MagicMock()
     arches_orm.graphql.auth.authenticator.return_value = True
-    arches_orm.graphql.auth.OauthlibRequest().client.user = User("admin", is_superuser=True)
+    admin = User(username="admin", is_superuser=True)
+    arches_orm.graphql.auth.OauthlibRequest().client.user = admin
+    admin.save()
 
     def _resource_client(model_name):
         resource_client.resource_model_name = model_name
@@ -57,8 +66,15 @@ def resource_client(anon_app):
 
 @pytest.fixture
 def unprivileged_resource_client(resource_client):
-    arches_orm.graphql.auth.OauthlibRequest().client.user = User("rimmer", is_superuser=False)
-    yield resource_client
+    user = User(username="rimmer", is_superuser=False)
+    arches_orm.graphql.auth.OauthlibRequest().client.user = user
+    user.save()
+    with (
+        patch("arches_orm.arches_django.wrapper.user_can_read_resource", nope) as _,
+        patch("arches_orm.arches_django.wrapper.user_can_edit_resource", nope) as _,
+        patch("arches_orm.arches_django.wrapper.user_can_read_graph", nope) as __
+    ):
+        yield resource_client
 
 @pytest.mark.asyncio
 async def test_app(client):
@@ -102,9 +118,30 @@ async def test_person_create(anon_app, resource_client, person_ash):
     assert response == {"getPerson": {"id": new_id, "name": [{"fullName": "Ash"}]}}
 
 @pytest.mark.asyncio
-async def test_person_query_fails_if_unprivileged(anon_app, unprivileged_resource_client, person_ashs):
-    person_client = unprivileged_resource_client("Person")
-    response = await person_client.get(str(person_ashs.id), ["id"])
-    assert response == {"getPerson": {"id": "[UNAVAILABLE]"}}
-    response = await person_client.get("5a27548e-394b-4371-b224-e93ce68e9768", ["id"])
-    assert response == {"getPerson": {"id": "[UNAVAILABLE]"}}
+@pytest.mark.parametrize("debug", [False, True])
+@pytest.mark.parametrize("graph", [False, True])
+@pytest.mark.parametrize("can_edit", [False, True])
+async def test_person_query_fails_if_unprivileged(anon_app, unprivileged_resource_client, person_ashs, debug, graph, can_edit):
+    with patch("arches_orm.graphql.resources.GRAPHQL_DEBUG_PERMISSIONS", debug) as _:
+        person_client = unprivileged_resource_client("Person")
+        with (
+            patch("arches_orm.arches_django.wrapper.user_can_read_graph", yep if graph else nope) as _
+        ):
+            response = await person_client.get(str(person_ashs.id), ["id"])
+            assert response == {"getPerson": {"id": f"{'Instance' if graph else 'Model'} permission denied"} if debug else None}
+
+            # We cannot give permission errors to unknown UUIDs, as they could be any model.
+            # TODO: throw error if a resource client isn't finding the expected model.
+            response = await person_client.get("5a27548e-394b-4371-b224-e93ce68e9768", ["id"])
+            assert response == {"getPerson": None}
+
+            with (
+                patch("arches_orm.arches_django.wrapper.user_can_edit_resource", yep if can_edit else nope) as _
+            ):
+                response = await person_client.create({
+                    "name": [{"fullName": "Ash"}]
+                })
+            if not can_edit or not graph:
+                assert response is None
+            else:
+                assert response.get("id") is not None

@@ -5,11 +5,14 @@
 # MIT License acknowledgement: certain contributions in this file
 #     are copyright (c) 2020 Taku Fukada
 
-import os
+from os import environ
 import threading
+from dataclasses import dataclass, asdict
+from typing import Any
 import logging
 from functools import partial
-from asgiref.sync import sync_to_async
+from inspect import iscoroutine
+from asgiref.sync import sync_to_async as _sync_to_async
 
 
 from arches_orm.utils import snake, string_to_enum
@@ -18,6 +21,7 @@ import graphene
 from graphene_file_upload.scalars import Upload
 
 from aiodataloader import DataLoader
+from arches_orm.view_models._base import ResourceInstanceViewModel as WKRI
 from arches_orm.wkrm import attempt_well_known_resource_model, get_well_known_resource_model_by_class_name
 from arches_orm.wkrm import WELL_KNOWN_RESOURCE_MODELS
 from arches_orm.wkrm import get_resource_models_for_adapter
@@ -29,12 +33,19 @@ import arches.app.models.resource
 from arches.app.datatypes.datatypes import DataTypeFactory
 from arches_orm.datatypes import DataTypeNames
 from arches_orm.utils import is_unset
-from starlette_context import context
+from arches_orm.errors import WKRIPermissionDenied, WKRMPermissionDenied
+from arches_orm.adapter import get_adapter, context_free, context
+from starlette_context import context as starlette_context
 
-ALLOW_ANONYMOUS = os.environ.get("ALLOW_ANONYMOUS", False)
+ALLOW_ANONYMOUS = environ.get("ALLOW_ANONYMOUS", False)
+GRAPHQL_DEBUG_PERMISSIONS = environ.get("GRAPHQL_DEBUG_PERMISSIONS", environ.get("DEBUG", False))
 
 if ALLOW_ANONYMOUS:
     logging.error("WARNING: YOU HAVE ALLOWED ANONYMOUS ADMINISTRATIVE ACCESS")
+
+def sync_to_async(fn):
+    cvar = get_adapter().get_context()
+    return _sync_to_async(context(cvar)(fn))
 
 class UserType(graphene.ObjectType):
     user_id = graphene.Int()
@@ -65,9 +76,11 @@ class DataTypes:
             return res
         return value
 
-    def remap(self, model, field, value):
+    async def remap(self, model, field, value):
         if (closure := self.remapped.get((model, field), None)):
-            return closure(value)
+            value = closure(value)
+            if iscoroutine(value):
+                value = await value
         return value
 
     def _build_related(self, nodeid, related_field, model_name):
@@ -139,11 +152,11 @@ class DataTypes:
         elif typ in (DataTypeNames.RESOURCE_INSTANCE, DataTypeNames.RESOURCE_INSTANCE_LIST):
             nodeid = info["nodeid"]
             self._build_related(nodeid, field, model_name)
-            def _construct_resource(vs, nodeid, field, model_name, datatype_instance):
+            async def _construct_resource(vs, nodeid, field, model_name, datatype_instance):
                 graphs = self.related_nodes[nodeid]["relatable_graphs"]
                 assert len(graphs) == 1, f"Could not determine a unique type for this subgraph {field} of {model_name}"
                 model = self.graphs[graphs[0]]
-                resources = [_build_resource(model, **v) for v in vs]
+                resources = [await _build_resource(model, **v) for v in vs]
                 return resources
 
             self.remapped[(model_name, field)] = partial(
@@ -346,272 +359,299 @@ class DataTypes:
             graphene_type = graphene.String if info["multiple"] else graphene.String()
         return graphene.List(graphene_type) if info["multiple"] else graphene_type
 
-data_types = DataTypes()
+with get_adapter().context_free() as _:
+    data_types = DataTypes()
 
-# Do synchronous data retrieval of "constants". After this, we assume they are available.
-thread = threading.Thread(target=data_types.init)
-thread.start()
-thread.join()
-if data_types.exc:
-    raise data_types.exc
+    # Do synchronous data retrieval of "constants". After this, we assume they are available.
+    thread = threading.Thread(target=context_free(data_types.init))
+    thread.start()
+    thread.join()
+    if data_types.exc:
+        raise data_types.exc
 
-semantic_input_objects = {}
-semantic_schema_objects = {}
+    semantic_input_objects = {}
+    semantic_schema_objects = {}
 
-_resource_model_mappers = {
-    wkrm.model_class_name: {
-        field: partial(data_types.demap, wkrm.model_name, field)
-        for field, info in data_types.definitions[wkrm.model_name]["fields"].items()
+    _resource_model_mappers = {
+        wkrm.model_class_name: {
+            field: partial(data_types.demap, wkrm.model_name, field)
+            for field, info in data_types.definitions[wkrm.model_name]["fields"].items()
+        }
+        for wkrm in WELL_KNOWN_RESOURCE_MODELS
+        if wkrm.model_name in data_types.definitions
     }
-    for wkrm in WELL_KNOWN_RESOURCE_MODELS
-    if wkrm.model_name in data_types.definitions
-}
-_resource_model_schemas = {
-    wkrm.model_class_name: type(
-        wkrm.model_class_name,
-        (graphene.ObjectType,),
-        {
-            field: arg for field, arg in
+    _resource_model_schemas = {
+        wkrm.model_class_name: type(
+            wkrm.model_class_name,
+            (graphene.ObjectType,),
             {
-                field: data_types.to_graphene(info, field, wkrm.model_class_name)
-                for field, info in data_types.definitions[wkrm.model_name]["fields"].items()
-            }.items()
-            if arg
-        }
-    )
-    for wkrm in WELL_KNOWN_RESOURCE_MODELS
-    if wkrm.model_name in data_types.definitions
-}
-_resource_model_inputs = {
-    wkrm.model_class_name: type(
-        f"{wkrm.model_class_name}Input",
-        (graphene.InputObjectType,),
-        {
-            field: arg for field, arg in
+                field: arg for field, arg in
+                {
+                    field: data_types.to_graphene(info, field, wkrm.model_class_name)
+                    for field, info in data_types.definitions[wkrm.model_name]["fields"].items()
+                }.items()
+                if arg
+            }
+        )
+        for wkrm in WELL_KNOWN_RESOURCE_MODELS
+        if wkrm.model_name in data_types.definitions
+    }
+    _resource_model_inputs = {
+        wkrm.model_class_name: type(
+            f"{wkrm.model_class_name}Input",
+            (graphene.InputObjectType,),
             {
-                field: data_types.to_graphene_mut(info, field, wkrm.model_class_name)
-                for field, info in data_types.definitions[wkrm.model_name]["fields"].items()
-            }.items()
-            if arg
-        }
-    )
-    for wkrm in WELL_KNOWN_RESOURCE_MODELS
-    if wkrm.model_name in data_types.definitions
-}
+                field: arg for field, arg in
+                {
+                    field: data_types.to_graphene_mut(info, field, wkrm.model_class_name)
+                    for field, info in data_types.definitions[wkrm.model_name]["fields"].items()
+                }.items()
+                if arg
+            }
+        )
+        for wkrm in WELL_KNOWN_RESOURCE_MODELS
+        if wkrm.model_name in data_types.definitions
+    }
 
-class UnavailableResourceInstance:
-    id = "[UNAVAILABLE]"
+    @dataclass
+    class UnavailableResourceInstance:
+        id: str
 
-class ResourceInstanceLoader(DataLoader):
-    async def batch_load_fn(self, keys):
-        # FIXME: proper authorization integration
-        if not ALLOW_ANONYMOUS and not context.data["user"].is_superuser:
-            return [UnavailableResourceInstance for _ in keys]
-        # Here we call a function to return a user for each key in keys
-        out = list(await sync_to_async(self._batch_load_fn_real)(keys))
-        return out
+    class ResourceInstanceLoader(DataLoader):
+        async def batch_load_fn(self, keys):
+            # Here we call a function to return a user for each key in keys
+            out = list(await sync_to_async(self._batch_load_fn_real)(keys))
+            return out
 
-    def _batch_load_fn_real(self, keys):
-        ret = []
-        for key in keys:
-            try:
-                resource = attempt_well_known_resource_model(key)
-            except arches.app.models.resource.Resource.DoesNotExist:
-                ret.append(None) # must send back the same number
-            else:
-                ret.append(resource)
+        def _batch_load_fn_real(self, keys):
+            ret: list[UnavailableResourceInstance | None | WKRI] = []
+            for key in keys:
+                try:
+                    resource = attempt_well_known_resource_model(key)
+                except WKRIPermissionDenied:
+                    ret.append(UnavailableResourceInstance("Instance permission denied") if GRAPHQL_DEBUG_PERMISSIONS else None) # must send back the same number
+                except WKRMPermissionDenied:
+                    # We do not want to leak information about presence or absence of
+                    # an entry to a user without permissions, but this creates a significant
+                    # debugging challenge.
+                    ret.append(UnavailableResourceInstance("Model permission denied") if GRAPHQL_DEBUG_PERMISSIONS else None) # must send back the same number
+                except arches.app.models.resource.Resource.DoesNotExist:
+                    ret.append(None) # must send back the same number
+                else:
+                    ret.append(resource)
 
-        group = []
-        for wkrm in ret:
-            if wkrm:
-                group.append(
-                    {field: mapper(getattr(wkrm, field, None)) for field, mapper in _resource_model_mappers[wkrm._wkrm.model_class_name].items()}
-                )
-            else:
-                group.append(None)
-        return group
+            group: list[dict[str, Any] | None] = []
+            for wkri in ret:
+                if isinstance(wkri, UnavailableResourceInstance):
+                    group.append(asdict(wkri))
+                elif wkri:
+                    group.append(
+                        {field: mapper(getattr(wkri, field, None)) for field, mapper in _resource_model_mappers[wkri._._wkrm.model_class_name].items()}
+                    )
+                else:
+                    group.append(None)
+            return group
 
 
-_name_map = {
-    snake(wkrm.model_class_name): wkrm.model_class_name
-    for wkrm in WELL_KNOWN_RESOURCE_MODELS
-}
+    _name_map = {
+        snake(wkrm.model_class_name): wkrm.model_class_name
+        for wkrm in WELL_KNOWN_RESOURCE_MODELS
+    }
 
-async def resolver(field, root, _, info, **kwargs):
-    only_one = False
-    try:
-        model_class_name = _name_map[field]
-    except KeyError:
-        if field.startswith("get_"):
-            all_ids = [str(kwargs["id"])]
-            only_one = True
-        elif field.startswith("search_"):
-            model_class_name = _name_map[field[7:]]
+    async def resolver(field, root, _, info, **kwargs):
+        only_one = False
+        try:
+            model_class_name = _name_map[field]
+        except KeyError:
+            if field.startswith("get_"):
+                all_ids = [str(kwargs["id"])]
+                only_one = True
+            elif field.startswith("search_"):
+                model_class_name = _name_map[field[7:]]
+                model_class = get_well_known_resource_model_by_class_name(model_class_name)
+                all_ids, _ = await sync_to_async(model_class.search)(**kwargs)
+        else:
             model_class = get_well_known_resource_model_by_class_name(model_class_name)
-            all_ids, _ = await sync_to_async(model_class.search)(**kwargs)
-    else:
-        model_class = get_well_known_resource_model_by_class_name(model_class_name)
-        models = await sync_to_async(model_class.all_ids)()
-        all_ids = [str(idx) for idx in models]
-    ri_loader = get_loader("ResourceInstance")
-    if only_one:
-        if len(all_ids) != 1:
-            raise RuntimeError("Only one ID expected")
-        return (await ri_loader.load_many(all_ids))[0]
-    return await ri_loader.load_many(all_ids)
+            models = await sync_to_async(model_class.all_ids)()
+            all_ids = [str(idx) for idx in models]
+        ri_loader = get_loader("ResourceInstance")
+        if only_one:
+            if len(all_ids) != 1:
+                raise RuntimeError("Only one ID expected")
+            return (await ri_loader.load_many(all_ids))[0]
+        return await ri_loader.load_many(all_ids)
 
-_full_resource_query_methods = {}
-for wkrm in WELL_KNOWN_RESOURCE_MODELS:
-    if wkrm.model_class_name in _resource_model_schemas:
-        _full_resource_query_methods[snake(wkrm.model_class_name)] = graphene.List(_resource_model_schemas[wkrm.model_class_name])
-        _full_resource_query_methods[f"get_{snake(wkrm.model_class_name)}"] = graphene.Field(_resource_model_schemas[wkrm.model_class_name], id=graphene.UUID(required=True))
-        _full_resource_query_methods[f"search_{snake(wkrm.model_class_name)}"] = graphene.List(_resource_model_schemas[wkrm.model_class_name], text=graphene.String(), fields=graphene.List(graphene.String))
-        _full_resource_query_methods[f"list_{snake(wkrm.model_class_name)}"] = graphene.List(_resource_model_schemas[wkrm.model_class_name])
+    _full_resource_query_methods = {}
+    for wkrm in WELL_KNOWN_RESOURCE_MODELS:
+        if wkrm.model_class_name in _resource_model_schemas:
+            _full_resource_query_methods[snake(wkrm.model_class_name)] = graphene.List(_resource_model_schemas[wkrm.model_class_name])
+            _full_resource_query_methods[f"get_{snake(wkrm.model_class_name)}"] = graphene.Field(_resource_model_schemas[wkrm.model_class_name], id=graphene.UUID(required=True))
+            _full_resource_query_methods[f"search_{snake(wkrm.model_class_name)}"] = graphene.List(_resource_model_schemas[wkrm.model_class_name], text=graphene.String(), fields=graphene.List(graphene.String))
+            _full_resource_query_methods[f"list_{snake(wkrm.model_class_name)}"] = graphene.List(_resource_model_schemas[wkrm.model_class_name])
 
-ResourceQuery = type(
-    "ResourceQuery",
-    (graphene.ObjectType,),
-    _full_resource_query_methods,
-    default_resolver=resolver
-)
-
-class FileUploadMutation(graphene.Mutation):
-    class Arguments:
-        file = Upload(required=True)
-
-    ok = graphene.Boolean()
-
-    def mutate(self, info, file, **kwargs):
-        return FileUploadMutation(ok=True)
-
-
-class Mutation(graphene.ObjectType):
-    upload_file = FileUploadMutation.Field()
-
-async def mutate_bulk_create(parent, info, mutation, resource_cls, field_sets, do_index=False):
-    # FIXME: proper authorization
-    if not ALLOW_ANONYMOUS and not context.data["user"].is_superuser:
-        return {
-            snake(resource_cls.__name__): None,
-            "ok": False
-        }
-
-    field_sets = [{field: data_types.remap(resource_cls.__name__, field, value) for field, value in field_set.items()} for field_set in field_sets]
-    resources = await sync_to_async(resource_cls.create_bulk)(field_sets, do_index=do_index)
-    ok = True
-    kwargs = {
-        snake(resource_cls.__name__) + "s": resources,
-        "ok": ok
-    }
-    return mutation(**kwargs)
-
-async def mutate_create(parent, info, mutation, resource_cls, field_set, do_index=True):
-    # FIXME: proper authorization
-    if not ALLOW_ANONYMOUS and not context.data["user"].is_superuser:
-        return {
-            snake(resource_cls.__name__): None,
-            "ok": False
-        }
-
-    resource = _build_resource(resource_cls, **field_set)
-    await sync_to_async(resource.to_resource)()
-    if do_index:
-        await sync_to_async(resource.index)()
-    ok = True
-    kwargs = {
-        snake(resource_cls.__name__): resource,
-        "ok": ok
-    }
-    return mutation(**kwargs)
-
-def _build_resource(resource_cls, **kwargs):
-    kwargs = {field: data_types.remap(resource_cls.__name__, field, value) for field, value in kwargs.items()}
-    resource = resource_cls.build(**kwargs)
-    return resource
-
-async def mutate_delete(parent, info, mutation, resource_cls, id):
-    # FIXME: proper authorization
-    if not ALLOW_ANONYMOUS and not context.data["user"].is_superuser:
-        return {
-            snake(resource_cls.__name__): None,
-            "ok": False
-        }
-
-    resource = await sync_to_async(resource_cls.find)(id)
-    await sync_to_async(resource.delete)()
-    ok = True
-    kwargs = {
-        "ok": ok
-    }
-    return mutation(**kwargs)
-
-_full_resource_mutation_methods = {}
-for wkrm in WELL_KNOWN_RESOURCE_MODELS:
-    if wkrm.model_name not in data_types.definitions:
-        continue
-    ResourceSchema = _resource_model_schemas[wkrm.model_class_name]
-    ResourceInputObjectType = _resource_model_inputs[wkrm.model_class_name]
-    mutations = {}
-    mutations["BulkCreateResource"] = type(
-        f"BulkCreate{wkrm.model_class_name}",
-        (graphene.Mutation,),
-        {
-            "ok": graphene.Boolean(),
-            snake(wkrm.model_class_name) + "s": graphene.Field(graphene.List(ResourceSchema)),
-            "mutate": partial(
-                lambda *args, mutations=None, **kwargs: mutate_bulk_create(*args, mutation=mutations["BulkCreateResource"], **kwargs),
-                resource_cls=data_types.graphs[wkrm.graphid],
-                mutations=mutations
-            )
-        },
-        arguments={
-            "field_sets": graphene.List(ResourceInputObjectType),
-            "do_index": graphene.Boolean(required=False, default_value=True)
-        }
+    ResourceQuery = type(
+        "ResourceQuery",
+        (graphene.ObjectType,),
+        _full_resource_query_methods,
+        default_resolver=resolver
     )
-    mutations["CreateResource"] = type(
-        f"Create{wkrm.model_class_name}",
-        (graphene.Mutation,),
-        {
-            "ok": graphene.Boolean(),
-            snake(wkrm.model_class_name): graphene.Field(ResourceSchema),
-            "mutate": partial(
-                lambda *args, mutations=None, **kwargs: mutate_create(*args, mutation=mutations["CreateResource"], **kwargs),
-                resource_cls=data_types.graphs[wkrm.graphid],
-                mutations=mutations
-            )
-        },
-        arguments={
-            "field_set": graphene.Argument(ResourceInputObjectType),
-            "do_index": graphene.Boolean(required=False, default_value=True)
-        }
-    )
-    mutations["DeleteResource"] = type(
-        f"Delete{wkrm.model_class_name}",
-        (graphene.Mutation,),
-        {
-            "ok": graphene.Boolean(),
-            "mutate": partial(
-                lambda *args, mutations=None, **kwargs: mutate_delete(*args, mutation=mutations["DeleteResource"], **kwargs),
-                resource_cls=data_types.graphs[wkrm.graphid],
-                mutations=mutations
-            )
-        },
-        arguments={
-            "id": graphene.UUID()
-        }
-    )
-    _full_resource_mutation_methods.update({
-        f"create_{snake(wkrm.model_class_name)}": mutations["CreateResource"].Field(),
-        f"bulk_create_{snake(wkrm.model_class_name)}": mutations["BulkCreateResource"].Field(),
-        f"delete_{snake(wkrm.model_class_name)}": mutations["DeleteResource"].Field()
-    })
 
-FullResourceMutation = type(
-    "FullResourceMutation",
-    (Mutation,),
-    _full_resource_mutation_methods,
-)
+    class FileUploadMutation(graphene.Mutation):
+        class Arguments:
+            file = Upload(required=True)
+
+        ok = graphene.Boolean()
+
+        def mutate(self, info, file, **kwargs):
+            return FileUploadMutation(ok=True)
+
+
+    class Mutation(graphene.ObjectType):
+        upload_file = FileUploadMutation.Field()
+
+    async def mutate_bulk_create(parent, info, mutation, resource_cls, field_sets, do_index=False):
+        # FIXME: proper authorization
+        if not ALLOW_ANONYMOUS and starlette_context.data["is_anonymous"]:
+            return {
+                snake(resource_cls.__name__): None,
+                "ok": False
+            }
+
+        field_sets = [{field: (await data_types.remap(resource_cls.__name__, field, value)) for field, value in field_set.items()} for field_set in field_sets]
+        try:
+            resources = await sync_to_async(resource_cls.create_bulk)(field_sets, do_index=do_index)
+        except WKRMPermissionDenied:
+            ok = False
+            resources = []
+        else:
+            ok = True
+        kwargs = {
+            snake(resource_cls.__name__) + "s": resources,
+            "ok": ok
+        }
+        return mutation(**kwargs)
+
+    async def mutate_create(parent, info, mutation, resource_cls, field_set, do_index=True):
+        # FIXME: proper authorization
+        if not ALLOW_ANONYMOUS and starlette_context.data["is_anonymous"]:
+            return {
+                snake(resource_cls.__name__): None,
+                "ok": False
+            }
+        try:
+            resource = await _build_resource(resource_cls, **field_set)
+            await sync_to_async(resource._.to_resource)()
+            if do_index:
+                await sync_to_async(resource._.index)()
+            ok = True
+        except (WKRMPermissionDenied, WKRIPermissionDenied) as exc:
+            if GRAPHQL_DEBUG_PERMISSIONS:
+                logging.exception(exc)
+            kwargs = {
+                "ok": False
+            }
+        else:
+            kwargs = {
+                snake(resource_cls.__name__): resource,
+                "ok": True
+            }
+        return mutation(**kwargs)
+
+    async def _build_resource(resource_cls, **kwargs):
+        kwargs = {field: (await data_types.remap(resource_cls.__name__, field, value)) for field, value in kwargs.items()}
+        resource = await sync_to_async(resource_cls.build)(**kwargs)
+        return resource
+
+    async def mutate_delete(parent, info, mutation, resource_cls, id):
+        # FIXME: proper authorization
+        if not ALLOW_ANONYMOUS and not context.data["user"].is_superuser:
+            return {
+                snake(resource_cls.__name__): None,
+                "ok": False
+            }
+
+        try:
+            resource = await sync_to_async(resource_cls.find)(id)
+            await sync_to_async(resource.delete)()
+        except (WKRMPermissionDenied, WKRIPermissionDenied) as exc:
+            if GRAPHQL_DEBUG_PERMISSIONS:
+                logging.exception(exc)
+            kwargs = {
+                "ok": False
+            }
+        else:
+            kwargs = {
+                "ok": True
+            }
+        return mutation(**kwargs)
+
+    _full_resource_mutation_methods = {}
+    for wkrm in WELL_KNOWN_RESOURCE_MODELS:
+        if wkrm.model_name not in data_types.definitions:
+            continue
+        ResourceSchema = _resource_model_schemas[wkrm.model_class_name]
+        ResourceInputObjectType = _resource_model_inputs[wkrm.model_class_name]
+        mutations = {}
+        mutations["BulkCreateResource"] = type(
+            f"BulkCreate{wkrm.model_class_name}",
+            (graphene.Mutation,),
+            {
+                "ok": graphene.Boolean(),
+                snake(wkrm.model_class_name) + "s": graphene.Field(graphene.List(ResourceSchema)),
+                "mutate": partial(
+                    lambda *args, mutations=None, **kwargs: mutate_bulk_create(*args, mutation=mutations["BulkCreateResource"], **kwargs),
+                    resource_cls=data_types.graphs[wkrm.graphid],
+                    mutations=mutations
+                )
+            },
+            arguments={
+                "field_sets": graphene.List(ResourceInputObjectType),
+                "do_index": graphene.Boolean(required=False, default_value=True)
+            }
+        )
+        mutations["CreateResource"] = type(
+            f"Create{wkrm.model_class_name}",
+            (graphene.Mutation,),
+            {
+                "ok": graphene.Boolean(),
+                snake(wkrm.model_class_name): graphene.Field(ResourceSchema),
+                "mutate": partial(
+                    lambda *args, mutations=None, **kwargs: mutate_create(*args, mutation=mutations["CreateResource"], **kwargs),
+                    resource_cls=data_types.graphs[wkrm.graphid],
+                    mutations=mutations
+                )
+            },
+            arguments={
+                "field_set": graphene.Argument(ResourceInputObjectType),
+                "do_index": graphene.Boolean(required=False, default_value=True)
+            }
+        )
+        mutations["DeleteResource"] = type(
+            f"Delete{wkrm.model_class_name}",
+            (graphene.Mutation,),
+            {
+                "ok": graphene.Boolean(),
+                "mutate": partial(
+                    lambda *args, mutations=None, **kwargs: mutate_delete(*args, mutation=mutations["DeleteResource"], **kwargs),
+                    resource_cls=data_types.graphs[wkrm.graphid],
+                    mutations=mutations
+                )
+            },
+            arguments={
+                "id": graphene.UUID()
+            }
+        )
+        _full_resource_mutation_methods.update({
+            f"create_{snake(wkrm.model_class_name)}": mutations["CreateResource"].Field(),
+            f"bulk_create_{snake(wkrm.model_class_name)}": mutations["BulkCreateResource"].Field(),
+            f"delete_{snake(wkrm.model_class_name)}": mutations["DeleteResource"].Field()
+        })
+
+    FullResourceMutation = type(
+        "FullResourceMutation",
+        (Mutation,),
+        _full_resource_mutation_methods,
+    )
 
 resources_schema = graphene.Schema(query=ResourceQuery, mutation=FullResourceMutation)
 
@@ -620,8 +660,8 @@ _LOADERS = {
 }
 def get_loader(loader):
     """Make sure we have fresh loaders per request."""
-    context.data.setdefault("loaders", {})
-    loaders = context.data["loaders"]
+    starlette_context.data.setdefault("loaders", {})
+    loaders = starlette_context.data["loaders"]
     if loader not in loaders:
         loaders[loader] = _LOADERS[loader]()
     return loaders[loader]

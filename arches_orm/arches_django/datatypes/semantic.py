@@ -5,7 +5,7 @@ from arches.app.models.resource import Resource
 
 from arches_orm.adapter import get_adapter
 from arches_orm.view_models import (
-    WKRI,
+    ResourceInstanceViewModel,
     SemanticViewModel,
 )
 from ._register import REGISTER
@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 def semantic(
     tile,
     node,
-    value: uuid.UUID | str | WKRI | Resource | ResourceInstance | None,
+    value: uuid.UUID | str | ResourceInstanceViewModel | Resource | ResourceInstance | None,
     parent,
     parent_cls,
     child_nodes,
@@ -34,18 +34,18 @@ def semantic(
         )
         child._parent_node = svm
         if parent:
-            parent._values.setdefault(key, [])
-            parent._values[key].append(child)
+            parent._._values.setdefault(key, [])
+            parent._._values[key].append(child)
         return child
 
     def get_child_values(svm):
         if not parent:
             return {}
         for key in child_nodes:
-            parent._values.get(key)
+            parent._._values.get(key)
         children = {
             key: value
-            for key, values in parent._values.items()
+            for key, values in parent._._values.items()
             for value in values
             if key in child_keys
             and value is not None

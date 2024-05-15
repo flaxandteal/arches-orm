@@ -267,7 +267,6 @@ class BulkImportWKRM(BaseImportModule):
                             True,
                         ),
                     )
-                    print(wkrm.id, tile.data, tile.tileid)
                 cursor.execute("""CALL __arches_check_tile_cardinality_violation_for_load(%s)""", [self.loadid])
 
         validation = self.validate()

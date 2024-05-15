@@ -12,9 +12,12 @@ from starlette.routing import Route
 from starlette.endpoints import HTTPEndpoint
 from starlette_graphene3 import GraphQLApp, make_graphiql_handler
 from starlette.applications import Starlette
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from starlette_context import plugins
 from starlette_context.middleware import RawContextMiddleware
+from starlette_context import context as starlette_context
+from arches_orm.adapter import get_adapter
 
 from .auth import BasicAuthBackend
 from .resources import ResourceQuery, FullResourceMutation
@@ -27,6 +30,10 @@ class App(HTTPEndpoint):
     async def get(self, request):
         return PlainTextResponse("OK")
 
+class ORMContextMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        with get_adapter().context(user=starlette_context.data["user"]) as cvar:
+            return await call_next(request)
 middleware = [
     Middleware(
         RawContextMiddleware,
@@ -35,7 +42,8 @@ middleware = [
             plugins.CorrelationIdPlugin()
         )
     ),
-    Middleware(AuthenticationMiddleware, backend=BasicAuthBackend())
+    Middleware(AuthenticationMiddleware, backend=BasicAuthBackend()),
+    Middleware(ORMContextMiddleware)
 ]
 
 app = Starlette(debug=DEBUG, routes=[Route("/", App)], middleware=middleware)

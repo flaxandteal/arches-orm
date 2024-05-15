@@ -1,6 +1,6 @@
 import uuid
 from collections import UserList
-from ._base import ViewModel, WKRI
+from ._base import ViewModel, ResourceInstanceViewModel
 
 
 class RelatedResourceInstanceViewModelMixin(ViewModel):
@@ -23,7 +23,7 @@ class RelatedResourceInstanceListViewModel(UserList, ViewModel):
             for resource_instance in resource_instance_list:
                 self.append(resource_instance)
 
-    def append(self, item: str | uuid.UUID | WKRI):
+    def append(self, item: str | uuid.UUID | ResourceInstanceViewModel):
         """Add a well-known resource to the list."""
 
         if isinstance(item, RelatedResourceInstanceViewModelMixin):
@@ -31,24 +31,25 @@ class RelatedResourceInstanceListViewModel(UserList, ViewModel):
 
         resource_instance = None
         resource_instance_id = None
-        if isinstance(item, WKRI):
+        if isinstance(item, ResourceInstanceViewModel):
             resource_instance = item
         elif isinstance(item, str | uuid.UUID):
             resource_instance_id = item
         elif isinstance(item, dict) and "resourceId" in item:
             resource_instance_id = item["resourceId"]
+        # TODO: why no error on else?
 
         value, _, __, ___ = self._make_ri_cb(resource_instance or resource_instance_id)
 
         if not value:
             raise RuntimeError(f"Could not append {item} to resource list within {self._parent_wkri}")
-        if str(value._cross_record["wkriFrom"].id) != str(self._parent_wkri.id):
+        if str(value._._cross_record["wkriFrom"].id) != str(self._parent_wkri.id):
             raise NotImplementedError("Cannot currently reparent related resources")
 
         return super().append(value)
 
     def remove(self, value):
         for item in self:
-            if value.resourceinstanceid == item.resourceinstanceid:
+            if value._.resourceinstanceid == item.resourceinstanceid:
                 value = item
         super().remove(value)

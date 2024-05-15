@@ -3,7 +3,7 @@ from arches.app.models.models import ResourceInstance
 from arches.app.models.resource import Resource
 
 from arches_orm.view_models import (
-    WKRI,
+    ResourceInstanceViewModel,
     RelatedResourceInstanceListViewModel,
     RelatedResourceInstanceViewModelMixin,
 )
@@ -14,7 +14,7 @@ from ._register import REGISTER
 def resource_instance_list(
     tile,
     node,
-    value: uuid.UUID | str | WKRI | Resource | ResourceInstance | None,
+    value: uuid.UUID | str | ResourceInstanceViewModel | Resource | ResourceInstance | None,
     parent,
     parent_cls,
     child_nodes,
@@ -50,7 +50,7 @@ RI_VIEW_MODEL_CLASSES = {}
 def resource_instance(
     tile,
     node,
-    value: uuid.UUID | str | WKRI | Resource | ResourceInstance | None,
+    value: uuid.UUID | str | ResourceInstanceViewModel | Resource | ResourceInstance | None,
     parent_wkri,
     parent_cls,
     child_nodes,
@@ -74,14 +74,14 @@ def resource_instance(
     if not resource_instance:
         if resource_instance_id:
             resource_instance = attempt_well_known_resource_model(
-                resource_instance_id, related_prefetch=parent_wkri._related_prefetch
+                resource_instance_id, related_prefetch=parent_wkri._._related_prefetch
             )
         else:
             return None
 
     if not resource_instance:
         return None
-    elif not isinstance(resource_instance, WKRI):
+    elif not isinstance(resource_instance, ResourceInstanceViewModel):
         wkrm = get_well_known_resource_model_by_graph_id(
             resource_instance.graph_id, default=None
         )
@@ -104,7 +104,7 @@ def resource_instance(
     datum["wkriFromTile"] = tile
     datum["datatype"] = resource_instance_datatype
 
-    if _resource_instance._cross_record and _resource_instance._cross_record != datum:
+    if _resource_instance._._cross_record and _resource_instance._._cross_record != datum:
         raise NotImplementedError("Cannot currently reparent a resource instance")
 
     model_class_name = str(_resource_instance.__class__.__name__)
@@ -116,8 +116,8 @@ def resource_instance(
             dict(proxy=True),
         )
         RI_VIEW_MODEL_CLASSES[model_class_name] = mixin
-    _resource_instance.__class__ = mixin
-    _resource_instance._cross_record = datum
+    _resource_instance._set_class(mixin)
+    _resource_instance._._cross_record = datum
 
     return _resource_instance
 

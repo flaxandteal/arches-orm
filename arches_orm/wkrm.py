@@ -1,6 +1,7 @@
 import logging
 from typing import Callable
 from .adapter import get_adapter
+from .view_models.resources import ResourceInstanceViewModel
 
 
 logger = logging.getLogger(__name__)
@@ -39,12 +40,20 @@ WELL_KNOWN_RESOURCE_MODELS = [
 
 def _make_wkrm(wkrm_definition, adapter):
     try:
-        return type(
-            wkrm_definition.model_class_name,
+        orm_model = type(
+            f"{wkrm_definition.model_class_name}Wrapper",
             (adapter.get_wrapper(),),
-            {"proxy": False},
+            {"proxy": False, "view_model": None},
             well_known_resource_model=wkrm_definition,
+            context=adapter.get_context(),
         )
+        orm_view_model = type(
+            wkrm_definition.model_class_name,
+            (ResourceInstanceViewModel,),
+            {"_": orm_model}
+        )
+        orm_model.view_model = orm_view_model
+        return orm_view_model
     except KeyError as e:
         logger.error(
             "A WKRM, or its declared nodes, are missing: %s",

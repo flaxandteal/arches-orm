@@ -5,3 +5,4 @@ from .resources import *  # noqa
 from .semantic import *  # noqa
 from .string import *  # noqa
 from .user import *  # noqa
+from .group import *  # noqa

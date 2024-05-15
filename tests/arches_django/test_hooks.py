@@ -3,6 +3,8 @@ from collections import Counter
 from functools import partial
 import json
 
+from arches_orm.adapter import context_free
+
 JSON_PERSON = """
 {
     "Name": [
@@ -58,6 +60,7 @@ JSON_PERSON = """
 
 
 @pytest.mark.django_db
+@context_free
 def test_can_save_with_name(arches_orm):
     Person = arches_orm.models.Person
     person = Person.create()

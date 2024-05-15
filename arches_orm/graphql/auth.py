@@ -8,7 +8,7 @@ from starlette_context import context
 from starlette.authentication import (
     AuthCredentials, AuthenticationBackend, AuthenticationError, SimpleUser
 )
-from django.contrib.auth import authenticate
+from django.contrib.auth import authenticate, models
 from django.http.request import HttpRequest
 
 ALLOW_ANONYMOUS = os.environ.get("ALLOW_ANONYMOUS", True)
@@ -23,6 +23,9 @@ class BasicAuthBackend(AuthenticationBackend):
         if "Authorization" not in conn.headers:
             # FIXME: for now, allow anonymous internal access
             if ALLOW_ANONYMOUS:
+                anonymous_user = await sync_to_async(models.User.objects.get)(username="anonymous")
+                context.data["user"] = anonymous_user
+                context.data["is_anonymous"] = True
                 return AuthCredentials(["anonymous"]), SimpleUser("anonymous")
             else:
                 raise AuthenticationError("Require basic auth credentials")
@@ -54,6 +57,7 @@ class BasicAuthBackend(AuthenticationBackend):
             user = await sync_to_async(authenticate)(request)
         if user:
             context.data["user"] = user
+            context.data["is_anonymous"] = False
             return AuthCredentials(["authenticated"]), SimpleUser(user.username)
 
         raise AuthenticationError('Incorrect auth credentials')

@@ -1,24 +1,30 @@
 import logging
+from typing import Any
 import uuid
 from abc import abstractmethod, abstractclassmethod, abstractstaticmethod, ABC
 from collections.abc import Callable
 from collections import UserList
-from .view_models import WKRI as Resource
+from arches_orm.adapter import Adapter
+from .view_models import ResourceInstanceViewModel
 from .view_models.node_list import RemappedNodeListViewModel
+from .errors import WKRMPermissionDenied
 
 
 logger = logging.getLogger(__name__)
 
 
-class ResourceWrapper(Resource, ABC):
+class ResourceWrapper(ABC):
     """Superclass of all well-known resources.
 
     When you use, `Person`, etc. it will be this class in disguise.
     """
 
     model_name: str
+    view_model: type
+    view_model_inst: ResourceInstanceViewModel
     graphid: str
     id: str
+    _adapter: Adapter
     _values: dict | None = None
     _cross_record: dict | None = None
     _pending_relationships: list | None = None
@@ -27,24 +33,22 @@ class ResourceWrapper(Resource, ABC):
     _model_remapping: dict
     _name: str | None = None
     _description: str | None = None
-    resource: Resource
+    resource: Any
     proxy: bool = False
 
-    def __getitem__(self, key):
-        return self.__getattr__(key)
+    def _can_read_resource(self):
+        raise NotImplementedError()
 
-    def __setitem__(self, key, value):
-        return self.__setattr__(key, value)
+    def _can_edit_resource(self):
+        raise NotImplementedError()
 
-    def __eq__(self, other):
-        return (
-            self.id
-            and other.id
-            and self.id == other.id
-            and self.__class__ == other.__class__
-        )
+    def _can_delete_resource(self):
+        raise NotImplementedError()
 
-    def __setattr__(self, key, value):
+    def _can_read_graph(self):
+        raise NotImplementedError()
+
+    def set_orm_attribute(self, key, value):
         """Set Python values for nodes attributes."""
 
         if key in (
@@ -55,6 +59,7 @@ class ResourceWrapper(Resource, ABC):
             "_values_list",
             "resource",
             "_root_node",
+            "_context",
             "_name",
             "_description",
             "_cross_record",
@@ -117,7 +122,7 @@ class ResourceWrapper(Resource, ABC):
                 cmpt = getattr(cmpt, ckey)
             return cmpt
 
-    def __getattr__(self, key):
+    def get_orm_attribute(self, key):
         """Retrieve Python values for nodes attributes."""
 
         if self._remap and self._model_remapping is not None:
@@ -130,6 +135,7 @@ class ResourceWrapper(Resource, ABC):
 
     def __init__(
         self,
+        view_model,
         id=None,
         _new_id=None,
         resource=None,
@@ -144,6 +150,9 @@ class ResourceWrapper(Resource, ABC):
         """
 
         self._values = {}
+        self.view_model_inst = view_model
+        if not self._can_read_graph():
+            raise WKRMPermissionDenied()
         self.id = id if isinstance(id, uuid.UUID) else uuid.UUID(id) if id else None
         self._new_id = (
             _new_id
@@ -155,9 +164,10 @@ class ResourceWrapper(Resource, ABC):
         self.resource = resource
         self._cross_record = cross_record
         self._related_prefetch = related_prefetch
+        view_model._ = self
 
         for key, value in kwargs.items():
-            setattr(self, key, value)
+            self.set_orm_attribute(key, value)
 
     @property
     def resourceinstanceid(self):
@@ -194,7 +204,7 @@ class ResourceWrapper(Resource, ABC):
             if "." not in key:
                 values[key] = arg
 
-        inst = cls(**values)
+        inst = cls.view_model(**values)
 
         for key, val in kwargs.items():
             if "." in key:
@@ -240,11 +250,11 @@ class ResourceWrapper(Resource, ABC):
                     table.append([key, "", "(empty)"])
         return description + tabulate(table)
 
-    def __str__(self):
+    def to_string(self):
         """Convert to string."""
         return str(self._wkrm.to_string(self))
 
-    def __init_subclass__(cls, well_known_resource_model=None, proxy=None):
+    def __init_subclass__(cls, well_known_resource_model=None, proxy=None, context=None):
         """Create a new well-known resource model wrapper, from an WKRM."""
         if proxy is not None:
             cls.proxy = proxy
@@ -252,6 +262,10 @@ class ResourceWrapper(Resource, ABC):
             if not well_known_resource_model:
                 raise RuntimeError("Must try to wrap a real model")
 
+            if context is None:
+                raise RuntimeError("Must have an adapter to create classes")
+
+            cls._context = context
             cls._model_name = well_known_resource_model.model_name
             cls._model_class_name = well_known_resource_model.model_class_name
             cls._model_remapping = well_known_resource_model.remapping
