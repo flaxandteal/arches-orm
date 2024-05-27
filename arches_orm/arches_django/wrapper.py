@@ -16,8 +16,8 @@ from arches.app.utils.permission_backend import (
     user_can_read_resource,
     user_can_edit_resource,
     user_can_delete_resource,
-    user_can_read_graph
 )
+
 from arches_orm.datatypes import DataTypeNames
 
 from arches_orm.wrapper import ResourceWrapper
@@ -30,6 +30,11 @@ from .filters import SearchMixin
 
 logger = logging.getLogger(__name__)
 
+try:
+    from arches.app.utils.permission_backend import user_can_read_graph
+except ImportError:
+    user_can_read_graph = lambda user, graphid: True
+    logger.error("COULD NOT IMPORT user_can_read_graph")
 
 LOAD_FULL_NODE_OBJECTS = True
 LOAD_ALL_NODES = True
