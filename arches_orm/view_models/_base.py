@@ -69,4 +69,6 @@ class ResourceInstanceViewModel(ViewModel, metaclass=ResourceModelViewModel):
         super().__setattr__("__class__", cls)
 
 class UnavailableViewModel(ViewModel):
-    ...
+    def __str__(self):
+        """Convert to string."""
+        return "(unavailable)"

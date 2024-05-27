@@ -49,7 +49,7 @@ def semantic(
             for value in values
             if key in child_keys
             and value is not None
-            and (value._parent_node is None or value._parent_node == svm)
+            and (value._parent_node is None or value._parent_node is svm)
             and (
                 (tile and value.parenttile_id == tile.tileid)
                 or (

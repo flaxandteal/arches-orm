@@ -18,7 +18,7 @@ class DjangoGroupViewModel(Group, GroupViewModelMixin):
         return bool(self.pk)
 
 
-@REGISTER("django_group")
+@REGISTER("django-group")
 def django_group(tile, node, value, _, __, ___, group) -> GroupProtocol:
     group = None
     value = value or tile.data.get(str(node.nodeid))

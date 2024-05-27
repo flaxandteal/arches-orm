@@ -1,9 +1,10 @@
+from typing import Mapping
 from ._base import (
     ViewModel,
 )
 
 
-class SemanticViewModel(ViewModel):
+class SemanticViewModel(ViewModel, Mapping[str, ViewModel]):
     """Wraps a semantic tile."""
 
     _child_keys = None
@@ -18,6 +19,15 @@ class SemanticViewModel(ViewModel):
         self._parent_wkri = parent_wkri
         self._make_child = make_child
         self._get_child_values = get_child_values
+
+    def __getitem__(self, item):
+        return getattr(self, item)
+
+    def __len__(self):
+        return len(self._child_keys)
+
+    def __iter__(self):
+        return iter(self._child_keys)
 
     def update(self, values):
         for key, value in values.items():

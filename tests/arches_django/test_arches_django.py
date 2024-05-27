@@ -72,11 +72,11 @@ def test_can_save_with_name(arches_orm):
 def test_can_save_with_county_value(arches_orm, lazy):
     Person = arches_orm.models.Person
     person = Person.create()
-    person.location_data.append().county.county_value = "Antrim"
+    person.location_data.append().addresses.county.county_value = "Antrim"
     person.save()
 
     reloaded_person = arches_orm.models.Person.find(person.id, lazy=lazy)
-    assert person.location_data[0].county.county_value == "Antrim"
+    assert person.location_data[0].addresses.county.county_value == "Antrim"
 
 @pytest.mark.django_db
 @context_free
@@ -84,7 +84,10 @@ def test_can_save_with_county_value(arches_orm, lazy):
 def test_can_save_with_concept(arches_orm, lazy):
     Activity = arches_orm.models.Activity
     activity = Activity.create()
-    StatusEnum = activity.record_status_assignment.record_status.__collection__
+    record_status = activity.record_status_assignment.record_status
+    StatusEnum = record_status.__collection__
+    print(type(StatusEnum.BacklogDashSkeleton))
+
     activity.record_status_assignment.record_status = StatusEnum.BacklogDashSkeleton
     assert activity.record_status_assignment.record_status == StatusEnum.BacklogDashSkeleton
     activity.save()

@@ -38,7 +38,7 @@ LOAD_ALL_NODES = True
 def get_permitted_nodegroups(user):
     # To separate read and write, we need to know which tile nodes
     # have changed when saving (reliably).
-    nodegroups = get_nodegroups_by_perm(user, "models.write_nodegroup")
+    nodegroups = [str(ng) for ng in get_nodegroups_by_perm(user, "models.write_nodegroup")]
     return nodegroups
 
 class ValueList(UserDict):
@@ -453,9 +453,10 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
             return permitted_nodegroups
 
         user = context.get("user")
+        png = get_permitted_nodegroups(user)
         permitted_nodegroups = [
             key for key in cls._nodegroup_objects()
-            if key in get_permitted_nodegroups(user)
+            if key in png
         ] + [None]
         context.setdefault("user_graphs", {})
         context["user_graphs"][str(cls)] = permitted_nodegroups
@@ -628,14 +629,19 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
             "root": node for node in nodes.values() if node.nodegroup_id is None
         }.get("root")
 
-    @classmethod
     @property
-    def __fields__(cls):
+    def __fields__(self):
+        return self.get_fields()
+
+    @classmethod
+    @lru_cache
+    def get_fields(cls, include_root=False):
         cls._build_nodes()
         def _fill_fields(pseudo_node):
             typ, multiple = pseudo_node.get_type()
             fields = {
                 "type": DataTypeNames(typ),
+                "node": pseudo_node,
                 "multiple": multiple,
                 "nodeid": str(pseudo_node.node.nodeid)
             }
@@ -645,18 +651,22 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
                 }
             return fields
 
+        root_fields = {}
+        pseudo_node = cls._get_root_pseudo_node()
+        if pseudo_node:
+            root_fields.update(_fill_fields(pseudo_node))
+        fields: dict[str, Any] = {}
+        if not cls._remap_total or not cls._remap:
+            root_fields.setdefault("children", fields)
+            fields = root_fields["children"]
+
         if cls._remap and cls._model_remapping:
-            fields = {}
             for field, target in cls._model_remapping.items():
                 _, target = target.split(".", -1)
                 pseudo_node = cls._make_pseudo_node_cls(target, wkri=None)
                 fields[snake(field)] = _fill_fields(pseudo_node)
-            return fields
-        else:
-            pseudo_node = cls._get_root_pseudo_node()
-            if pseudo_node:
-                return _fill_fields(pseudo_node).get("children")
-        return {}
+
+        return {"": root_fields} if include_root else fields
 
     @classmethod
     def all_ids(cls):
@@ -1024,12 +1034,6 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
         nodegroups = cls._nodegroup_objects()
 
         permitted = cls._permitted_nodegroups()
-        if node_obj.nodegroup_id is not None and str(node_obj.nodegroup_id) not in permitted:
-            return PseudoNodeUnavailable(
-                node=node_obj,
-                parent=wkri,
-                parent_cls=cls.view_model,
-            )
         edges = cls._edges().get(str(node_obj.nodeid))
         value = None
         if (
@@ -1053,21 +1057,21 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
                         if str(n.nodeid) in edges
                     }
                 )
-            child_nodes.update(
-                {
-                    n.alias: (n, True)
-                    for n in cls._node_objects().values()
-                    if n.nodegroup_id == node_obj.nodeid and n.nodeid != node_obj.nodeid
-                }
-            )
-            node_value = PseudoNodeValue(
-                tile=tile,
-                node=node_obj,
-                value=None,
-                parent=wkri,
-                parent_cls=cls.view_model,
-                child_nodes=child_nodes,
-            )
+            if node_obj.nodegroup_id is not None and str(node_obj.nodegroup_id) not in permitted:
+                node_value = PseudoNodeUnavailable(
+                    node=node_obj,
+                    parent=wkri,
+                    parent_cls=cls.view_model,
+                )
+            else:
+                node_value = PseudoNodeValue(
+                    tile=tile,
+                    node=node_obj,
+                    value=None,
+                    parent=wkri,
+                    parent_cls=cls.view_model,
+                    child_nodes=child_nodes,
+                )
             # If we have a tile in a list, add it
             if value is not None:
                 value.append(node_value)

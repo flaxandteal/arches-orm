@@ -3,6 +3,8 @@ import slugify
 import re
 from functools import partial
 
+from arches_orm.view_models._base import UnavailableViewModel
+
 logger = logging.getLogger(__name__)
 
 _SYMBOL_NAMES = {
@@ -58,9 +60,11 @@ def camel(string, studly=False):
     return string
 studly = partial(camel, studly=True)
 
-def is_unset(variable):
+def is_unset(variable, unavailable=True):
     if variable is None:
         return True
+    if isinstance(variable, UnavailableViewModel):
+        return unavailable
     try:
         return hash(variable) == hash(None)
     except TypeError:

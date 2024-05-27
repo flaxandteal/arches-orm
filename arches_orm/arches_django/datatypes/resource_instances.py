@@ -74,7 +74,7 @@ def resource_instance(
     if not resource_instance:
         if resource_instance_id:
             resource_instance = attempt_well_known_resource_model(
-                resource_instance_id, related_prefetch=parent_wkri._._related_prefetch
+                resource_instance_id, from_prefetch=parent_wkri._._related_prefetch
             )
         else:
             return None

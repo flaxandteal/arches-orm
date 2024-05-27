@@ -7,8 +7,9 @@
 
 from os import environ
 import threading
+from inspect import iscoroutinefunction
 from dataclasses import dataclass, asdict
-from typing import Any
+from typing import Any, Sequence
 import logging
 from functools import partial
 from inspect import iscoroutine
@@ -18,6 +19,7 @@ from asgiref.sync import sync_to_async as _sync_to_async
 from arches_orm.utils import snake, string_to_enum
 
 import graphene
+from graphene.types.resolver import get_default_resolver
 from graphene_file_upload.scalars import Upload
 
 from aiodataloader import DataLoader
@@ -55,6 +57,10 @@ class UserInputType(graphene.InputObjectType):
     user_id = graphene.Int(required=True)
     email = graphene.String(required=False)
 
+def related_prefetch(id):
+    # TODO: use loader
+    return arches.app.models.resource.Resource.objects.get(pk=id)
+
 class DataTypes:
     node_datatypes = None
     inited = False
@@ -68,11 +74,13 @@ class DataTypes:
         self.semantic_nodes = {}
         self.related_nodes = {}
 
-    def demap(self, model, field, value):
+    async def demap(self, model, field, value, info=None):
         if is_unset(value):
             return None
         if (closure := self.demapped.get((model, field), None)):
             res = closure(value)
+            if iscoroutinefunction(res):
+                res = await res
             return res
         return value
 
@@ -88,7 +96,6 @@ class DataTypes:
         if nodeid not in self.related_nodes:
             assert str(nodeid) in self.node_datatypes and self.node_datatypes[str(nodeid)].startswith("resource-instance")
             self.related_nodes[nodeid] = {}
-            logging.error("N %s %s", str(node), str(node.config))
             self.related_nodes[nodeid] = {
                 "name": related_field,
                 "model_name": model_name,
@@ -96,7 +103,6 @@ class DataTypes:
             }
         assert related_field.split("/")[-1] == self.related_nodes[nodeid]["name"].split("/")[-1], f"{related_field} != {self.related_nodes[nodeid]['name']}"
         self.related_nodes[nodeid]["relatable_graphs"] += [str(graph["graphid"]) for graph in node.config["graphs"] if str(graph["graphid"]) in self.graphs]
-        logging.error(">%s", str(self.related_nodes[nodeid]["relatable_graphs"]))
         return self.related_nodes[nodeid]["name"]
 
     def _build_semantic(self, field, subfield, field_info, model_name, model_class_name):
@@ -126,68 +132,109 @@ class DataTypes:
 
                 for _, model in orm_models.items():
                     model_name = model._model_name
+                    field, info = next(iter(model.get_fields(include_root=True).items()))
                     self.definitions[model_name] = {
                         "model_name": model_name,
                         "model_class_name": model.__name__,
+                        "root": info,
                         "fields": {
                             "id": {"type": DataTypeNames.STRING, "multiple": False}
                         }
                     }
-                    for field, info in model.__fields__.items():
-                        self._process_field(model_name, field, info, model)
-                        self.definitions[model_name]["fields"][field] = info
-                        # AGPL Arches
+                    self._process_field(model_name, field, info, model, top_level=True)
 
                 self.inited = True
             except Exception as exc:
                 self.exc = exc
                 raise exc
 
-    def _process_field(self, model_name, field, info, model):
+    def _process_field(self, model_name, field, info, model, top_level=False):
         typ = info["type"]
         if typ == DataTypeNames.SEMANTIC:
             for subfield, subinfo in info.get("children", {}).items():
                 self._build_semantic(field, subfield, subinfo, model_name, model.__name__)
                 self._process_field(model_name, subfield, subinfo, model)
+                if top_level:
+                    self.definitions[model_name]["fields"][subfield] = subinfo
+
+            async def _map_semantic(model_name, field, v):
+                if isinstance(v, Sequence):
+                    return [await _map_semantic(model_name, field, v_) for v_ in v]
+                return {
+                    key: await data_types.remap(model_name, key, val) for key, val in v.items()
+                }
+
+            self.remapped[(model_name, field)] = partial(
+                _map_semantic,
+                model_name,
+                field
+            )
         elif typ in (DataTypeNames.RESOURCE_INSTANCE, DataTypeNames.RESOURCE_INSTANCE_LIST):
             nodeid = info["nodeid"]
             self._build_related(nodeid, field, model_name)
-            async def _construct_resource(vs, nodeid, field, model_name, datatype_instance):
-                graphs = self.related_nodes[nodeid]["relatable_graphs"]
-                assert len(graphs) == 1, f"Could not determine a unique type for this subgraph {field} of {model_name}"
-                model = self.graphs[graphs[0]]
+            async def _construct_resource(vs, nodeid, field, model_name, datatype_instance, graph=None):
+                graphs = {wkrm.model_class_name: str(wkrm.graphid) for wkrm in WELL_KNOWN_RESOURCE_MODELS if str(wkrm.graphid) in self.related_nodes[nodeid]["relatable_graphs"]}
+                if graph is None:
+                    if len(graphs) > 1:
+                        return sum(
+                            [
+                                await _construct_resource(v_, nodeid, field, model_name, datatype_instance, graph)
+                                for graph, v_ in vs.items()
+                            ],
+                            []
+                        )
+                    else:
+                        graph = graphs[0]
+                elif graph not in graphs:
+                    raise RuntimeError(f"Could not match a valid type for this subgraph {field} of {model_name}: {graph} not in {graphs}")
+                model = self.graphs[graphs[graph]]
                 resources = [await _build_resource(model, **v) for v in vs]
                 return resources
 
+            self.demapped[(model_name, field)] = partial(
+                lambda vs, nodeid: vs,
+                nodeid=nodeid
+            )
             self.remapped[(model_name, field)] = partial(
                 lambda vs, nodeid: _construct_resource(vs, nodeid, field, model_name, None),
                 nodeid=nodeid
             )
         elif typ in (DataTypeNames.CONCEPT, DataTypeNames.CONCEPT_LIST):
             nodeid = info["nodeid"]
-            collection = Concept().get_child_collections(models.Node.objects.get(nodeid=nodeid).config["rdmCollection"])
-            self.collections[nodeid] = {
-                "forward": {f"{string_to_enum(field)}.{string_to_enum(label[1])}": label[2] for label in collection},
-                "back": {label[2]: string_to_enum(label[1]) for label in collection}
-            }
-            if typ == DataTypeNames.CONCEPT_LIST:
-                self.remapped[(model_name, field)] = partial(
-                    lambda vs, nodeid: list(map(self.collections[nodeid]["forward"].get, map(str, vs))),
-                    nodeid=nodeid
-                )
-                self.demapped[(model_name, field)] = partial(
-                    lambda vs, nodeid: list(map(self.collections[nodeid]["back"].get, map(str, vs))),
-                    nodeid=nodeid
-                )
+            if info["node"].value is None:
+                logging.warning(f"Value missing for node {info['nodeid']}")
+                return
+            try:
+                collection = info["node"].value.__collection__
+            except models.Concept.DoesNotExist:
+                logging.warning(f"Collection concept missing for node {info['nodeid']}")
+                return
+
+            if collection is None:
+                logging.warning(f"Collection missing for node {info['nodeid']}")
             else:
-                self.remapped[(model_name, field)] = partial(
-                    lambda v, nodeid: self.collections[nodeid]["forward"][str(v)],
-                    nodeid=nodeid
-                )
-                self.demapped[(model_name, field)] = partial(
-                    lambda v, nodeid: self.collections[nodeid]["back"][str(v)],
-                    nodeid=nodeid
-                )
+                self.collections[nodeid] = {
+                    "forward": {f"{string_to_enum(field)}.{label.value.enum}": label.value for label in collection},
+                    "back": {label.value: label.value.enum for label in collection}
+                }
+                if typ == DataTypeNames.CONCEPT_LIST:
+                    self.remapped[(model_name, field)] = partial(
+                        lambda vs, nodeid: print(self.collections[nodeid]["forward"], map(str, vs), list(map(self.collections[nodeid]["forward"].get, map(str, vs)))) or list(map(self.collections[nodeid]["forward"].get, map(str, vs))),
+                        nodeid=nodeid
+                    )
+                    self.demapped[(model_name, field)] = partial(
+                        lambda vs, nodeid: list(map(self.collections[nodeid]["back"].get, vs)),
+                        nodeid=nodeid
+                    )
+                else:
+                    self.remapped[(model_name, field)] = partial(
+                        lambda v, nodeid: self.collections[nodeid]["forward"][str(v)],
+                        nodeid=nodeid
+                    )
+                    self.demapped[(model_name, field)] = partial(
+                        lambda v, nodeid: self.collections[nodeid]["back"][v],
+                        nodeid=nodeid
+                    )
 
     def to_graphene_mut(self, info, field, model_class_name):
         typ = info["type"]
@@ -227,27 +274,29 @@ class DataTypes:
         #    return graphene.List(graphene.String())
 
         if typ in (DataTypeNames.CONCEPT, DataTypeNames.CONCEPT_LIST):
-            collection = self.collections[info["nodeid"]]
-            # We lose the conceptid here, so cannot spot duplicates, but the idea is
-            # to restrict transfer to being human-readable.
-            pairs = {}
-            for n, value in enumerate(collection["back"].values()):
-                pairs[value] = (value, n)
-            if len(pairs) != len(collection["back"]):
-                logging.warning(f"WARNING: duplicate enum entries for {field}")
-            if not pairs:
-                logging.warning(f"WARNING: no enum entries for {field}")
-                return None
-            raw_type = graphene.Enum(string_to_enum(field), list(pairs.values()))
+            if info["nodeid"] in self.collections:
+                collection = self.collections[info["nodeid"]]
+                # We lose the conceptid here, so cannot spot duplicates, but the idea is
+                # to restrict transfer to being human-readable.
+                pairs = {}
+                for n, value in enumerate(collection["back"].values()):
+                    pairs[value] = (value, n)
+                if len(pairs) != len(collection["back"]):
+                    logging.warning(f"WARNING: duplicate enum entries for {field}")
+                if not pairs:
+                    logging.warning(f"WARNING: no enum entries for {field}")
+                    return None
+                raw_type = graphene.Enum(string_to_enum(field), list(pairs.values()))
 
-            return graphene.Argument(graphene.List(raw_type) if typ == DataTypeNames.CONCEPT_LIST else raw_type)
+                return graphene.Argument(graphene.List(raw_type) if typ == DataTypeNames.CONCEPT_LIST else raw_type)
+            else:
+                return None
         elif typ in (DataTypeNames.RESOURCE_INSTANCE, DataTypeNames.RESOURCE_INSTANCE_LIST):
             allowed_graphs = [str(wkrm.graphid) for wkrm in WELL_KNOWN_RESOURCE_MODELS]
             graphs = [
                 graph for graph in self.related_nodes[info["nodeid"]]["relatable_graphs"]
                 if graph in allowed_graphs
             ]
-            logging.error("%s]", str(graphs))
             if len(graphs) == 0:
                 logging.warning("Relations must relate a graph that is well-known")
                 return None
@@ -275,12 +324,14 @@ class DataTypes:
             return graphene.Argument(graphene.List(UserInputType) if info["multiple"] else UserInputType)
         return graphene.List(graphene_type) if info["multiple"] else graphene_type
 
-    def to_graphene(self, info, field, model_class_name):
+    def to_graphene(self, info, field, model_class_name, additional_fields=None):
         typ = info["type"]
         if typ == DataTypeNames.SEMANTIC:
             semantic_type = (model_class_name, field)
             if semantic_type not in semantic_schema_objects:
                 fields = []
+                if additional_fields:
+                    fields += additional_fields
                 semantic_schema_objects[semantic_type] = None # empty semantic fields are not useful
                 if semantic_type in self.semantic_nodes:
                     semantic_detail = self.semantic_nodes[semantic_type]
@@ -289,12 +340,24 @@ class DataTypes:
                         if data_type:
                             fields.append((subfield, data_type))
                     if fields:
+                        members = {
+                            subfield: typ for subfield, typ in fields
+                        }
+                        async def _demap(subfield, model_class_name, source, info, **kwargs):
+                            return await data_types.demap(
+                                model_class_name,
+                                subfield,
+                                await sync_to_async(get_default_resolver())(subfield, None, source, info, **kwargs)
+                            )
+                        members.update({
+                            f"resolve_{subfield}": partial(_demap, subfield, model_class_name)
+                            for subfield, typ in fields
+                            if (model_class_name, subfield) in self.demapped
+                        })
                         SchemaType = type(
                             f"{model_class_name}{string_to_enum(field)}",
                             (graphene.ObjectType,),
-                            {
-                                subfield: typ for subfield, typ in fields
-                            }
+                            members
                         )
                         semantic_schema_objects[semantic_type] = SchemaType
             if semantic_schema_objects[semantic_type]:
@@ -310,20 +373,23 @@ class DataTypes:
         #    return graphene.List(lambda: _resource_model_schemas[typ])
 
         if typ in (DataTypeNames.CONCEPT, DataTypeNames.CONCEPT_LIST):
-            collection = self.collections[info["nodeid"]]
-            # We lose the conceptid here, so cannot spot duplicates, but the idea is
-            # to restrict transfer to being human-readable.
-            pairs = {}
-            for n, value in enumerate(collection["back"].values()):
-                pairs[value] = (value, n)
-            if len(pairs) != len(collection["back"]):
-                logging.warning(f"WARNING: duplicate enum entries for {field}")
-            if not pairs:
-                logging.warning(f"WARNING: no enum entries for {field}")
-                return None
-            raw_type = graphene.Enum(string_to_enum(field), list(pairs.values()))
+            if info["nodeid"] in self.collections:
+                collection = self.collections[info["nodeid"]]
+                # We lose the conceptid here, so cannot spot duplicates, but the idea is
+                # to restrict transfer to being human-readable.
+                pairs = {}
+                for n, value in enumerate(collection["back"].values()):
+                    pairs[value] = (value, n)
+                if len(pairs) != len(collection["back"]):
+                    logging.warning(f"WARNING: duplicate enum entries for {field}")
+                if not pairs:
+                    logging.warning(f"WARNING: no enum entries for {field}")
+                    return None
+                raw_type = graphene.Enum(string_to_enum(field), list(pairs.values()))
 
-            return graphene.List(raw_type) if typ == DataTypeNames.CONCEPT_LIST else graphene.Field(raw_type)
+                return graphene.List(raw_type) if typ == DataTypeNames.CONCEPT_LIST else graphene.Field(raw_type)
+            else:
+                return None
         elif typ in (DataTypeNames.RESOURCE_INSTANCE, DataTypeNames.RESOURCE_INSTANCE_LIST):
             graphs = self.related_nodes[info["nodeid"]]["relatable_graphs"]
             if len(graphs) == 0:
@@ -339,7 +405,7 @@ class DataTypes:
                         (graphene.Union,),
                         {
                             "Meta": {"types": tuple({_resource_model_schemas[self.graphs[graph].__name__] for graph in graphs})},
-                            "resolve_type": lambda cls, instance, info=None: _resource_model_schemas[cls._model_class_name]
+                            "resolve_type": lambda cls, instance, info=None: _resource_model_schemas[cls._._model_class_name]
                         }
                     )
                     return union
@@ -380,22 +446,16 @@ with get_adapter().context_free() as _:
         for wkrm in WELL_KNOWN_RESOURCE_MODELS
         if wkrm.model_name in data_types.definitions
     }
-    _resource_model_schemas = {
-        wkrm.model_class_name: type(
-            wkrm.model_class_name,
-            (graphene.ObjectType,),
-            {
-                field: arg for field, arg in
-                {
-                    field: data_types.to_graphene(info, field, wkrm.model_class_name)
-                    for field, info in data_types.definitions[wkrm.model_name]["fields"].items()
-                }.items()
-                if arg
-            }
-        )
-        for wkrm in WELL_KNOWN_RESOURCE_MODELS
-        if wkrm.model_name in data_types.definitions
-    }
+    _resource_model_schemas = {}
+    for wkrm in WELL_KNOWN_RESOURCE_MODELS:
+        if wkrm.model_name in data_types.definitions:
+            data_types.to_graphene(
+                data_types.definitions[wkrm.model_name]["root"],
+                "",
+                wkrm.model_class_name,
+                additional_fields=[("id", graphene.Field(graphene.String()))]
+            )
+            _resource_model_schemas[wkrm.model_class_name] = semantic_schema_objects[(wkrm.model_class_name, "")]
     _resource_model_inputs = {
         wkrm.model_class_name: type(
             f"{wkrm.model_class_name}Input",
@@ -427,7 +487,7 @@ with get_adapter().context_free() as _:
             ret: list[UnavailableResourceInstance | None | WKRI] = []
             for key in keys:
                 try:
-                    resource = attempt_well_known_resource_model(key)
+                    resource = attempt_well_known_resource_model(key, from_prefetch=related_prefetch)
                 except WKRIPermissionDenied:
                     ret.append(UnavailableResourceInstance("Instance permission denied") if GRAPHQL_DEBUG_PERMISSIONS else None) # must send back the same number
                 except WKRMPermissionDenied:
@@ -517,7 +577,7 @@ with get_adapter().context_free() as _:
                 "ok": False
             }
 
-        field_sets = [{field: (await data_types.remap(resource_cls.__name__, field, value)) for field, value in field_set.items()} for field_set in field_sets]
+        #field_sets = [{field: (await data_types.remap(resource_cls.__name__, field, value)) for field, value in field_set.items()} for field_set in field_sets]
         try:
             resources = await sync_to_async(resource_cls.create_bulk)(field_sets, do_index=do_index)
         except WKRMPermissionDenied:

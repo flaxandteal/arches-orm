@@ -30,6 +30,7 @@ class ResourceWrapper(ABC):
     _pending_relationships: list | None = None
     _related_prefetch: Callable | None = None
     _remap: bool = True
+    _remap_total: bool = False
     _model_remapping: dict
     _name: str | None = None
     _description: str | None = None
@@ -84,8 +85,10 @@ class ResourceWrapper(ABC):
                         else:
                             raise RuntimeError("Cannot set single value when multiplicity present")
                     setattr(got, to_set, value)
-                else:
+                elif self._remap_total:
                     raise AttributeError("Field not available in remapped model")
+                else:
+                    setattr(self.get_root().value, key, value)
             else:
                 setattr(self.get_root().value, key, value)
 
@@ -126,10 +129,13 @@ class ResourceWrapper(ABC):
         """Retrieve Python values for nodes attributes."""
 
         if self._remap and self._model_remapping is not None:
-            if key not in self._model_remapping:
+            print(self, type(self), self._remap, self._model_remapping, key)
+            if key in self._model_remapping:
+                real_key = self._model_remapping[key]
+                return self._get_remap(real_key)
+            elif self._remap_total:
                 raise AttributeError("Field not available in remapped model")
-            real_key = self._model_remapping[key]
-            return self._get_remap(real_key)
+        print(self, type(self), key)
         val = getattr(self.get_root().value, key)
         return val
 
@@ -269,6 +275,7 @@ class ResourceWrapper(ABC):
             cls._model_name = well_known_resource_model.model_name
             cls._model_class_name = well_known_resource_model.model_class_name
             cls._model_remapping = well_known_resource_model.remapping
+            cls._remap_total = well_known_resource_model.total_remap
             cls.graphid = well_known_resource_model.graphid
             cls._wkrm = well_known_resource_model
             cls._add_events()
