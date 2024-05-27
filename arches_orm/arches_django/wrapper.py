@@ -628,6 +628,8 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
         cls._root_node = {
             "root": node for node in nodes.values() if node.nodegroup_id is None
         }.get("root")
+        if not cls._root_node:
+            logger.error("COULD NOT FIND ROOT NODE FOR %s. Does the graph %s still exist?", cls, str(cls.graphid))
 
     @property
     def __fields__(self):
@@ -653,8 +655,7 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
 
         root_fields = {}
         pseudo_node = cls._get_root_pseudo_node()
-        if pseudo_node:
-            root_fields.update(_fill_fields(pseudo_node))
+        root_fields.update(_fill_fields(pseudo_node))
         fields: dict[str, Any] = {}
         if not cls._remap_total or not cls._remap:
             root_fields.setdefault("children", fields)
