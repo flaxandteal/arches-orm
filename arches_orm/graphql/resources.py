@@ -29,7 +29,6 @@ from arches_orm.wkrm import WELL_KNOWN_RESOURCE_MODELS
 from arches_orm.wkrm import get_resource_models_for_adapter
 
 from arches.app.models import models
-from arches.app.models.concept import Concept
 import arches.app.models.resource
 
 from arches.app.datatypes.datatypes import DataTypeFactory
@@ -603,7 +602,6 @@ with get_adapter().context_free() as _:
             await sync_to_async(resource._.to_resource)()
             if do_index:
                 await sync_to_async(resource._.index)()
-            ok = True
         except (WKRMPermissionDenied, WKRIPermissionDenied) as exc:
             if GRAPHQL_DEBUG_PERMISSIONS:
                 logging.exception(exc)

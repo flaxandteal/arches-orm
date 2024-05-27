@@ -2,7 +2,6 @@ import uuid
 from functools import lru_cache
 
 from arches.app.models.concept import Concept
-from arches.app.models import models
 
 from arches_orm.view_models import (
     ConceptListValueViewModel,
@@ -11,7 +10,6 @@ from arches_orm.view_models import (
 )
 from arches_orm.collection import make_collection
 from ._register import REGISTER
-from django.db.models import Q
 
 @lru_cache
 def retrieve_collection(concept_id):

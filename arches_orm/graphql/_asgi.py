@@ -32,7 +32,7 @@ class App(HTTPEndpoint):
 
 class ORMContextMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):
-        with get_adapter().context(user=starlette_context.data["user"]) as cvar:
+        with get_adapter().context(user=starlette_context.data["user"]) as _:
             return await call_next(request)
 middleware = [
     Middleware(

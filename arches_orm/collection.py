@@ -1,9 +1,6 @@
 from enum import Enum
-from collections import UserDict
 
 from .view_models.concepts import ConceptValueViewModel
-from .utils import string_to_enum
-from typing import cast
 
 def make_collection(name: str, concept: ConceptValueViewModel, collection: list[ConceptValueViewModel]) -> type[Enum]:
     values = dict()

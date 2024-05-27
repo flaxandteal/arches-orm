@@ -2,8 +2,6 @@ import re
 from collections.abc import Iterable
 import uuid
 from django.contrib.auth.models import User
-from arches.app.models.concept import Concept
-from arches.app.utils.betterJSONSerializer import JSONDeserializer
 from arches.app.search.elasticsearch_dsl_builder import Bool, Ids, Match, Nested, SimpleQueryString, QueryString, Terms, Term
 from arches.app.search.components.term_filter import _get_child_concepts
 from arches.app.utils.permission_backend import get_nodegroups_by_perm
@@ -84,7 +82,7 @@ class TermFilter(BaseStringFilter):
         try:
             uuid.UUID(str(value))
             filt.must(Ids(ids=value))
-        except:
+        except (TypeError, ValueError):
             if self.language != "*":
                 filt.must(Match(field="strings.language", query=self.language, type="phrase_prefix"))
             exact_term = re.search('"(?P<search_string>.*)"', value)
@@ -145,10 +143,7 @@ class SearchMixin:
         from arches.app.views.search import RESOURCES_INDEX
         from arches.app.search.elasticsearch_dsl_builder import (
             Bool,
-            Match,
             Query,
-            Nested,
-            Terms,
         )
 
         # AGPL Arches

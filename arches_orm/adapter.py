@@ -113,13 +113,13 @@ def context(ctx: dict | None, adapter_key: str | None=None) -> Callable[[Any], A
         @wraps(f)
         def _g(*args, **kwargs):
             adapter = get_adapter(adapter_key)
-            with adapter.context(_ctx=ctx, _override=True) as cvar:
+            with adapter.context(_ctx=ctx, _override=True) as _:
                 yield from f(*args, **kwargs)
 
         @wraps(f)
         def _f(*args, **kwargs):
             adapter = get_adapter(adapter_key)
-            with adapter.context(_ctx=ctx, _override=True) as cvar:
+            with adapter.context(_ctx=ctx, _override=True) as _:
                 return f(*args, **kwargs)
         return _g if isgenerator(f) or isgeneratorfunction(f) else _f
 

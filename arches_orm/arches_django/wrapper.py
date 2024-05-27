@@ -137,7 +137,7 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
     def _get_descriptor(self, descriptor, context=None):
         if context is None and (lang := self._context_get("language")):
             context = {
-                "language": context
+                "language": lang
             }
         if not self.resource:
             raise NotImplementedError()
@@ -388,7 +388,7 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
 
     @classmethod
     def _context_req(cls, key):
-        return self._context_get(cls, key, required=True)
+        return cls._context_get(cls, key, required=True)
 
     @classmethod
     def _context_get(cls, key, default=None, required=False):
