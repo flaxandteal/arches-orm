@@ -662,7 +662,9 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
 
         if cls._remap and cls._model_remapping:
             for field, target in cls._model_remapping.items():
-                _, target = target.split(".", -1)
+                if "." in target:
+                    _, target = target.split(".", -1)
+                logger.info("remapping: %s to %s", field, target)
                 pseudo_node = cls._make_pseudo_node_cls(target, wkri=None)
                 fields[snake(field)] = _fill_fields(pseudo_node)
 
