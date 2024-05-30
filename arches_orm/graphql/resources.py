@@ -80,6 +80,10 @@ class DataTypes:
             res = closure(value)
             if iscoroutinefunction(res):
                 res = await res
+            if is_unset(res):
+                return None
+            if not (isinstance(res, str) or isinstance(res, bytes)) and isinstance(res, Sequence):
+                res = [(None if is_unset(val) else val) for val in res]
             return res
         return value
 

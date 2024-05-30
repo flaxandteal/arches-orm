@@ -1,8 +1,13 @@
+import logging
 from typing import Any, Generator, Callable, Literal
 from inspect import isgenerator, isgeneratorfunction
 from functools import partial, wraps
 from contextlib import contextmanager
 from contextvars import ContextVar
+
+_ADMINISTRATION_MODE: bool = False
+
+logger = logging.getLogger(__name__)
 
 class Adapter:
     config: dict[str, Any]
@@ -19,6 +24,12 @@ class Adapter:
         self._context.set(None)
 
     def get_context(self):
+        if _ADMINISTRATION_MODE:
+            try:
+                self._context.get()
+            except LookupError:
+                self._context.set(None)
+
         return self._context
 
     @contextmanager
@@ -129,6 +140,14 @@ def context(ctx: dict | None, adapter_key: str | None=None) -> Callable[[Any], A
 def admin(adapter_key: str | None=None):
     with get_adapter(adapter_key).context(None, _override=True) as cvar:
         yield cvar
+
+def admin_everywhere():
+    _ADMINISTRATION_MODE = True
+    logger.warning(
+        "ARCHES ORM ADMINISTRATION MODE ON: use for debugging only, "
+        "otherwise use the `context_free` or `context` decorator/with statement to "
+        "achieve this result safely."
+    )
 
 ADAPTER_MANAGER = AdapterManager()
 get_adapter = ADAPTER_MANAGER.get_adapter
