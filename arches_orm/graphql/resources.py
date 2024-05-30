@@ -73,10 +73,10 @@ class DataTypes:
         self.semantic_nodes = {}
         self.related_nodes = {}
 
-    async def demap(self, model, field, value, info=None):
+    async def demap(self, model_class_name, field, value, info=None):
         if is_unset(value):
             return None
-        if (closure := self.demapped.get((model, field), None)):
+        if (closure := self.demapped.get((model_class_name, field), None)):
             res = closure(value)
             if iscoroutinefunction(res):
                 res = await res
@@ -87,8 +87,8 @@ class DataTypes:
             return res
         return value
 
-    async def remap(self, model, field, value):
-        if (closure := self.remapped.get((model, field), None)):
+    async def remap(self, model_class_name, field, value):
+        if (closure := self.remapped.get((model_class_name, field), None)):
             value = closure(value)
             if iscoroutine(value):
                 value = await value
@@ -153,6 +153,7 @@ class DataTypes:
 
     def _process_field(self, model_name, field, info, model, top_level=False):
         typ = info["type"]
+        model_class_name = model.__name__
         if typ == DataTypeNames.SEMANTIC:
             for subfield, subinfo in info.get("children", {}).items():
                 self._build_semantic(field, subfield, subinfo, model_name, model.__name__)
@@ -160,16 +161,16 @@ class DataTypes:
                 if top_level:
                     self.definitions[model_name]["fields"][subfield] = subinfo
 
-            async def _map_semantic(model_name, field, v):
+            async def _map_semantic(model_class_name, field, v):
                 if isinstance(v, Sequence):
-                    return [await _map_semantic(model_name, field, v_) for v_ in v]
+                    return [await _map_semantic(model_class_name, field, v_) for v_ in v]
                 return {
-                    key: await data_types.remap(model_name, key, val) for key, val in v.items()
+                    key: await data_types.remap(model_class_name, key, val) for key, val in v.items()
                 }
 
-            self.remapped[(model_name, field)] = partial(
+            self.remapped[(model_class_name, field)] = partial(
                 _map_semantic,
-                model_name,
+                model_class_name,
                 field
             )
         elif typ in (DataTypeNames.RESOURCE_INSTANCE, DataTypeNames.RESOURCE_INSTANCE_LIST):
@@ -194,11 +195,11 @@ class DataTypes:
                 resources = [await _build_resource(model, **v) for v in vs]
                 return resources
 
-            self.demapped[(model_name, field)] = partial(
+            self.demapped[(model_class_name, field)] = partial(
                 lambda vs, nodeid: vs,
                 nodeid=nodeid
             )
-            self.remapped[(model_name, field)] = partial(
+            self.remapped[(model_class_name, field)] = partial(
                 lambda vs, nodeid: _construct_resource(vs, nodeid, field, model_name, None),
                 nodeid=nodeid
             )
@@ -221,20 +222,20 @@ class DataTypes:
                     "back": {label.value: label.value.enum for label in collection}
                 }
                 if typ == DataTypeNames.CONCEPT_LIST:
-                    self.remapped[(model_name, field)] = partial(
-                        lambda vs, nodeid: print(self.collections[nodeid]["forward"], map(str, vs), list(map(self.collections[nodeid]["forward"].get, map(str, vs)))) or list(map(self.collections[nodeid]["forward"].get, map(str, vs))),
+                    self.remapped[(model_class_name, field)] = partial(
+                        lambda vs, nodeid: list(map(self.collections[nodeid]["forward"].get, map(str, vs))),
                         nodeid=nodeid
                     )
-                    self.demapped[(model_name, field)] = partial(
+                    self.demapped[(model_class_name, field)] = partial(
                         lambda vs, nodeid: list(map(self.collections[nodeid]["back"].get, vs)),
                         nodeid=nodeid
                     )
                 else:
-                    self.remapped[(model_name, field)] = partial(
+                    self.remapped[(model_class_name, field)] = partial(
                         lambda v, nodeid: self.collections[nodeid]["forward"][str(v)],
                         nodeid=nodeid
                     )
-                    self.demapped[(model_name, field)] = partial(
+                    self.demapped[(model_class_name, field)] = partial(
                         lambda v, nodeid: self.collections[nodeid]["back"][v],
                         nodeid=nodeid
                     )
@@ -443,7 +444,7 @@ with get_adapter().context_free() as _:
 
     _resource_model_mappers = {
         wkrm.model_class_name: {
-            field: partial(data_types.demap, wkrm.model_name, field)
+            field: partial(data_types.demap, wkrm.model_class_name, field)
             for field, info in data_types.definitions[wkrm.model_name]["fields"].items()
         }
         for wkrm in WELL_KNOWN_RESOURCE_MODELS
