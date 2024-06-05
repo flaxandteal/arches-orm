@@ -214,8 +214,11 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
                     relationships += subrelationships
                     ghost_tiles |= subghost_tiles
                 if isinstance(pseudo_node, PseudoNodeList):
-                    ghost_tiles = {ghost.get_tile()[0] for ghost in pseudo_node._ghost_children}
-                    print(ghost_tiles, 'ghost_tiles')
+                    # Only hold ghost tiles that have been saved.
+                    ghost_tiles = {
+                        tile for ghost in pseudo_node.free_ghost_children()
+                        if (tile := ghost.get_tile()[0]) and tile.pk and not tile._state.adding
+                    }
                 else:
                     t, r = pseudo_node.get_tile()
                     if t is not None and permitted_nodegroups is not None and (t.nodegroup_id is None or str(t.nodegroup_id) not in permitted_nodegroups):
@@ -269,7 +272,7 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
         permitted_nodegroups = self._permitted_nodegroups()
         relationships, ghost_tiles = self._update_tiles(tiles, self._values, permitted_nodegroups=permitted_nodegroups)
         for tile in ghost_tiles:
-            print(tile.data)
+            print('tileid', tile.pk, tile.data)
             tile.delete()
 
         # parented tiles are saved hierarchically

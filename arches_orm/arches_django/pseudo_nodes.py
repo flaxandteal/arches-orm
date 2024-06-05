@@ -23,6 +23,11 @@ class PseudoNodeList(UserList):
         self.parenttile_id = None
         self._ghost_children = set()
 
+    def free_ghost_children(self):
+        ghost_children = self._ghost_children
+        self._ghost_children = set()
+        return ghost_children
+
     @property
     def value(self):
         return NodeListViewModel(self)
@@ -59,7 +64,6 @@ class PseudoNodeList(UserList):
         self._ghost_children |= {
             entry for entry in self if str(entry.node.nodegroup_id) == str(self.node.nodeid)
         }
-        print(self._ghost_children)
         super().clear()
         if self.tile and str(self.node.nodeid) in self.tile.data:
             del self.tile.data[str(self.node.nodeid)]

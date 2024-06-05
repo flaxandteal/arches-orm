@@ -86,6 +86,10 @@ def test_can_remove_name(arches_orm, lazy):
     person = Person.create()
     person.name.append().full_name = "Asha"
     person.save()
+    person.name.pop()
+    person.save()
+    person.name.append().full_name = "Asha"
+    person.save()
 
     reloaded_person = arches_orm.models.Person.find(person.id, lazy=lazy)
     assert reloaded_person.name[0].full_name == "Asha"
