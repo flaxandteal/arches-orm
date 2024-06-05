@@ -23,6 +23,8 @@ from arches_orm.datatypes import DataTypeNames
 from arches_orm.wrapper import ResourceWrapper
 from arches_orm.utils import snake
 from arches_orm.errors import WKRIPermissionDenied, WKRMPermissionDenied, DescriptorsNotYetSet
+from arches_orm.view_models.resources import RelatedResourceInstanceViewModelMixin
+
 
 from .bulk_create import BulkImportWKRM
 from .pseudo_nodes import PseudoNodeList, PseudoNodeValue, PseudoNodeUnavailable
@@ -196,6 +198,11 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
         if not isinstance(root, PseudoNodeList):
             parent = root
         for pseudo_node in root.get_children():
+            if isinstance(pseudo_node.value, RelatedResourceInstanceViewModelMixin):
+                # Do not cross between resources. The relationship should already
+                # be captured. The canonical example of this is a semantic node that
+                # gives us a related resource instance.
+                continue
             if isinstance(pseudo_node, PseudoNodeList) or pseudo_node.accessed:
                 if len(pseudo_node):
                     subrelationships = self._update_tiles(
@@ -209,7 +216,7 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
                         if pseudo_node._original_tile and hasattr(pseudo_node._original_tile, "_original_data"):
                             if t.data == pseudo_node._original_tile._original_data:
                                 continue
-                        raise RuntimeError(f"Attempt to modify data that this user does not have permissions to: {t.nodegroup_id}")
+                        raise RuntimeError(f"Attempt to modify data that this user does not have permissions to: {t.nodegroup_id} in {self}")
                     else:
                         combined_tiles.append((t, r))
             # This avoids loading a tile as a set of view models, simply to re-save it.

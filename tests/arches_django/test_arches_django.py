@@ -191,6 +191,20 @@ def test_can_save_a_surname(arches_orm, person_ashs, lazy):
 @pytest.mark.django_db
 @context_free
 @pytest.mark.parametrize("lazy", [False, True])
+def test_can_save_two_related_resources_singly(arches_orm, person_ashs, lazy):
+    act_1 = arches_orm.models.Activity()
+    person_ashs.favourite_activity = act_1
+    person_ashs.save()
+    assert person_ashs.favourite_activity.id == act_1.id
+
+    reloaded_person = arches_orm.models.Person.find(person_ashs.id, lazy=lazy)
+    # FIXME: Arches itself treats single resource instances as lists, so will require
+    # work either here or upstream to mitigate this on load.
+    assert reloaded_person.favourite_activity[0].id == act_1.id
+
+@pytest.mark.django_db
+@context_free
+@pytest.mark.parametrize("lazy", [False, True])
 def test_can_save_two_related_resources(arches_orm, person_ashs, lazy):
     act_1 = arches_orm.models.Activity()
     person_ashs.associated_activities.append(act_1)

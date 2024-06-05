@@ -62,6 +62,13 @@ def resource_instance(
     )
 
     value = value or tile.data.get(str(node.nodeid))
+    if isinstance(value, list):
+        if len(value) > 1:
+            raise RuntimeError("Resource instance should be a list if it contains multiple entries")
+        elif len(value) == 1:
+            value = value[0]
+        else:
+            value = None
     if isinstance(value, dict):
         value = value.get("resourceId")
     resource_instance_id = None
@@ -124,4 +131,4 @@ def resource_instance(
 
 @resource_instance.as_tile_data
 def ri_as_tile_data(ri):
-    return {}, [ri]
+    return [], [ri]

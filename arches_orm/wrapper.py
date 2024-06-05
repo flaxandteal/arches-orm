@@ -89,8 +89,10 @@ class ResourceWrapper(ABC):
                     raise AttributeError("Field not available in remapped model")
                 else:
                     setattr(self.get_root().value, key, value)
+            elif (root := self.get_root()):
+                setattr(root.value, key, value)
             else:
-                setattr(self.get_root().value, key, value)
+                raise RuntimeError(f"Tried to set {key} on {self}, which has no root")
 
     def _get_remap(self, real_key: str):
         if real_key is None:
@@ -129,14 +131,15 @@ class ResourceWrapper(ABC):
         """Retrieve Python values for nodes attributes."""
 
         if self._remap and self._model_remapping is not None:
-            print(self, type(self), self._remap, self._model_remapping, key)
             if key in self._model_remapping:
                 real_key = self._model_remapping[key]
                 return self._get_remap(real_key)
             elif self._remap_total:
                 raise AttributeError("Field not available in remapped model")
-        print(self, type(self), key)
-        val = getattr(self.get_root().value, key)
+        if (root := self.get_root()):
+            val = getattr(root.value, key)
+        else:
+            raise RuntimeError(f"Tried to get {key} on {self}, which has no root")
         return val
 
     def __init__(

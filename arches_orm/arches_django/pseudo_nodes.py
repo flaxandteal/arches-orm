@@ -1,7 +1,7 @@
 from arches.app.models.tile import Tile as TileProxyModel
 from collections import UserList
 
-from arches_orm.view_models import ViewModel, NodeListViewModel, UnavailableViewModel
+from arches_orm.view_models import ViewModel, NodeListViewModel, UnavailableViewModel, ResourceInstanceViewModel
 
 from .datatypes import get_view_model_for_datatype
 
@@ -91,6 +91,7 @@ class PseudoNodeValue:
     _value = None
     _datatype = None
     _multiple = False
+    _as_tile_data = None
 
     def __init__(self, node, tile=None, value=None, parent=None, child_nodes=None, parent_cls=None):
         self.node = node
@@ -142,6 +143,7 @@ class PseudoNodeValue:
                 str(self.node.nodeid)
             ] = tile_value  # TODO: ensure this works for any value
         tile = self.tile if self.node.is_collector else None
+
         return tile, relationships
 
     def clear(self):
@@ -193,7 +195,7 @@ class PseudoNodeValue:
 
     @value.setter
     def value(self, value):
-        if not isinstance(value, ViewModel):
+        if not isinstance(value, ViewModel) or isinstance(value, ResourceInstanceViewModel):
             self.get_tile()
             value, self._as_tile_data, self._datatype, self._multiple = get_view_model_for_datatype(
                 self.tile,
