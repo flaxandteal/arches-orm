@@ -95,6 +95,26 @@ def test_can_remove_name(arches_orm, lazy):
     reloaded_person = arches_orm.models.Person.find(person.id, lazy=lazy)
     assert len(reloaded_person.name) == 0
 
+    reloaded_person.name.append().full_name = "Asha"
+    reloaded_person.save()
+    reloaded_person = arches_orm.models.Person.find(person.id, lazy=lazy)
+    assert reloaded_person.name[0].full_name == "Asha"
+
+    reloaded_person.name.remove(reloaded_person.name[0])
+    reloaded_person.save()
+    reloaded_person = arches_orm.models.Person.find(person.id, lazy=lazy)
+    assert len(reloaded_person.name) == 0
+
+    reloaded_person.name.append().full_name = "Asha"
+    reloaded_person.save()
+    reloaded_person = arches_orm.models.Person.find(person.id, lazy=lazy)
+    assert reloaded_person.name[0].full_name == "Asha"
+
+    reloaded_person.name.pop(0)
+    reloaded_person.save()
+    reloaded_person = arches_orm.models.Person.find(person.id, lazy=lazy)
+    assert len(reloaded_person.name) == 0
+
 @pytest.mark.django_db
 @context_free
 @pytest.mark.parametrize("lazy", [False, True])

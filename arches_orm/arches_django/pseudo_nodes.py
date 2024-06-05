@@ -21,12 +21,45 @@ class PseudoNodeList(UserList):
         self.tile = None
         self._parent_node = None
         self.parenttile_id = None
+        self._ghost_children = set()
 
     @property
     def value(self):
         return NodeListViewModel(self)
 
+    def index(self, x, start=0, end=-1):
+        return self._find(x, start, end)[0]
+
+    def _find(self, x, start=0, end=-1):
+        if end < 0:
+            end += len(self)
+        item = [(i, entry) for i, entry in enumerate(self) if i >= start and i <= end and (entry == x or entry.value == x)]
+        try:
+            loc, entry = item[0]
+        except KeyError:
+            raise ValueError()
+        return loc, entry
+
+    def remove(self, x):
+        entry = self._find(x)[1]
+        super().remove(entry)
+
+        if str(entry.node.nodegroup_id) == str(self.node.nodeid):
+            self._ghost_children.add(entry)
+
+    def pop(self, i=-1):
+        entry = super().pop(i)
+
+        if str(entry.node.nodegroup_id) == str(self.node.nodeid):
+            self._ghost_children.add(entry)
+
+        return entry
+
     def clear(self):
+        self._ghost_children |= {
+            entry for entry in self if str(entry.node.nodegroup_id) == str(self.node.nodeid)
+        }
+        print(self._ghost_children)
         super().clear()
         if self.tile and str(self.node.nodeid) in self.tile.data:
             del self.tile.data[str(self.node.nodeid)]
@@ -56,13 +89,19 @@ class PseudoNodeList(UserList):
         ]
         super().__iadd__(other_pn)
 
+    def extend(self, iterable):
+        raise NotImplementedError()
+
     def append(self, item=None):
+        return self.insert(len(self), item)
+
+    def insert(self, i, item=None):
         if not isinstance(item, PseudoNodeValue):
             value = self.make_pseudo_node()
             if item is not None:
                 value.value = item
             item = value
-        super().append(item)
+        super().insert(i, item)
         if not self.parenttile_id:
             self.parenttile_id = item.parenttile_id
         if self.parenttile_id != item.parenttile_id:

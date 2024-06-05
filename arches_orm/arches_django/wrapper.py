@@ -186,7 +186,7 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
     ):
         if not root:
             if not all_values:
-                return []
+                return [], set()
             root = [
                 nodelist[0]
                 for nodelist in all_values.values()
@@ -195,6 +195,7 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
 
         combined_tiles = []
         relationships = []
+        ghost_tiles = set()
         if not isinstance(root, PseudoNodeList):
             parent = root
         for pseudo_node in root.get_children():
@@ -207,11 +208,15 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
                 continue
             if isinstance(pseudo_node, PseudoNodeList) or pseudo_node.accessed:
                 if len(pseudo_node):
-                    subrelationships = self._update_tiles(
+                    subrelationships, subghost_tiles = self._update_tiles(
                         tiles, root=pseudo_node, parent=parent, permitted_nodegroups=permitted_nodegroups
                     )
                     relationships += subrelationships
-                if not isinstance(pseudo_node, PseudoNodeList):
+                    ghost_tiles |= subghost_tiles
+                if isinstance(pseudo_node, PseudoNodeList):
+                    ghost_tiles = {ghost.get_tile()[0] for ghost in pseudo_node._ghost_children}
+                    print(ghost_tiles, 'ghost_tiles')
+                else:
                     t, r = pseudo_node.get_tile()
                     if t is not None and permitted_nodegroups is not None and (t.nodegroup_id is None or str(t.nodegroup_id) not in permitted_nodegroups):
                         # Warn if we can
@@ -240,7 +245,7 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
                     for relationship in subrelationships
                 ]
                 tiles[nodegroup_id].append(tile)
-        return relationships
+        return relationships, ghost_tiles
 
     def to_resource(
         self,
@@ -262,11 +267,13 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
         resource = Resource(resourceinstanceid=self.id, graph_id=self.graphid)
         tiles = {}
         permitted_nodegroups = self._permitted_nodegroups()
-        relationships = self._update_tiles(tiles, self._values, permitted_nodegroups=permitted_nodegroups)
+        relationships, ghost_tiles = self._update_tiles(tiles, self._values, permitted_nodegroups=permitted_nodegroups)
+        for tile in ghost_tiles:
+            print(tile.data)
+            tile.delete()
 
         # parented tiles are saved hierarchically
         resource.tiles = [t for t in sum((ts for ts in tiles.values()), [])]
-        print('r', relationships)
 
         if not resource.createdtime:
             resource.createdtime = datetime.now()
