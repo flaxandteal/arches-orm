@@ -199,9 +199,11 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
             parent = root
         for pseudo_node in root.get_children():
             if isinstance(pseudo_node.value, RelatedResourceInstanceViewModelMixin):
-                # Do not cross between resources. The relationship should already
+                # Do not cross between resources. The relationship should
                 # be captured. The canonical example of this is a semantic node that
                 # gives us a related resource instance.
+                t, r = pseudo_node.get_tile()
+                combined_tiles.append((t, r))
                 continue
             if isinstance(pseudo_node, PseudoNodeList) or pseudo_node.accessed:
                 if len(pseudo_node):
@@ -264,6 +266,7 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
 
         # parented tiles are saved hierarchically
         resource.tiles = [t for t in sum((ts for ts in tiles.values()), [])]
+        print('r', relationships)
 
         if not resource.createdtime:
             resource.createdtime = datetime.now()

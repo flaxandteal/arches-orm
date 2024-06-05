@@ -76,7 +76,24 @@ def test_can_save_with_county_value(arches_orm, lazy):
     person.save()
 
     reloaded_person = arches_orm.models.Person.find(person.id, lazy=lazy)
-    assert person.location_data[0].addresses.county.county_value == "Antrim"
+    assert reloaded_person.location_data[0].addresses.county.county_value == "Antrim"
+
+@pytest.mark.django_db
+@context_free
+@pytest.mark.parametrize("lazy", [False, True])
+def test_can_remove_name(arches_orm, lazy):
+    Person = arches_orm.models.Person
+    person = Person.create()
+    person.name.append().full_name = "Asha"
+    person.save()
+
+    reloaded_person = arches_orm.models.Person.find(person.id, lazy=lazy)
+    assert reloaded_person.name[0].full_name == "Asha"
+
+    reloaded_person.name.clear()
+    reloaded_person.save()
+    reloaded_person = arches_orm.models.Person.find(person.id, lazy=lazy)
+    assert len(reloaded_person.name) == 0
 
 @pytest.mark.django_db
 @context_free
@@ -194,6 +211,7 @@ def test_can_save_a_surname(arches_orm, person_ashs, lazy):
 def test_can_save_two_related_resources_singly(arches_orm, person_ashs, lazy):
     act_1 = arches_orm.models.Activity()
     person_ashs.favourite_activity = act_1
+    act_1.save()
     person_ashs.save()
     assert person_ashs.favourite_activity.id == act_1.id
 
