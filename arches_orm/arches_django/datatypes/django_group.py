@@ -27,12 +27,9 @@ def django_group(tile, node, value, _, __, ___, group) -> GroupProtocol:
             if value.pk:
                 value = value.pk
             else:
-                print(2)
-                
                 group = DjangoGroupViewModel()
                 group.__dict__.update(value.__dict__)
         if value:
-            print('value: ', value)
             group = DjangoGroupViewModel.objects.get(pk=int(value))
     if not group:
         group = DjangoGroupViewModel()
