@@ -76,6 +76,8 @@ def get_resource_models_for_adapter(adapter_name: str | None = None):
             try:
                 resource_models[str(adapter)]["by-class"][wkrm.model_class_name] = _make_wkrm(wkrm, adapter)
             except Exception as exc:
+                import traceback
+                traceback.print_exception(exc)
                 logger.error("Could not load well-known resource model %s for adapter %s", str(wkrm.model_class_name), str(adapter))
                 logger.exception(exc)
                 logger.error("...continuing, to prevent circularity.")
