@@ -21,7 +21,7 @@ class DjangoGroupViewModel(Group, GroupViewModelMixin):
 @REGISTER("django-group")
 def django_group(tile, node, value, _, __, ___, group) -> GroupProtocol:
     group = None
-    value = value or tile.data.get(str(node.nodeid))
+    value = (value if not isinstance(value, tuple) else value[0]) or tile.data.get(str(node.nodeid))
     if value:
         if isinstance(value, Group):
             if value.pk:
