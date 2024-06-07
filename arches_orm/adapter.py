@@ -142,6 +142,7 @@ def admin(adapter_key: str | None=None):
         yield cvar
 
 def admin_everywhere():
+    global _ADMINISTRATION_MODE 
     _ADMINISTRATION_MODE = True
     logger.warning(
         "ARCHES ORM ADMINISTRATION MODE ON: use for debugging only, "

@@ -5,6 +5,7 @@ from django.dispatch import Signal
 from collections import UserDict
 from functools import lru_cache
 from datetime import datetime
+from django.db import transaction
 from arches.app.models.models import ResourceXResource, Node, NodeGroup, Edge
 from arches.app.models.graph import Graph
 from arches.app.models.tile import Tile as TileProxyModel
@@ -308,7 +309,8 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
                 #    resource.tiles = all_tiles
 
                 # This fills out the tiles with None values
-                resource.save()
+                with transaction.atomic():
+                    resource.save()
                 self.id = resource.resourceinstanceid
                 system_settings.BYPASS_REQUIRED_VALUE_TILE_VALIDATION = bypass
         elif not resource._state.adding:
@@ -379,7 +381,8 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
             do_final_save = True
 
         if do_final_save:
-            resource.save()
+            with transaction.atomic():
+                resource.save()
             resource = Resource.objects.get(resourceinstanceid=self.id)
             self.resource = resource
 
