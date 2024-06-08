@@ -96,7 +96,6 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
     _context: ContextVar[dict[str, Any] | None] | None = None
     _nodes_real: dict = None
     _nodegroup_objects_real: dict = None
-    _root_node: Node | None = None
     _values_list: ValueList | None = None
     _values_real: list | None = None
     __datatype_factory = None
@@ -648,11 +647,6 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
         }
         cls._nodes_real.update(nodes)
         cls._nodegroup_objects_real.update(nodegroups)
-        cls._root_node = {
-            "root": node for node in nodes.values() if node.nodegroup_id is None
-        }.get("root")
-        if not cls._root_node:
-            logger.error("COULD NOT FIND ROOT NODE FOR %s. Does the graph %s still exist?", cls, str(cls.graphid))
 
     @property
     def __fields__(self):
@@ -1116,7 +1110,6 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
             # We should not actually fail without a graph...
             cls._nodes_real = {}
             cls._nodegroup_objects_real = {}
-            cls._build_nodes()
 
     @classmethod
     def _add_events(cls):
@@ -1125,27 +1118,38 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
         cls.post_related_from = Signal()
 
     @classmethod
+    @lru_cache
+    def _root_node(cls) -> Node:
+        nodes = cls._node_objects()
+        root_node = {
+            "root": node for node in nodes.values() if node.nodegroup_id is None
+        }.get("root")
+        if not root_node:
+            logger.error("COULD NOT FIND ROOT NODE FOR %s. Does the graph %s still exist?", cls, str(cls.graphid))
+        return root_node
+
+    @classmethod
     def _get_root_pseudo_node(cls):
-        if cls._root_node:
+        if (node := cls._root_node()):
             return cls._make_pseudo_node_cls(
-                cls._root_node.alias,
+                node.alias,
                 wkri=None
             )
         return None
 
     def get_root(self):
-        if self._root_node:
-            self._values.setdefault(self._root_node.alias, [])
-            if len(self._values[self._root_node.alias]) not in (0, 1):
+        if (node := self._root_node()):
+            self._values.setdefault(node.alias, [])
+            if len(self._values[node.alias]) not in (0, 1):
                 raise RuntimeError("Cannot have multiple root tiles")
-            if self._values[self._root_node.alias]:
-                value = self._values[self._root_node.alias][0]
+            if self._values[node.alias]:
+                value = self._values[node.alias][0]
             else:
                 value = self._make_pseudo_node_cls(
-                    self._root_node.alias,
+                    node.alias,
                     wkri=self.view_model_inst
                 )
-                self._values[self._root_node.alias] = [value]
+                self._values[node.alias] = [value]
             return value
 
     def delete(self):
