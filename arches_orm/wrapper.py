@@ -76,7 +76,9 @@ class ResourceWrapper(ABC):
                     real_key = self._model_remapping[key].replace("*", ".")
                     if "." in real_key:
                         to_get, to_set = real_key.split(".", -1)
-                    got = self._get_remap(to_get)
+                        got = self._get_remap(to_get)
+                    else:
+                        got = self.get_root()
                     if isinstance(got, UserList):
                         if len(got) == 0:
                             got = got.append()
