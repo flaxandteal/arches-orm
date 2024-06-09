@@ -27,7 +27,7 @@ def semantic(
     child_keys = {key: child_value[1] for key, child_value in child_nodes.items()}
 
     def make_pseudo_node(key):
-        child = parent_cls._make_pseudo_node_cls(
+        child = parent_cls._._make_pseudo_node_cls(
             key,
             tile=(tile if child_nodes[key][1] else None),  # Does it share a tile
             wkri=parent

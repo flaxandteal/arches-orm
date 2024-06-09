@@ -127,7 +127,6 @@ def test_can_save_with_concept(arches_orm, lazy):
     activity = Activity.create()
     record_status = activity.record_status_assignment.record_status
     StatusEnum = record_status.__collection__
-    print(type(StatusEnum.BacklogDashSkeleton))
 
     activity.record_status_assignment.record_status = StatusEnum.BacklogDashSkeleton
     assert activity.record_status_assignment.record_status == StatusEnum.BacklogDashSkeleton

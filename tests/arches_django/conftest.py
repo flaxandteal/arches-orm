@@ -86,9 +86,11 @@ def arches_orm(search_engine, django_db_blocker, test_sql):
     from arches.app.models.concept import Concept
     def _get_child_collections(_, conceptid, child_valuetypes=None, parent_valuetype="prefLabel", columns=None, depth_limit=None):
         child_valuetypes = child_valuetypes if child_valuetypes else ["prefLabel"]
+        if columns is None:
+            columns = "r.conceptidto, valueto.value as valueto, valueto.valueid as valueidto"
         # Ignores children!
-        sql = """
-        SELECT r.conceptidto, valueto.value as valueto, valueto.valueid as valueidto
+        sql = f"""
+        SELECT {columns}
             FROM relations r
             JOIN "values" valueto ON r.conceptidto=valueto.conceptid
             JOIN "values" valuefrom ON(r.conceptidfrom = valuefrom.conceptid)
@@ -105,7 +107,27 @@ def arches_orm(search_engine, django_db_blocker, test_sql):
             }
         )
         return cursor.fetchall()
+
+    def _get_child_collections_hierarchically(_, conceptid, child_valuetypes=None, offset=0, limit=50, query=None):
+        # Ignores children!
+        columns = "valueto.value as valueto, valueto.valueid as valueidto, r.conceptidto, NULL as language, valueto.valuetype as valuetype, 1 as depth, NULL as collector, count(*) AS full_count"
+        collections = _get_child_collections(_, conceptid, child_valuetypes=child_valuetypes, columns=columns)
+        unflattened = []
+        for collection in collections:
+            unflattened.append([
+                {
+                    "value": collection[0],
+                    "valueid": collection[1],
+                    "conceptid": collection[2],
+                    "language": collection[3],
+                    "valuetype": collection[4],
+                },
+                *collection[2:5]
+            ])
+        return unflattened
+
     Concept.get_child_collections = _get_child_collections
+    Concept.get_child_collections_hierarchically = _get_child_collections_hierarchically
 
     from arches.app.utils.betterJSONSerializer import JSONDeserializer
     from arches.app.utils.data_management.resource_graphs.importer import (

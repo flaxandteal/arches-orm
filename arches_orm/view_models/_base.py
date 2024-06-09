@@ -5,7 +5,25 @@ class ResourceModelViewModel(type, ViewModel):
     """Wraps a resource model."""
 
     def __getattr__(self, key):
-        return getattr(self._, key)
+        if key == "__fields__":
+            return self._.all_fields()
+
+        if key in (
+                "save",
+                "create",
+                "find",
+                "all",
+                "first",
+                "where",
+                "search",
+                "delete",
+                "create_bulk",
+                "reload"
+            ):
+            return getattr(self._, key)
+        else:
+            # TODO: return getattr(self._._get_root_pseudo_node().value, key)
+            return getattr(self._, key)
 
     def __setattr__(self, key, value):
         raise NotImplementedError()
