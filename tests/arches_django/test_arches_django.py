@@ -122,6 +122,42 @@ def test_can_remove_name(arches_orm, lazy):
 @pytest.mark.django_db
 @context_free
 @pytest.mark.parametrize("lazy", [False, True])
+def test_can_save_with_geojson(arches_orm, lazy):
+    Activity = arches_orm.models.Activity
+    activity = Activity.create()
+    activity.geospatial_coordinates = {
+        'geometry': {
+            'geospatialCoordinates': {
+                'type': 'FeatureCollection',
+                'features': [
+                    {
+                        'id': '1000',
+                        'type': 'Feature',
+                        'properties': {
+                            'Captured_by': 'MC',
+                            'Date_Captured': 1259539000000.0
+                        },
+                        'geometry': {
+                            'type': 'Polygon',
+                            'coordinates': [
+                                [
+                                    [-7.0821688272290935, 54.921622989437154],
+                                    [-7.082510380464253, 54.92160087302468],
+                                    [-7.0825, 54.921],
+                                    [-7.0826, 54.921],
+                                    [-7.0821, 54.921]
+                                ]
+                            ]
+                        }
+                    }
+                ]
+            }
+        }
+    }
+
+@pytest.mark.django_db
+@context_free
+@pytest.mark.parametrize("lazy", [False, True])
 def test_can_save_with_concept(arches_orm, lazy):
     Activity = arches_orm.models.Activity
     activity = Activity.create()
