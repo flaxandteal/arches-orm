@@ -21,10 +21,17 @@ from arches_orm.adapter import get_adapter
 
 from .auth import BasicAuthBackend
 from .resources import ResourceQuery, FullResourceMutation
+from .concepts import ConceptQuery, FullConceptMutation
+from .resource_models import ResourceModelQuery
+
+class UnauthorizedException(Exception):
+    ...
 
 DEBUG = os.getenv("DEBUG", "False") == "True"
 
 resources_schema = graphene.Schema(query=ResourceQuery, mutation=FullResourceMutation)
+concept_schema = graphene.Schema(query=ConceptQuery, mutation=FullConceptMutation)
+resource_model_schema = graphene.Schema(query=ResourceModelQuery)
 
 class App(HTTPEndpoint):
     async def get(self, request):
@@ -34,6 +41,14 @@ class ORMContextMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):
         with get_adapter().context(user=starlette_context.data["user"]) as _:
             return await call_next(request)
+
+# TODO: More elegant solution, using the schema.
+def admin_middleware(next_mw, root, info, **args):
+    if starlette_context.data["user"].is_superuser:
+        return next_mw(root, info, **args)
+    else:
+        raise UnauthorizedException()
+
 middleware = [
     Middleware(
         RawContextMiddleware,
@@ -43,8 +58,14 @@ middleware = [
         )
     ),
     Middleware(AuthenticationMiddleware, backend=BasicAuthBackend()),
-    Middleware(ORMContextMiddleware)
+    Middleware(ORMContextMiddleware),
+]
+
+graphql_admin_middleware = [
+    admin_middleware
 ]
 
 app = Starlette(debug=DEBUG, routes=[Route("/", App)], middleware=middleware)
 app.mount("/resources/", GraphQLApp(resources_schema, on_get=make_graphiql_handler()))
+app.mount("/concepts/", GraphQLApp(concept_schema, on_get=make_graphiql_handler(), middleware=graphql_admin_middleware))
+app.mount("/resource-models/", GraphQLApp(resource_model_schema, on_get=make_graphiql_handler(), middleware=graphql_admin_middleware))

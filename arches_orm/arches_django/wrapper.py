@@ -272,7 +272,6 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
         permitted_nodegroups = self._permitted_nodegroups()
         relationships, ghost_tiles = self._update_tiles(tiles, self._values, permitted_nodegroups=permitted_nodegroups)
         for tile in ghost_tiles:
-            print('tileid', tile.pk, tile.data)
             tile.delete()
 
         # parented tiles are saved hierarchically
@@ -648,9 +647,19 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
         cls._nodes_real.update(nodes)
         cls._nodegroup_objects_real.update(nodegroups)
 
-    @property
-    def __fields__(self):
-        return self.get_fields()
+    @classmethod
+    def all_fields(cls):
+        root_fields = cls.get_fields()
+        fields = {}
+        def _add_children(children):
+            for name, child in children.items():
+                fields[name] = dict(child)
+                grandchildren = fields[name].get("children", {})
+                if grandchildren:
+                    _add_children(grandchildren)
+                    del fields[name]["children"]
+        _add_children(root_fields)
+        return fields
 
     @classmethod
     @lru_cache
@@ -658,15 +667,21 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
         cls._build_nodes()
         def _fill_fields(pseudo_node):
             typ, multiple = pseudo_node.get_type()
+            try:
+                typ = DataTypeNames(typ)
+            except ValueError:
+                logger.error(r"Could not load %s for %s", typ, str(cls))
+                return None
             fields = {
-                "type": DataTypeNames(typ),
+                "type": typ,
                 "node": pseudo_node,
                 "multiple": multiple,
                 "nodeid": str(pseudo_node.node.nodeid)
             }
             if (child_types := pseudo_node.get_child_types()):
                 fields["children"] = {
-                    child: _fill_fields(child_node) for child, child_node in child_types.items()
+                    child: _fields for child, child_node in child_types.items()
+                    if (_fields := _fill_fields(child_node))
                 }
             return fields
 

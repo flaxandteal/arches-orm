@@ -1,5 +1,4 @@
 import uuid
-from functools import lru_cache
 
 from arches.app.models.concept import Concept
 
@@ -11,8 +10,15 @@ from arches_orm.view_models import (
 from arches_orm.collection import make_collection
 from ._register import REGISTER
 
-@lru_cache
+_COLLECTIONS: dict[str, Concept] = {}
+
+def invalidate_collection(concept_id):
+    if concept_id in _COLLECTIONS:
+        del _COLLECTIONS[concept_id]
+
 def retrieve_collection(concept_id):
+    if concept_id in _COLLECTIONS:
+        return _COLLECTIONS[concept_id]
     collection = Concept().get(id=concept_id, include=["label"])
     datatype = REGISTER._datatype_factory.get_instance("concept")
     def _make_concept(id, collection_id):
@@ -22,7 +28,7 @@ def retrieve_collection(concept_id):
             collection_id if collection_id else None,
             (lambda _: retrieve_collection(collection_id)) if collection_id else None
         )
-    return make_collection(
+    made_collection = make_collection(
         collection.get_preflabel().value,
         _make_concept(concept_id, None),
         [
@@ -30,6 +36,8 @@ def retrieve_collection(concept_id):
             Concept().get_child_collections(concept_id)
         ]
     )
+    _COLLECTIONS[concept_id] = made_collection
+    return made_collection
 
 
 @REGISTER("concept-list")

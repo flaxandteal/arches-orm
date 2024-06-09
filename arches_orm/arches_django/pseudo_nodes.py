@@ -119,7 +119,7 @@ class PseudoNodeList(UserList):
         return self.make_pseudo_node().get_type()[0], True
 
     def make_pseudo_node(self):
-        return self._parent_cls._make_pseudo_node_cls(
+        return self._parent_cls._._make_pseudo_node_cls(
             self.node.alias,
             single=True,
             wkri=self._parent

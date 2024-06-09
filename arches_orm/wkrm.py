@@ -82,7 +82,7 @@ def get_resource_models_for_adapter(adapter_name: str | None = None):
                 logger.exception(exc)
                 logger.error("...continuing, to prevent circularity.")
         resource_models[str(adapter)]["by-graph-id"] = {
-            rm.graphid: rm
+            rm._.graphid: rm
             for rm in resource_models[str(adapter)]["by-class"].values()
             if rm
         }
