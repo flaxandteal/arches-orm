@@ -7,7 +7,7 @@ import graphene
 
 from starlette.middleware import Middleware
 from starlette.middleware.authentication import AuthenticationMiddleware
-from starlette.responses import PlainTextResponse, JSONResponse
+from starlette.responses import PlainTextResponse
 from starlette.routing import Route
 from starlette.endpoints import HTTPEndpoint
 from starlette_graphene3 import GraphQLApp, make_graphiql_handler
