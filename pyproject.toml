@@ -21,7 +21,8 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
 ]
 dependencies = [
-    "tabulate"
+    "tabulate",
+    "geojson"
 ]
 
 [project.optional-dependencies]
