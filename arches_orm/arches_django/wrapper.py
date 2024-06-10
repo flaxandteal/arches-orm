@@ -11,7 +11,6 @@ from arches.app.models.graph import Graph
 from arches.app.models.tile import Tile as TileProxyModel
 from arches.app.models.system_settings import settings as system_settings
 from arches.app.utils.permission_backend import get_nodegroups_by_perm
-from contextvars import ContextVar
 import logging
 from arches.app.utils.permission_backend import (
     user_can_read_resource,
