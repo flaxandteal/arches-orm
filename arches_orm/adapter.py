@@ -5,8 +5,6 @@ from functools import partial, wraps
 from contextlib import contextmanager
 from contextvars import ContextVar
 
-_ADMINISTRATION_MODE: bool = False
-
 logger = logging.getLogger(__name__)
 
 class Adapter:
@@ -24,12 +22,6 @@ class Adapter:
         self._context.set(None)
 
     def get_context(self):
-        if _ADMINISTRATION_MODE:
-            try:
-                self._context.get()
-            except LookupError:
-                self._context.set(None)
-
         return self._context
 
     @contextmanager
@@ -141,9 +133,8 @@ def admin(adapter_key: str | None=None):
     with get_adapter(adapter_key).context(None, _override=True) as cvar:
         yield cvar
 
-def admin_everywhere():
-    global _ADMINISTRATION_MODE 
-    _ADMINISTRATION_MODE = True
+def admin_everywhere(key=None):
+    get_adapter(key=key).set_context_free()
     logger.warning(
         "ARCHES ORM ADMINISTRATION MODE ON: use for debugging only, "
         "otherwise use the `context_free` or `context` decorator/with statement to "

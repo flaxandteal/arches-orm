@@ -60,7 +60,7 @@ class ResourceWrapper(ABC):
             "_values_list",
             "resource",
             "_root_node",
-            "_context",
+            "_adapter",
             "_name",
             "_description",
             "_cross_record",
@@ -265,7 +265,7 @@ class ResourceWrapper(ABC):
         """Convert to string."""
         return str(self._wkrm.to_string(self))
 
-    def __init_subclass__(cls, well_known_resource_model=None, proxy=None, context=None):
+    def __init_subclass__(cls, well_known_resource_model=None, proxy=None, adapter=None):
         """Create a new well-known resource model wrapper, from an WKRM."""
         if proxy is not None:
             cls.proxy = proxy
@@ -273,10 +273,10 @@ class ResourceWrapper(ABC):
             if not well_known_resource_model:
                 raise RuntimeError("Must try to wrap a real model")
 
-            if context is None:
+            if adapter is None:
                 raise RuntimeError("Must have an adapter to create classes")
 
-            cls._context = context
+            cls._adapter = adapter
             cls._model_name = well_known_resource_model.model_name
             cls._model_class_name = well_known_resource_model.model_class_name
             cls._model_remapping = well_known_resource_model.remapping
