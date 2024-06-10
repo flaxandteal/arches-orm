@@ -47,7 +47,7 @@ def _make_wkrm(wkrm_definition, adapter):
             (adapter.get_wrapper(),),
             {"proxy": False, "view_model": None},
             well_known_resource_model=wkrm_definition,
-            context=adapter.get_context(),
+            adapter=adapter,
         )
         orm_view_model = type(
             wkrm_definition.model_class_name,

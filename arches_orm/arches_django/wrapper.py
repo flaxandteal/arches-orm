@@ -93,7 +93,6 @@ class ValueList(UserDict):
             return self.data.get(key, default)
 
 class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
-    _context: ContextVar[dict[str, Any] | None] | None = None
     _nodes_real: dict = None
     _nodegroup_objects_real: dict = None
     _values_list: ValueList | None = None
@@ -319,7 +318,7 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
         # Don't think we actually need this if the resource gets saved, as postsave RI
         # datatype handles it. We do for sqlite at the very least, and likely gathering
         # for bulk.
-        _no_save = _no_save or not (self.get_adapter().config.get("save_crosses", False))
+        _no_save = _no_save or not (self._adapter.config.get("save_crosses", False))
         # TODO: fix expectation of one cross per tile
 
         crosses = {}
@@ -414,7 +413,7 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
     @classmethod
     def _context_get(cls, key, default=None, required=False):
         try:
-            context = cls._context.get()
+            context = cls._adapter.get_context().get()
         except LookupError:
             logger.error("Need to set a context before using the ORM, or mark adapter context-free.")
             raise
@@ -430,7 +429,7 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
     @classmethod
     def _can_read_graph(cls):
         try:
-            context = cls._context.get()
+            context = cls._adapter.get_context().get()
         except LookupError:
             logger.error("Need to set a context before using the ORM, or mark adapter context-free.")
             raise
@@ -462,7 +461,7 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
             return []
 
         try:
-            context = cls._context.get()
+            context = cls._adapter.get_context().get()
         except LookupError:
             logger.error("Need to set a context before using the ORM, or mark adapter context-free.")
             raise
@@ -1115,9 +1114,9 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
 
         return value
 
-    def __init_subclass__(cls, well_known_resource_model=None, proxy=None, context=None):
+    def __init_subclass__(cls, well_known_resource_model=None, proxy=None, adapter=None):
         super().__init_subclass__(
-            well_known_resource_model=well_known_resource_model, proxy=proxy, context=context
+            well_known_resource_model=well_known_resource_model, proxy=proxy, adapter=adapter
         )
         if proxy is not None:
             cls.proxy = proxy
