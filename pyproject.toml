@@ -22,7 +22,8 @@ classifiers = [
 ]
 dependencies = [
     "tabulate",
-    "geojson"
+    "geojson",
+    "rdflib",
 ]
 
 [project.optional-dependencies]

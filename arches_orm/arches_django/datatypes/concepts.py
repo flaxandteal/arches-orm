@@ -1,4 +1,6 @@
 import uuid
+from enum import Enum
+from functools import partial
 
 from arches.app.models.concept import Concept
 
@@ -10,15 +12,23 @@ from arches_orm.view_models import (
 from arches_orm.collection import make_collection
 from ._register import REGISTER
 
-_COLLECTIONS: dict[str, Concept] = {}
+_COLLECTIONS: dict[str, type[Enum]] = {}
 
 def invalidate_collection(concept_id):
     if concept_id in _COLLECTIONS:
         del _COLLECTIONS[concept_id]
 
-def retrieve_collection(concept_id):
+def retrieve_children(concept_id: uuid.UUID, language: str | None, datatype) -> list[ConceptValueViewModel]:
+    # RMV TEST
+    concept = Concept().get(id=concept_id, include=["label"])
+    return [
+        make_concept_value(concept.get_preflabel().valueid, collection_id=None, datatype=datatype)
+        for child in concept.children
+    ]
+
+def retrieve_collection(concept_id: uuid.UUID) -> type[Enum]:
     if concept_id in _COLLECTIONS:
-        return _COLLECTIONS[concept_id]
+        return _COLLECTIONS[str(concept_id)]
     collection = Concept().get(id=concept_id, include=["label"])
     datatype = REGISTER._datatype_factory.get_instance("concept")
     def _make_concept(id, collection_id):
@@ -26,22 +36,21 @@ def retrieve_collection(concept_id):
             id,
             lambda value_id: datatype.get_value(value_id),
             collection_id if collection_id else None,
-            (lambda _: retrieve_collection(collection_id)) if collection_id else None
+            (lambda _: retrieve_collection(collection_id) if collection_id else None)
         )
     made_collection = make_collection(
         collection.get_preflabel().value,
-        _make_concept(concept_id, None),
         [
             _make_concept(concept[2], concept_id) for concept in
             Concept().get_child_collections(concept_id)
         ]
     )
-    _COLLECTIONS[concept_id] = made_collection
+    _COLLECTIONS[str(concept_id)] = made_collection
     return made_collection
 
 
 @REGISTER("concept-list")
-def concept_list(tile, node, value: list[uuid.UUID | str] | None, _, __, ___, ____):
+def concept_list(tile, node, value: list[uuid.UUID | str] | None, _, __, ___, datatype):
     if value is None:
         value = tile.data.get(str(node.nodeid), []) or []
 
@@ -52,7 +61,9 @@ def concept_list(tile, node, value: list[uuid.UUID | str] | None, _, __, ___, __
     def make_cb(value):
         return REGISTER.make(tile, node, value=value, datatype="concept")[0]
 
-    return ConceptListValueViewModel(value, make_cb, collection_id, retrieve_collection)
+    return ConceptListValueViewModel(
+        value, make_cb, collection_id, retrieve_collection
+    )
 
 
 @concept_list.as_tile_data
@@ -64,14 +75,16 @@ def cl_as_tile_data(concept_list):
 def concept_value(tile, node, value: uuid.UUID | str | None, __, ___, ____, datatype):
     if value is None:
         value = tile.data.get(str(node.nodeid), None)
+    collection_id = None
+    if node and node.config:
+        collection_id = node.config.get("rdmCollection")
+    return make_concept_value(value if isinstance(value, uuid.UUID) else uuid.UUID(value), collection_id, datatype)
+
+def make_concept_value(value: uuid.UUID | None, collection_id: uuid.UUID | None, datatype) -> ConceptValueViewModel | EmptyConceptValueViewModel | None:
     def concept_value_cb(value):
         if isinstance(value, ConceptValueViewModel):
             value = value._concept_value_id
         return datatype.get_value(value)
-
-    collection_id = None
-    if node and node.config:
-        collection_id = node.config.get("rdmCollection")
 
     if value is None or isinstance(value, EmptyConceptValueViewModel):
         if collection_id:
@@ -84,7 +97,8 @@ def concept_value(tile, node, value: uuid.UUID | str | None, __, ___, ____, data
         value,
         concept_value_cb,
         collection_id,
-        retrieve_collection
+        retrieve_collection,
+        partial(retrieve_children, datatype=datatype)
     )
 
 

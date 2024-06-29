@@ -1,15 +1,22 @@
 import logging
+from uuid import UUID
+from enum import Enum
 from typing import Any, Generator, Callable, Literal
 from inspect import isgenerator, isgeneratorfunction
 from functools import partial, wraps
 from contextlib import contextmanager
 from contextvars import ContextVar
 
+from abc import ABC, abstractmethod
+
+from .view_models._base import ResourceInstanceViewModel
+from .view_models.concepts import ConceptValueViewModel
+
 _ADMINISTRATION_MODE: bool = False
 
 logger = logging.getLogger(__name__)
 
-class Adapter:
+class Adapter(ABC):
     config: dict[str, Any]
     _context: ContextVar[dict[str, Any] | None]
 
@@ -22,6 +29,26 @@ class Adapter:
 
     def set_context_free(self):
         self._context.set(None)
+
+    def get_rdm(self):
+        from .collection import ReferenceDataManager
+        return ReferenceDataManager(self)
+
+    @abstractmethod
+    def retrieve_concept(self, concept_id: str | UUID) -> ConceptValueViewModel:
+        ...
+
+    @abstractmethod
+    def make_concept(self, concept_id: str | UUID, values: dict[UUID, tuple[str, str]], children: list[UUID] | None) -> ConceptValueViewModel:
+        ...
+
+    @abstractmethod
+    def get_collection(self, collection_id: str) -> type[Enum]:
+        ...
+
+    @abstractmethod
+    def load_from_id(self, resource_id: str, from_prefetch: Callable[[str], Any] | None=None, lazy: bool=False) -> ResourceInstanceViewModel:
+        ...
 
     def get_context(self):
         if _ADMINISTRATION_MODE:

@@ -24,6 +24,18 @@ fields.UUIDField.get_db_prep_value = _get_db_prep_value
 
 import django # noqa: E402
 
+os.environ.update({
+    "DJANGO_MODE": "TEST",
+    "DJANGO_DEBUG": "False",
+    "PGDBNAME": "",
+    "PGUSERNAME": "",
+    "PGPASSWORD": "",
+    "PGHOST": "",
+    "PGPORT": "",
+    "ESPORT": "",
+    "ESHOST": "",
+    "DOMAIN_NAMES": "",
+})
 if os.environ.get("WITH_GRAPHQL", True):
     os.environ["DJANGO_SETTINGS_MODULE"] = "_django.settings_graphql"
 else:
