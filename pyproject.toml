@@ -21,6 +21,9 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
 ]
 dependencies = [
+    "python-slugify",
+    "typing_extensions",
+    "lxml",
     "tabulate",
     "geojson",
     "rdflib",

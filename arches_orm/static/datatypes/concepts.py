@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from enum import Enum
 from lxml import etree as ET
 import json
@@ -6,7 +8,12 @@ from uuid import UUID
 from pathlib import Path
 from dataclasses import dataclass
 from functools import partial
-from typing import TypedDict, NotRequired
+from typing import TypedDict
+try:
+    from typing import NotRequired
+except ImportError: # 3.9
+    from typing_extensions import NotRequired
+
 from rdflib import Graph, Literal, Namespace, RDF, URIRef
 from rdflib.namespace import SKOS, DCTERMS
 from arches_orm.collection import make_collection, CollectionEnum
@@ -244,7 +251,7 @@ def update_collections(collection: CollectionEnum, source_file: Path, arches_url
     cgraph.bind("skos", Namespace("http://www.w3.org/2004/02/skos/core#"))
     cgraph.bind("rdf", Namespace("http://www.w3.org/1999/02/22-rdf-syntax-ns#"))
     cgraph.bind("dcterms", Namespace("http://purl.org/dc/terms/"))
-    xml_string = cgraph.serialize(format="pretty-xml")
+    xml_string = cgraph.serialize(format="pretty-xml").encode("utf-8")
     etree = ET.ElementTree(ET.fromstring(xml_string))
     ET.indent(etree)
     etree.write(str(source_file), xml_declaration=True)
@@ -255,7 +262,7 @@ def save_concept(concept: ConceptValueViewModel, output_file: Path | None, arche
     if output_file is None:
         raise RuntimeError(f"Could not save concept {str(concept.title())} as no source/destination - perhaps you meant to use a parent concept?")
     graph = concept_to_skos(static_concept, arches_url)
-    xml_string = graph.serialize(format="pretty-xml")
+    xml_string = graph.serialize(format="pretty-xml").encode("utf-8")
     etree = ET.ElementTree(ET.fromstring(xml_string))
     ET.indent(etree)
     etree.write(str(output_file), xml_declaration=True)
