@@ -78,7 +78,7 @@ def concept_value(tile, node, value: uuid.UUID | str | None, __, ___, ____, data
     collection_id = None
     if node and node.config:
         collection_id = node.config.get("rdmCollection")
-    return make_concept_value(value if isinstance(value, uuid.UUID) else uuid.UUID(value), collection_id, datatype)
+    return make_concept_value(value if isinstance(value, uuid.UUID) else uuid.UUID(value) if value else None, collection_id, datatype)
 
 def make_concept_value(value: uuid.UUID | None, collection_id: uuid.UUID | None, datatype) -> ConceptValueViewModel | EmptyConceptValueViewModel | None:
     def concept_value_cb(value):
