@@ -2,6 +2,7 @@ from pathlib import Path
 from rdflib import RDF
 from io import BytesIO
 from rdflib.namespace import SKOS
+from arches_orm import static
 from arches_orm.adapter import context_free, get_adapter
 from arches_orm.static.datatypes.concepts import concept_to_skos, load_collection_path
 
