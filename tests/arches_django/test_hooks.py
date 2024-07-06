@@ -1,7 +1,6 @@
 import pytest
 from collections import Counter
 from functools import partial
-import json
 
 from arches_orm.adapter import context_free
 
