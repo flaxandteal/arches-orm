@@ -1,6 +1,5 @@
 from pathlib import Path
 
-from arches_orm import static
 from arches_orm.adapter import get_adapter
 
 get_adapter("static").config.update({

@@ -17,7 +17,6 @@ def owner(User):
 @pytest.mark.parametrize("lazy", [False, True])
 @pytest.mark.parametrize("deny_activity", [False, True])
 def test_can_attach_related_then_save(arches_orm, lazy, owner, User, person_ash, deny_activity):
-    from arches_orm.arches_django.wrapper import get_permitted_nodegroups
 
     with get_adapter().context_free() as cvar:
         person_ashs = person_ash.save()
