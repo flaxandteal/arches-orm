@@ -83,7 +83,8 @@ class ResourceInstanceViewModel(ViewModel, metaclass=ResourceModelViewModel):
     def __getattr__(self, key):
         if key.startswith("__"):
             return super().__getattr__(key)
-        return self._.get_orm_attribute(key)
+        value = self._.get_orm_attribute(key)
+        return value
 
     def __setitem__(self, key, value):
         return self.__setattr__(key, value)

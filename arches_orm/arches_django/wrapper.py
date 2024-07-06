@@ -1110,7 +1110,8 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
         else:
             kwargs["nodegroup_id__in"] = permitted
 
-        return TileProxyModel.objects.filter(**kwargs)
+        tiles = TileProxyModel.objects.filter(**kwargs)
+        return tiles
 
     @classmethod
     def _ensure_nodegroup(

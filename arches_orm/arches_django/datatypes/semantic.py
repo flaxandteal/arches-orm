@@ -76,7 +76,6 @@ def get_child_values(svm, target_key: str | None = None, parent = None, child_ke
     return children
 
 
-
 @REGISTER("semantic")
 def semantic(
     tile,
