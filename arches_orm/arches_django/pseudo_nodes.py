@@ -92,6 +92,7 @@ class PseudoNodeList(UserList):
             for item in other
         ]
         super().__iadd__(other_pn)
+        return self
 
     def extend(self, iterable):
         raise NotImplementedError()

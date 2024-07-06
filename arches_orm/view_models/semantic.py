@@ -54,18 +54,24 @@ class SemanticViewModel(ViewModel, Mapping[str, ViewModel]):
             return super().__getattr__(key)
 
         child_value = self._get_child_value(key)
-        return child_value.value
+        value = child_value.value
+        return value
 
     def _get_child_value(self, key):
         if key not in self._child_keys:
-            raise AttributeError(f"Semantic node does not have this key: {key}")
+            raise AttributeError(f"Semantic node does not have this key: {key} ({list(self._child_keys)}")
 
         if key not in self._child_values:
-            if (child := self._get_child_values(self).get(key)) is None:
-                child = self._make_child(key)
-            self._child_values[key] = child
+            if (child := self._get_child_values(self, key)) is None:
+                child = self._make_child(self, key)
+            else:
+                # This ensures that we do not set a default value in our
+                # local cache simply because the node is not loaded yet.
+                self._child_values[key] = child
             child._parent_node = self
-        return self._child_values[key]
+        else:
+            child = self._child_values[key]
+        return child
 
     def __setattr__(self, key, value):
         if key in (
@@ -79,13 +85,11 @@ class SemanticViewModel(ViewModel, Mapping[str, ViewModel]):
             return super().__setattr__(key, value)
 
         if key not in self._child_keys:
-            raise AttributeError(f"Semantic node does not have this key: {key}")
+            raise AttributeError(f"Semantic node does not have this key: {key} ({list(self._child_keys)}")
 
         if key not in self._child_values:
-            if key not in self._get_child_values(self):
-                child = self._make_child(key)
-            else:
-                child = self._get_child_values(self)[key]
+            if (child := self._get_child_values(self, key)) is None:
+                child = self._make_child(self, key)
             self._child_values[key] = child
             child._parent_node = self
         self._child_values[key].value = value
