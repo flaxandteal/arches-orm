@@ -1926,6 +1926,12 @@
                 {
                     "cardinality": "1",
                     "legacygroupid": null,
+                    "nodegroupid": "b1f5c336-6a0e-11ee-b748-0242ac140009",
+                    "parentnodegroup_id": null
+                },
+                {
+                    "cardinality": "1",
+                    "legacygroupid": null,
                     "nodegroupid": "312aa645-bf2f-4783-bf25-1bb6423fb91c",
                     "parentnodegroup_id": null
                 },
