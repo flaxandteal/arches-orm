@@ -1,5 +1,5 @@
 import pytest
-from arches_orm.adapter import context_free, get_adapter
+from arches_orm.adapter import context_free
 
 @pytest.fixture
 @context_free

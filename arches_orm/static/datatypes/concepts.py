@@ -7,14 +7,13 @@ from urllib.parse import urlparse, urlunparse
 from uuid import UUID
 from pathlib import Path
 from dataclasses import dataclass
-from functools import partial
 from typing import TypedDict
 try:
     from typing import NotRequired
 except ImportError: # 3.9
     from typing_extensions import NotRequired
 
-from rdflib import Graph, Literal, Namespace, RDF, URIRef
+from rdflib import Graph, Literal, Namespace, RDF
 from rdflib.namespace import SKOS, DCTERMS
 from arches_orm.collection import make_collection, CollectionEnum
 from arches_orm.utils import consistent_uuid as cuuid

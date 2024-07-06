@@ -1,6 +1,4 @@
-import pytest
 from pathlib import Path
-from arches_orm import static
 from arches_orm.adapter import context_free, get_adapter
 
 @context_free

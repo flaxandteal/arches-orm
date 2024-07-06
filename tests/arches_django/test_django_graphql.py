@@ -1,5 +1,4 @@
 import pytest
-import os
 from httpx import AsyncClient
 from graphql import print_schema
 import arches_graphql_client
