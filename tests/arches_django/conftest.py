@@ -66,6 +66,7 @@ def test_sql(transactional_db, django_db_blocker):
         with (Path(__file__).parent / "_django" / "test.sql").open("r") as sql_f:
             with connection.cursor() as c:
                 c.executescript(sql_f.read())
+            define_staging(c.connection)
             yield
 
 
@@ -164,3 +165,19 @@ def arches_orm(search_engine, django_db_blocker, test_sql):
         import arches_orm.models
 
         yield arches_orm
+
+def define_staging(db):
+    def __arches_staging_to_tile(x):
+        try:
+            db.execute("""
+                INSERT INTO tiles(tileid, tiledata, nodegroupid, parenttileid, resourceinstanceid)
+                SELECT tileid, value as tiledata, n.nodegroupid, parenttileid, resourceid as resourceinstanceid
+                FROM load_staging ls INNER JOIN (SELECT DISTINCT nodegroupid, graphid FROM nodes) n
+                ON ls.nodegroupid = n.nodegroupid
+                WHERE loadid = ?
+                ORDER BY nodegroup_depth ASC
+            """, x.encode('ascii'))
+        except Exception as exc:
+            print(exc)
+            raise
+    db.create_function("__arches_staging_to_tile", 1, __arches_staging_to_tile)

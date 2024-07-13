@@ -360,3 +360,30 @@ INSERT INTO functions(functionid, modulename, classname, functiontype, name, des
 INSERT INTO functions(functionid, modulename, classname, functiontype, name, description, defaultconfig, component)
     VALUES ('60000000-0000-0000-0000-000000000002', 'required_nodes.py', 'RequiredNodesFunction', 'validation', 'Define Required Nodes', 'Define which values are required for a user to save card', '{"required_nodes":"{}"}', 'views/components/functions/required-nodes');
 INSERT INTO auth_user(username, password, is_superuser, first_name, last_name, email, is_staff, is_active, date_joined) VALUES ('anonymous', '', false, 'Anonymous', 'User', '', false, true, datetime());
+
+INSERT INTO etl_modules (
+    etlmoduleid,
+    name,
+    description,
+    etl_type,
+    component,
+    componentname,
+    modulename,
+    classname,
+    config,
+    icon,
+    slug,
+    reversible)
+VALUES (
+    'a6af3a25-50ac-47a1-a876-bcb13dab411b',
+    'Bulk import via Well-Known Resource Model',
+    'Import from WKRM',
+    'import',
+    'bulk-import-wkrm',
+    'bulk-import-wkrm',
+    '_bulk_import_wkrm.py',
+    'BulkImportWKRM',
+    '{"bgColor": "#0591ef", "circleColor": "#00adf3", "show": false}',
+    'fa fa-upload',
+    'bulk-import-wkrm',
+    true);

@@ -1193,7 +1193,7 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
             except Exception:
                 logger.error(f"Failed item {n}")
                 raise
-        bulk_etl = BulkImportWKRM()
+        bulk_etl = BulkImportWKRM(cls.get_adapter())
         return bulk_etl.write(requested_wkrms, do_index=do_index)
 
     @staticmethod

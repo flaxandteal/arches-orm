@@ -73,30 +73,29 @@ class ResourceWrapper(ABC):
         ):
             super().__setattr__(key, value)
         else:
+            root = self.get_root()
+            if not root:
+                raise RuntimeError(f"Tried to set {key} on {self}, which has no root")
+
+            got = root.value
+            to_set = key
             if self._remap and self._model_remapping is not None:
                 if key in self._model_remapping:
-                    real_key = self._model_remapping[key].replace("*", ".")
-                    if "." in real_key:
-                        to_get, to_set = real_key.split(".", -1)
-                        got = self._get_remap(to_get)
-                    else:
-                        got = self.get_root()
-                    if isinstance(got, UserList):
-                        if len(got) == 0:
-                            got = got.append()
-                        elif len(got) == 1:
-                            got = got[0]
-                        else:
-                            raise RuntimeError("Cannot set single value when multiplicity present")
-                    setattr(got, to_set, value)
+                    key = self._model_remapping[key].replace("*", ".")
                 elif self._remap_total:
                     raise AttributeError("Field not available in remapped model")
+
+            if "." in key:
+                to_get, to_set = key.split(".", -1)
+                got = self._get_remap(to_get)
+            if isinstance(got, UserList):
+                if len(got) == 0:
+                    got = got.append()
+                elif len(got) == 1:
+                    got = got[0]
                 else:
-                    setattr(self.get_root().value, key, value)
-            elif (root := self.get_root()):
-                setattr(root.value, key, value)
-            else:
-                raise RuntimeError(f"Tried to set {key} on {self}, which has no root")
+                    raise RuntimeError("Cannot set single value when multiplicity present")
+            setattr(got, to_set, value)
 
     def _get_remap(self, real_key: str):
         if real_key is None:

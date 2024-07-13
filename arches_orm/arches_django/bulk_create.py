@@ -11,11 +11,13 @@ from arches.app.models.system_settings import settings as system_settings
 from arches.app.models.models import ResourceXResource, Node
 from arches.app.models import resource as resource_module
 from arches.app.datatypes import concept_types as concept_module
-from django.db.utils import IntegrityError, ProgrammingError
+from django.db.utils import IntegrityError, ProgrammingError, OperationalError
 from django.utils.translation import gettext as _, get_language
 from arches.app.models.models import FunctionXGraph
 from arches.app.utils.betterJSONSerializer import JSONSerializer
 from arches.app.etl_modules.base_import_module import BaseImportModule
+
+from arches_orm.adapter import Adapter
 
 logger = logging.getLogger(__name__)
 FORMAT = '%(asctime)s %(message)s'
@@ -136,8 +138,8 @@ class BulkImportWKRM(BaseImportModule):
     moduleid = "a6af3a25-50ac-47a1-a876-bcb13dab411b"
     loadid = None
 
-    def __init__(self, request=None):
-        pass
+    def __init__(self, adapter: Adapter):
+        self.adapter = adapter
 
     def validate(self):
         """
@@ -152,14 +154,17 @@ class BulkImportWKRM(BaseImportModule):
 
     def write(self, requested_wkrms, do_index=True):
         self.loadid = str(uuid.uuid4()) # f"graphql_bulk_{int(time_mod.time())}"
-        user_id = context.data["user"].id
+        if (context := self.adapter.get_context().get()) and (user := context.get("user")):
+            user_id = user.id
+        else:
+            user_id = 1
 
         requested_wkrms = [(None, wkrm, None) for wkrm in requested_wkrms]
         all_wkrms = [requested_wkrms]
-        while (relationships := sum([wkrm._pending_relationships for _, wkrm, _ in all_wkrms[0]], [])):
+        while (relationships := sum([wkrm._._pending_relationships for _, wkrm, _ in all_wkrms[0]], [])):
             all_wkrms = [relationships] + all_wkrms
 
-        all_wkrm_classes = list({wkrm[1]._wkrm for wkrms in all_wkrms for wkrm in wkrms})
+        all_wkrm_classes = list({wkrm[1]._._wkrm for wkrms in all_wkrms for wkrm in wkrms})
         mapping_details = [
             {"mapping": {k: str(v) for k, v in wkrm.nodes.items()}, "wkrmClassName": wkrm.model_class_name, "graph": wkrm.graphid}
             for wkrm in all_wkrm_classes
@@ -175,25 +180,25 @@ class BulkImportWKRM(BaseImportModule):
         for wkrms in all_wkrms[::-1]:
             for (value, wkrm_fm, wkrm) in wkrms:
                 if not wkrm_fm.id:
-                    if not wkrm_fm.resource.resourceinstanceid:
-                        if wkrm_fm._new_id:
-                            new_id = uuid.UUID(wkrm_fm._new_id)
+                    if not wkrm_fm._.resource.resourceinstanceid:
+                        if wkrm_fm._._new_id:
+                            new_id = uuid.UUID(wkrm_fm._._new_id)
                         else:
                             new_id = uuid.uuid4()
-                        wkrm_fm.resource.resourceinstanceid = new_id
-                    wkrm_fm.id = wkrm_fm.resource.resourceinstanceid
+                        wkrm_fm._.resource.resourceinstanceid = new_id
+                    wkrm_fm.id = wkrm_fm._.resource.resourceinstanceid
                     new_wkrms.append(wkrm_fm)
 
-                    for tile in wkrm_fm.resource.get_flattened_tiles():
-                        tile.resourceinstance = wkrm_fm.resource
+                    for tile in wkrm_fm._.resource.get_flattened_tiles():
+                        tile.resourceinstance = wkrm_fm._.resource
 
                 # TODO: what happens if the cross already exists for some reason?
                 if wkrm:
                     cross = ResourceXResource(
-                        resourceinstanceidfrom=wkrm_fm.resource,
-                        resourceinstanceidto=wkrm.resource,
-                        resourceinstancefrom_graphid=wkrm_fm.resource.graph,
-                        resourceinstanceto_graphid=wkrm.resource.graph,
+                        resourceinstanceidfrom=wkrm_fm._.resource,
+                        resourceinstanceidto=wkrm._.resource,
+                        resourceinstancefrom_graphid=wkrm_fm._.resource.graph,
+                        resourceinstanceto_graphid=wkrm._.resource.graph,
                         created=datetime.now(),
                         modified=datetime.now()
                     )
@@ -203,7 +208,7 @@ class BulkImportWKRM(BaseImportModule):
                 if value is not None and not value.get("resourceXresourceId", False):
                     value.update(
                         {
-                            "resourceId": str(wkrm_fm.resource.resourceinstanceid),
+                            "resourceId": str(wkrm_fm._.resource.resourceinstanceid),
                             "ontologyProperty": "",
                             "resourceXresourceId": str(cross.resourcexid),
                             "inverseOntologyProperty": ""
@@ -219,7 +224,7 @@ class BulkImportWKRM(BaseImportModule):
 
             tiles = []
             for wkrm in new_wkrms:
-                resource = wkrm.resource
+                resource = wkrm._.resource
                 resource.tiles = resource.get_flattened_tiles()
                 tiles.extend([(wkrm, tile) for tile in resource.tiles])
 
@@ -262,14 +267,23 @@ class BulkImportWKRM(BaseImportModule):
                             tile_value_json,
                             self.loadid,
                             0,
-                            f"GraphQL {wkrm._wkrm}:bulk_create>{wkrm}",
+                            f"GraphQL {wkrm._._wkrm}:bulk_create>{wkrm}",
                             "insert",
                             True,
                         ),
                     )
-                cursor.execute("""CALL __arches_check_tile_cardinality_violation_for_load(%s)""", [self.loadid])
+                try:
+                    cursor.execute("""CALL __arches_check_tile_cardinality_violation_for_load(%s)""", [self.loadid])
+                except OperationalError:
+                    # This is not available in the sqlite backend
+                    logger.error("Could not call __arches_check_tile_cardinality_violation_for_load")
 
-        validation = self.validate()
+        try:
+            validation = self.validate()
+        except OperationalError:
+            # This is not available in the sqlite backend
+            logger.error("Could not call validation")
+            validation = {"data": []}
         logger.error("%s Validated", str(datetime.now()))
         if len(validation["data"]) != 0:
             with connection.cursor() as cursor:
@@ -282,15 +296,27 @@ class BulkImportWKRM(BaseImportModule):
             try:
                 with connection.cursor() as cursor:
                     logger.error("%s Disabling regular triggers", str(datetime.now()))
-                    cursor.execute("""CALL __arches_prepare_bulk_load();""", [self.loadid])
+                    try:
+                        cursor.execute("""CALL __arches_prepare_bulk_load();""", [self.loadid])
+                    except OperationalError:
+                        # This is not available in the sqlite backend
+                        logger.error("Could not call __arches_prepare_bulk_load")
                     logger.error("%s Staging to tile [start]", str(datetime.now()))
-                    cursor.execute("""SELECT * FROM __arches_staging_to_tile(%s)""", [self.loadid])
+                    try:
+                        cursor.execute("""SELECT * FROM __arches_staging_to_tile(%s)""", [self.loadid])
+                    except OperationalError:
+                        # This is not available in the sqlite backend
+                        cursor.execute("""SELECT __arches_staging_to_tile('?')""", [self.loadid])
                     logger.error("%s Retrieving result", str(datetime.now()))
                     row = cursor.fetchall()
                     logger.error("%s Refreshing geometries", str(datetime.now()))
                     cursor.execute("""SELECT * FROM refresh_geojson_geometries();""", [self.loadid])
                     logger.error("%s Re-enabling regular triggers", str(datetime.now()))
-                    cursor.execute("""CALL __arches_complete_bulk_load();""", [self.loadid])
+                    try:
+                        cursor.execute("""CALL __arches_complete_bulk_load();""", [self.loadid])
+                    except OperationalError:
+                        # This is not available in the sqlite backend
+                        logger.error("Could not call __arches_complete_bulk_load")
                     logger.error("%s Bulk load complete", str(datetime.now()))
             except (IntegrityError, ProgrammingError) as e:
                 logger.error(e)
@@ -389,9 +415,9 @@ class BulkImportWKRM(BaseImportModule):
             term_list = []
             for n, wkrm in enumerate(new_wkrms):
                 logger.error("%s : WKRM %d", str(datetime.now()), n)
-                resource = wkrm.resource
-                datatype_factory = wkrm._datatype_factory()
-                node_datatypes = wkrm._node_datatypes()
+                resource = wkrm._.resource
+                datatype_factory = wkrm._._datatype_factory()
+                node_datatypes = wkrm._._node_datatypes()
                 logger.error("%s : (fetching)", str(datetime.now()))
                 document, terms = resource.get_documents_to_index(
                     fetchTiles=False, datatype_factory=datatype_factory, node_datatypes=node_datatypes

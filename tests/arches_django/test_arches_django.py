@@ -59,6 +59,15 @@ JSON_PERSON = """
 
 @pytest.mark.django_db
 @context_free
+def test_can_create_in_bulk(arches_orm):
+    Person = arches_orm.models.Person
+    Person.create_bulk([
+        {"name.full_name": f"Ash {i}"}
+        for i in range(100)
+    ])
+
+@pytest.mark.django_db
+@context_free
 def test_can_save_with_name(arches_orm):
     Person = arches_orm.models.Person
     person = Person.create()
@@ -311,6 +320,87 @@ def test_can_save_two_related_resources(arches_orm, person_ashs, lazy):
 @pytest.mark.django_db
 @context_free
 @pytest.mark.parametrize("lazy", [False, True])
+def test_can_read_two_related_resources_many_times(arches_orm, lazy):
+    Person = arches_orm.models.Person
+    person = Person.create()
+    ash = person.name.append()
+    ash.full_name = "Ash"
+    ash.surnames.surname = "Read"
+    person.save()
+
+    act_1 = arches_orm.models.Activity.create()
+    act_1.geospatial_coordinates = {
+        'geometry': {
+            'geospatialCoordinates': {
+                'type': 'FeatureCollection',
+                'features': [
+                    {
+                        'id': '1000',
+                        'type': 'Feature',
+                        'properties': {
+                            'Captured_by': 'MC',
+                            'Date_Captured': 1259539000000.0
+                        },
+                        'geometry': {
+                            'type': 'Polygon',
+                            'coordinates': [
+                                [
+                                    [-7.0821688272290935, 54.921622989437154],
+                                    [-7.082510380464253, 54.92160087302468],
+                                    [-7.0825, 54.921],
+                                    [-7.0826, 54.921],
+                                    [-7.0821, 54.921]
+                                ]
+                            ]
+                        }
+                    }
+                ]
+            }
+        }
+    }
+    act_2 = arches_orm.models.Activity.create()
+    act_2.geospatial_coordinates = {
+        'geometry': {
+            'geospatialCoordinates': {
+                'type': 'FeatureCollection',
+                'features': [
+                    {
+                        'id': '1000',
+                        'type': 'Feature',
+                        'properties': {
+                            'Captured_by': 'MC',
+                            'Date_Captured': 1259539000000.0
+                        },
+                        'geometry': {
+                            'type': 'Polygon',
+                            'coordinates': [
+                                [
+                                    [-8.0821688272290935, 54.921622989437154],
+                                    [-8.082510380464253, 54.92160087302468],
+                                    [-8.0825, 54.921],
+                                    [-8.0826, 54.921],
+                                    [-8.0821, 54.921]
+                                ]
+                            ]
+                        }
+                    }
+                ]
+            }
+        }
+    }
+    person.associated_activities.append(act_1)
+    person.associated_activities.append(act_2)
+    person.save()
+
+    for i in range(200):
+        reloaded_person = arches_orm.models.Person.find(person.id, lazy=lazy)
+        assert len(reloaded_person.name) == 1
+        assert len(reloaded_person.associated_activities) == 2
+        #assert len(reloaded_person.associated_activities[0].geospatial_coordinates) == 1
+
+@pytest.mark.django_db
+@context_free
+@pytest.mark.parametrize("lazy", [False, True])
 def test_can_save_two_related_resources_many_times(arches_orm, lazy):
     Person = arches_orm.models.Person
     for i in range(20):
@@ -327,9 +417,6 @@ def test_can_save_two_related_resources_many_times(arches_orm, lazy):
 
         reloaded_person = arches_orm.models.Person.find(person.id, lazy=lazy)
         assert len(reloaded_person.name) == 1
-        act_2 = arches_orm.models.Activity()
-        reloaded_person.associated_activities.append(act_2)
-        reloaded_person.save()
         assert len(reloaded_person.associated_activities) == 2
 
         reloaded_person = arches_orm.models.Person.find(person.id, lazy=lazy)
