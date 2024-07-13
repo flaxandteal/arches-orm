@@ -1,7 +1,6 @@
 import uuid
 import logging
 from collections import UserList
-from arches.app.models.resource import Resource
 from ._base import ViewModel, ResourceInstanceViewModel
 
 
@@ -43,7 +42,7 @@ class RelatedResourceInstanceListViewModel(UserList, ViewModel):
 
         try:
             value, _, __, ___ = self._make_ri_cb(resource_instance or resource_instance_id)
-        except Resource.DoesNotExist as exc:
+        except Exception as exc:
             logging.error(
                 "Tried to load %s for %s but could not: %s",
                 str(resource_instance or resource_instance_id),

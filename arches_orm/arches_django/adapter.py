@@ -1,4 +1,5 @@
 import logging
+from enum import Enum
 from arches_orm.adapter import Adapter
 
 logger = logging.getLogger(__name__)
@@ -20,6 +21,10 @@ class ArchesDjangoAdapter(Adapter):
         from .wrapper import ArchesDjangoResourceWrapper
 
         return ArchesDjangoResourceWrapper
+
+    def get_collection(self, collection_id: str) -> type[Enum]:
+        from .datatypes.concepts import retrieve_collection
+        return retrieve_collection(collection_id)
 
     def load_from_id(self, resource_id, from_prefetch=None, lazy=False):
         from arches_orm.wkrm import get_resource_models_for_adapter
