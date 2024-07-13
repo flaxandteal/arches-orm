@@ -69,6 +69,8 @@ class SemanticViewModel(ViewModel, Mapping[str, ViewModel]):
                 # local cache simply because the node is not loaded yet.
                 self._child_values[key] = child
             child._parent_node = self
+        else:
+            child = self._child_values[key]
         return child
 
     def __setattr__(self, key, value):
