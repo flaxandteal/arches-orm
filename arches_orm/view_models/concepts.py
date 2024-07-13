@@ -1,15 +1,18 @@
+from __future__ import annotations
+
 from enum import Enum
 from typing import Union, Callable, Protocol, Any
 import uuid
 from functools import lru_cache
 from collections import UserList
 from collections.abc import Iterable
+from arches_orm.utils import string_to_enum
 from ._base import (
     ViewModel,
 )
 
 
-class ConceptProtocol(Protocol):
+class ValueProtocol(Protocol):
     """Minimal representation of an Arches concept."""
 
     value: str
@@ -17,15 +20,17 @@ class ConceptProtocol(Protocol):
 
 
 class CollectionChild:
-    _collection_id: uuid.UUID
-    _collection_cb: Callable[[uuid.UUID], Enum]
+    _collection_id: uuid.UUID | None
+    _collection_cb: Callable[[uuid.UUID], type[Enum]]
 
-    def __init__(self, collection_id: uuid.UUID, retrieve_collection_cb: Callable[[uuid.UUID], Enum]):
+    def __init__(self, collection_id: uuid.UUID | None, retrieve_collection_cb: Callable[[uuid.UUID], type[Enum]]):
         self._collection_id = collection_id
         self._collection_cb = retrieve_collection_cb
 
     @property
-    def __collection__(self) -> Enum:
+    def __collection__(self) -> type[Enum] | None:
+        if self._collection_id is None:
+            return None
         return self._collection_cb(self._collection_id)
 
 class EmptyConceptValueViewModel(CollectionChild, ViewModel):
@@ -47,9 +52,10 @@ class ConceptValueViewModel(str, CollectionChild, ViewModel):
     """
 
     _concept_value_id: uuid.UUID
-    _concept_value_cb: Callable[[uuid.UUID], ConceptProtocol]
-    _collection_id: uuid.UUID
-    _collection_cb: Callable[[uuid.UUID], Enum]
+    _concept_value_cb: Callable[[uuid.UUID], ValueProtocol]
+    _collection_id: uuid.UUID | None
+    _collection_cb: Callable[[uuid.UUID], type[Enum]]
+    _children_cb: Callable[[uuid.UUID, str | None], "ConceptValueViewModel"]
 
     def __hash__(self):
         return hash(self._concept_value_id)
@@ -65,10 +71,11 @@ class ConceptValueViewModel(str, CollectionChild, ViewModel):
     def __new__(
         cls,
         concept_value_id: Union[str, uuid.UUID],
-        concept_value_cb,
-        collection_id: uuid.UUID,
-        retrieve_collection_cb: Callable[[uuid.UUID], Enum]
-    ):
+        concept_value_cb: Callable[[uuid.UUID], ValueProtocol],
+        collection_id: uuid.UUID | None,
+        retrieve_collection_cb: Callable[[uuid.UUID], type[Enum]],
+        retrieve_children_cb: Callable[[uuid.UUID, str | None], "ConceptValueViewModel"]
+    ) -> "ConceptValueViewModel":
         _concept_value_id: uuid.UUID = (
             concept_value_id
             if isinstance(concept_value_id, uuid.UUID) else
@@ -83,6 +90,7 @@ class ConceptValueViewModel(str, CollectionChild, ViewModel):
         mystr._concept_value_cb = concept_value_cb
         mystr._collection_id = collection_id
         mystr._collection_cb = retrieve_collection_cb
+        mystr._children_cb = retrieve_children_cb
         return mystr
 
     @property
@@ -94,6 +102,10 @@ class ConceptValueViewModel(str, CollectionChild, ViewModel):
         return self.value.concept
 
     @property
+    def children(self):
+        return self._children_cb(self.conceptid, self.lang)
+
+    @property
     @lru_cache
     def value(self):
         return self._concept_value_cb(self._concept_value_id)
@@ -101,6 +113,10 @@ class ConceptValueViewModel(str, CollectionChild, ViewModel):
     @property
     def text(self):
         return self.value.value
+
+    @property
+    def enum(self):
+        return string_to_enum(self.text)
 
     @property
     def lang(self):
@@ -113,7 +129,7 @@ class ConceptValueViewModel(str, CollectionChild, ViewModel):
         return f"{self.value.concept_id}>{self._concept_value_id}[{self.text}]"
 
 
-class ConceptListValueViewModel(UserList, ViewModel):
+class ConceptListValueViewModel(UserList[ConceptValueViewModel], ViewModel, CollectionChild):
     """Wraps a concept list, allowing interrogation.
 
     Subclasses list, so its members can be handled like a string enum, but keeps
@@ -124,9 +140,12 @@ class ConceptListValueViewModel(UserList, ViewModel):
     def __init__(
         self,
         concept_value_ids: Iterable[str | uuid.UUID],
-        make_cb,
+        make_cb: Callable[[uuid.UUID], ConceptValueViewModel],
+        collection_id: uuid.UUID | None,
+        retrieve_collection_cb: Callable[[uuid.UUID], type[Enum]],
     ):
-        super().__init__()
+        UserList.__init__(self)
+        CollectionChild.__init__(self, collection_id, retrieve_collection_cb)
         self._make_cb = make_cb
         self._serialize_entries = {}
         for concept_value_id in concept_value_ids:

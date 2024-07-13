@@ -19,17 +19,19 @@ class WKRM:
     graphid: str
     nodes: dict
     remapping: dict | None
+    total_remap: bool
     to_string: Callable
 
     @property
     def model_class_name(self):
         return self.model_name.replace(" ", "")
 
-    def __init__(self, model_name, graphid, __str__=None, remapping=None, **kwargs):
+    def __init__(self, model_name, graphid, __str__=None, total_remap=False, remapping=None, **kwargs):
         self.model_name = model_name
         self.graphid = graphid
         self.to_string = __str__ or repr
         self.remapping = remapping
+        self.total_remap = False
         self.nodes = kwargs
 
 
@@ -45,7 +47,7 @@ def _make_wkrm(wkrm_definition, adapter):
             (adapter.get_wrapper(),),
             {"proxy": False, "view_model": None},
             well_known_resource_model=wkrm_definition,
-            context=adapter.get_context(),
+            adapter=adapter,
         )
         orm_view_model = type(
             wkrm_definition.model_class_name,
@@ -74,11 +76,13 @@ def get_resource_models_for_adapter(adapter_name: str | None = None):
             try:
                 resource_models[str(adapter)]["by-class"][wkrm.model_class_name] = _make_wkrm(wkrm, adapter)
             except Exception as exc:
+                import traceback
+                traceback.print_exception(exc)
                 logger.error("Could not load well-known resource model %s for adapter %s", str(wkrm.model_class_name), str(adapter))
                 logger.exception(exc)
                 logger.error("...continuing, to prevent circularity.")
         resource_models[str(adapter)]["by-graph-id"] = {
-            rm.graphid: rm
+            rm._.graphid: rm
             for rm in resource_models[str(adapter)]["by-class"].values()
             if rm
         }

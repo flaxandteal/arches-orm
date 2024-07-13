@@ -1,5 +1,4 @@
 import pytest
-import os
 from httpx import AsyncClient
 from graphql import print_schema
 import arches_graphql_client
@@ -8,6 +7,9 @@ from unittest.mock import MagicMock, patch
 
 import pytest_asyncio
 from django.contrib.auth.models import User
+
+
+RECORD_STATUS = "7849cd3c-3f0d-454d-aaea-db9164629641"
 
 
 def nope(*args, **kwargs):
@@ -22,31 +24,41 @@ def agc():
     return
 
 @pytest.fixture
-def anon_app(arches_orm):
+def app(arches_orm):
     from arches_orm.graphql._asgi import app
-    from arches_orm.graphql import auth
-    auth.ALLOW_ANONYMOUS = True
     return app
 
 
 @pytest_asyncio.fixture
-async def client(anon_app):
-    async with AsyncClient(app=anon_app, base_url="http://testserver") as client:
+async def client(app):
+    async with AsyncClient(app=app, base_url="http://testserver") as client:
         yield client
 
 @pytest.fixture
-def resource_client(anon_app):
+def concept_client(app):
+    from arches_graphql_client.concept import ConceptClient
+    concept_client = ConceptClient()
+    yield from client_builder(app, "concepts/", concept_client)
+
+@pytest.fixture
+def resource_client(app):
     from arches_graphql_client.resource import ResourceClient
+    resource_client = ResourceClient()
+    def _resource_client(model_name):
+        resource_client.resource_model_name = model_name
+        return resource_client
+    yield from client_builder(app, "resources/", resource_client, _resource_client)
+
+def client_builder(app, path, client, wrapper=None):
     from gql.transport.httpx import HTTPXAsyncTransport
     from gql import Client
     transport = HTTPXAsyncTransport(
-        url="http://testserver/resources/",
-        app=anon_app,
+        url=f"http://testserver/{path}",
+        app=app,
         headers={'Authorization': 'basic abc123'}
     )
 
-    resource_client = ResourceClient()
-    resource_client.client = Client(transport=transport, fetch_schema_from_transport=True, execute_timeout=10)
+    client.client = Client(transport=transport, fetch_schema_from_transport=True, execute_timeout=10)
 
     authenticator = arches_orm.graphql.auth.authenticator
     arches_orm.graphql.auth.authenticator = MagicMock()
@@ -57,15 +69,11 @@ def resource_client(anon_app):
     arches_orm.graphql.auth.OauthlibRequest().client.user = admin
     admin.save()
 
-    def _resource_client(model_name):
-        resource_client.resource_model_name = model_name
-        return resource_client
-    yield _resource_client
+    yield wrapper or client
     arches_orm.graphql.auth.authenticator = authenticator
     arches_orm.graphql.auth.OauthlibRequest = OauthlibRequest
 
-@pytest.fixture
-def unprivileged_resource_client(resource_client):
+def deprivilege_client(client):
     user = User(username="rimmer", is_superuser=False)
     arches_orm.graphql.auth.OauthlibRequest().client.user = user
     user.save()
@@ -74,7 +82,15 @@ def unprivileged_resource_client(resource_client):
         patch("arches_orm.arches_django.wrapper.user_can_edit_resource", nope) as _,
         patch("arches_orm.arches_django.wrapper.user_can_read_graph", nope) as __
     ):
-        yield resource_client
+        yield client
+
+@pytest.fixture
+def unprivileged_concept_client(concept_client):
+    yield from deprivilege_client(concept_client)
+
+@pytest.fixture
+def unprivileged_resource_client(resource_client):
+    yield from deprivilege_client(resource_client)
 
 @pytest.mark.asyncio
 async def test_app(client):
@@ -82,7 +98,7 @@ async def test_app(client):
     assert response.status_code == 200
 
 @pytest.mark.asyncio
-async def test_person_schema(anon_app, resource_client, person_ashs):
+async def test_person_schema(app, resource_client, person_ashs):
     person_client = resource_client("Person")
     async with person_client.client as _:
         assert person_client.client.schema
@@ -90,25 +106,86 @@ async def test_person_schema(anon_app, resource_client, person_ashs):
     assert "PersonName" in schema
 
 @pytest.mark.asyncio
-async def test_person_query(anon_app, resource_client, person_ashs):
+async def test_person_query(app, resource_client, person_ashs):
     person_client = resource_client("Person")
     response = await person_client.get(str(person_ashs.id), ["id"])
     assert response == {"getPerson": {"id": str(person_ashs.id)}}
 
 @pytest.mark.asyncio
-async def test_unknown_person_query_gives_none(anon_app, resource_client, person_ashs):
+async def test_unknown_person_query_gives_none(app, resource_client, person_ashs):
     person_client = resource_client("Person")
     response = await person_client.get("5a27548e-394b-4371-b224-e93ce68e9768", ["id"])
     assert response == {"getPerson": None}
 
 @pytest.mark.asyncio
-async def test_person_properties(anon_app, resource_client, person_ashs):
+async def test_person_properties(app, resource_client, person_ashs):
     person_client = resource_client("Person")
     response = await person_client.get(str(person_ashs.id), ["id", ("name", ["fullName"])])
     assert response == {"getPerson": {"id": str(person_ashs.id), "name": [{"fullName": "Ash"}]}}
 
 @pytest.mark.asyncio
-async def test_person_create(anon_app, resource_client, person_ash):
+async def test_concept_get_only_if_privileged(app, unprivileged_concept_client):
+    from gql.transport.exceptions import TransportQueryError
+    with pytest.raises(TransportQueryError):
+        await unprivileged_concept_client.get_concept(RECORD_STATUS)
+
+@pytest.mark.asyncio
+async def test_concept_get_by_id(app, concept_client):
+    concept = await concept_client.get_concept(RECORD_STATUS)
+    assert concept == {
+        "id": RECORD_STATUS,
+        "label": "Record Status",
+        "slug": "RecordStatus",
+        "nodetype": "Collection"
+    }
+
+@pytest.mark.asyncio
+async def test_concept_get_terms(app, concept_client):
+    terms = await concept_client.get_terms("RecordStatus")
+    TERMS = [
+        {
+            'label': 'Active - Full/Published',
+            'slug': 'ActiveDashFullOrPublished',
+            'fullLabel': ['Active - Full/Published'],
+        },
+        {
+            'label': 'Backlog - Full/Published',
+            'slug': 'BacklogDashFullOrPublished',
+            'fullLabel': ['Backlog - Full/Published'],
+        },
+        {
+            'label': 'Backlog - Skeleton',
+            'slug': 'BacklogDashSkeleton',
+            'fullLabel': ['Backlog - Skeleton'],
+        }
+    ]
+    term_map = {term["slug"]: term for term in TERMS}
+    comparison = []
+    for term in terms:
+        term_map[term["slug"]]["identifier"] = term["identifier"]
+        comparison.append(term_map[term["slug"]])
+
+    assert terms == comparison
+
+@pytest.mark.asyncio
+async def test_concept_add_term(app, concept_client):
+    concept_ok = await concept_client.add_term("RecordStatus", "RecordStatus》New Status")
+    assert concept_ok == {"ok": True}
+    terms = await concept_client.get_term_list("RecordStatus")
+    assert "NewStatus" in terms
+
+@pytest.mark.asyncio
+async def test_concept_get_by_name(app, concept_client):
+    concept = await concept_client.get_concept("RecordStatus")
+    assert concept == {
+        "id": RECORD_STATUS,
+        "label": "Record Status",
+        "slug": "RecordStatus",
+        "nodetype": "Collection"
+    }
+
+@pytest.mark.asyncio
+async def test_person_create(app, resource_client, person_ash):
     person_client = resource_client("Person")
     response = await person_client.create({
         "name": [{"fullName": "Ash"}]
@@ -121,7 +198,7 @@ async def test_person_create(anon_app, resource_client, person_ash):
 @pytest.mark.parametrize("debug", [False, True])
 @pytest.mark.parametrize("graph", [False, True])
 @pytest.mark.parametrize("can_edit", [False, True])
-async def test_person_query_fails_if_unprivileged(anon_app, unprivileged_resource_client, person_ashs, debug, graph, can_edit):
+async def test_person_query_fails_if_unprivileged(app, unprivileged_resource_client, person_ashs, debug, graph, can_edit):
     with patch("arches_orm.graphql.resources.GRAPHQL_DEBUG_PERMISSIONS", debug) as _:
         person_client = unprivileged_resource_client("Person")
         with (

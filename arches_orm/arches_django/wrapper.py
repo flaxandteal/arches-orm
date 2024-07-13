@@ -5,12 +5,12 @@ from django.dispatch import Signal
 from collections import UserDict
 from functools import lru_cache
 from datetime import datetime
+from django.db import transaction
 from arches.app.models.models import ResourceXResource, Node, NodeGroup, Edge
 from arches.app.models.graph import Graph
 from arches.app.models.tile import Tile as TileProxyModel
 from arches.app.models.system_settings import settings as system_settings
 from arches.app.utils.permission_backend import get_nodegroups_by_perm
-from contextvars import ContextVar
 import logging
 from arches.app.utils.permission_backend import (
     user_can_read_resource,
@@ -23,6 +23,8 @@ from arches_orm.datatypes import DataTypeNames
 from arches_orm.wrapper import ResourceWrapper
 from arches_orm.utils import snake
 from arches_orm.errors import WKRIPermissionDenied, WKRMPermissionDenied, DescriptorsNotYetSet
+from arches_orm.view_models.resources import RelatedResourceInstanceViewModelMixin
+
 
 from .bulk_create import BulkImportWKRM
 from .pseudo_nodes import PseudoNodeList, PseudoNodeValue, PseudoNodeUnavailable
@@ -38,7 +40,7 @@ LOAD_ALL_NODES = True
 def get_permitted_nodegroups(user):
     # To separate read and write, we need to know which tile nodes
     # have changed when saving (reliably).
-    nodegroups = get_nodegroups_by_perm(user, "models.write_nodegroup")
+    nodegroups = [str(ng) for ng in get_nodegroups_by_perm(user, "models.write_nodegroup")]
     return nodegroups
 
 class ValueList(UserDict):
@@ -90,10 +92,8 @@ class ValueList(UserDict):
             return self.data.get(key, default)
 
 class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
-    _context: ContextVar[dict[str, Any] | None] | None = None
     _nodes_real: dict = None
     _nodegroup_objects_real: dict = None
-    _root_node: Node | None = None
     _values_list: ValueList | None = None
     _values_real: list | None = None
     __datatype_factory = None
@@ -137,7 +137,7 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
     def _get_descriptor(self, descriptor, context=None):
         if context is None and (lang := self._context_get("language")):
             context = {
-                "language": context
+                "language": lang
             }
         if not self.resource:
             raise NotImplementedError()
@@ -184,7 +184,7 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
     ):
         if not root:
             if not all_values:
-                return []
+                return [], set()
             root = [
                 nodelist[0]
                 for nodelist in all_values.values()
@@ -193,23 +193,38 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
 
         combined_tiles = []
         relationships = []
+        ghost_tiles = set()
         if not isinstance(root, PseudoNodeList):
             parent = root
         for pseudo_node in root.get_children():
+            if isinstance(pseudo_node.value, RelatedResourceInstanceViewModelMixin):
+                # Do not cross between resources. The relationship should
+                # be captured. The canonical example of this is a semantic node that
+                # gives us a related resource instance.
+                t, r = pseudo_node.get_tile()
+                combined_tiles.append((t, r))
+                continue
             if isinstance(pseudo_node, PseudoNodeList) or pseudo_node.accessed:
                 if len(pseudo_node):
-                    subrelationships = self._update_tiles(
+                    subrelationships, subghost_tiles = self._update_tiles(
                         tiles, root=pseudo_node, parent=parent, permitted_nodegroups=permitted_nodegroups
                     )
                     relationships += subrelationships
-                if not isinstance(pseudo_node, PseudoNodeList):
+                    ghost_tiles |= subghost_tiles
+                if isinstance(pseudo_node, PseudoNodeList):
+                    # Only hold ghost tiles that have been saved.
+                    ghost_tiles = {
+                        tile for ghost in pseudo_node.free_ghost_children()
+                        if (tile := ghost.get_tile()[0]) and tile.pk and not tile._state.adding
+                    }
+                else:
                     t, r = pseudo_node.get_tile()
                     if t is not None and permitted_nodegroups is not None and (t.nodegroup_id is None or str(t.nodegroup_id) not in permitted_nodegroups):
                         # Warn if we can
                         if pseudo_node._original_tile and hasattr(pseudo_node._original_tile, "_original_data"):
                             if t.data == pseudo_node._original_tile._original_data:
                                 continue
-                        raise RuntimeError(f"Attempt to modify data that this user does not have permissions to: {t.nodegroup_id}")
+                        raise RuntimeError(f"Attempt to modify data that this user does not have permissions to: {t.nodegroup_id} in {self}")
                     else:
                         combined_tiles.append((t, r))
             # This avoids loading a tile as a set of view models, simply to re-save it.
@@ -231,7 +246,7 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
                     for relationship in subrelationships
                 ]
                 tiles[nodegroup_id].append(tile)
-        return relationships
+        return relationships, ghost_tiles
 
     def to_resource(
         self,
@@ -253,7 +268,9 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
         resource = Resource(resourceinstanceid=self.id, graph_id=self.graphid)
         tiles = {}
         permitted_nodegroups = self._permitted_nodegroups()
-        relationships = self._update_tiles(tiles, self._values, permitted_nodegroups=permitted_nodegroups)
+        relationships, ghost_tiles = self._update_tiles(tiles, self._values, permitted_nodegroups=permitted_nodegroups)
+        for tile in ghost_tiles:
+            tile.delete()
 
         # parented tiles are saved hierarchically
         resource.tiles = [t for t in sum((ts for ts in tiles.values()), [])]
@@ -288,7 +305,8 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
                 #    resource.tiles = all_tiles
 
                 # This fills out the tiles with None values
-                resource.save()
+                with transaction.atomic():
+                    resource.save()
                 self.id = resource.resourceinstanceid
                 system_settings.BYPASS_REQUIRED_VALUE_TILE_VALIDATION = bypass
         elif not resource._state.adding:
@@ -299,7 +317,7 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
         # Don't think we actually need this if the resource gets saved, as postsave RI
         # datatype handles it. We do for sqlite at the very least, and likely gathering
         # for bulk.
-        _no_save = _no_save or not (self.get_adapter().config.get("save_crosses", False))
+        _no_save = _no_save or not (self._adapter.config.get("save_crosses", False))
         # TODO: fix expectation of one cross per tile
 
         crosses = {}
@@ -359,7 +377,8 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
             do_final_save = True
 
         if do_final_save:
-            resource.save()
+            with transaction.atomic():
+                resource.save()
             resource = Resource.objects.get(resourceinstanceid=self.id)
             self.resource = resource
 
@@ -388,12 +407,12 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
 
     @classmethod
     def _context_req(cls, key):
-        return self._context_get(cls, key, required=True)
+        return cls._context_get(cls, key, required=True)
 
     @classmethod
     def _context_get(cls, key, default=None, required=False):
         try:
-            context = cls._context.get()
+            context = cls._adapter.get_context().get()
         except LookupError:
             logger.error("Need to set a context before using the ORM, or mark adapter context-free.")
             raise
@@ -409,7 +428,7 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
     @classmethod
     def _can_read_graph(cls):
         try:
-            context = cls._context.get()
+            context = cls._adapter.get_context().get()
         except LookupError:
             logger.error("Need to set a context before using the ORM, or mark adapter context-free.")
             raise
@@ -441,7 +460,7 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
             return []
 
         try:
-            context = cls._context.get()
+            context = cls._adapter.get_context().get()
         except LookupError:
             logger.error("Need to set a context before using the ORM, or mark adapter context-free.")
             raise
@@ -453,9 +472,10 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
             return permitted_nodegroups
 
         user = context.get("user")
+        png = get_permitted_nodegroups(user)
         permitted_nodegroups = [
             key for key in cls._nodegroup_objects()
-            if key in get_permitted_nodegroups(user)
+            if key in png
         ] + [None]
         context.setdefault("user_graphs", {})
         context["user_graphs"][str(cls)] = permitted_nodegroups
@@ -624,39 +644,62 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
         }
         cls._nodes_real.update(nodes)
         cls._nodegroup_objects_real.update(nodegroups)
-        cls._root_node = {
-            "root": node for node in nodes.values() if node.nodegroup_id is None
-        }.get("root")
 
     @classmethod
-    @property
-    def __fields__(cls):
+    def all_fields(cls):
+        root_fields = cls.get_fields()
+        fields = {}
+        def _add_children(children):
+            for name, child in children.items():
+                fields[name] = dict(child)
+                grandchildren = fields[name].get("children", {})
+                if grandchildren:
+                    _add_children(grandchildren)
+                    del fields[name]["children"]
+        _add_children(root_fields)
+        return fields
+
+    @classmethod
+    @lru_cache
+    def get_fields(cls, include_root=False):
         cls._build_nodes()
         def _fill_fields(pseudo_node):
             typ, multiple = pseudo_node.get_type()
+            try:
+                typ = DataTypeNames(typ)
+            except ValueError:
+                logger.error(r"Could not load %s for %s", typ, str(cls))
+                return None
             fields = {
-                "type": DataTypeNames(typ),
+                "type": typ,
+                "node": pseudo_node,
                 "multiple": multiple,
                 "nodeid": str(pseudo_node.node.nodeid)
             }
             if (child_types := pseudo_node.get_child_types()):
                 fields["children"] = {
-                    child: _fill_fields(child_node) for child, child_node in child_types.items()
+                    child: _fields for child, child_node in child_types.items()
+                    if (_fields := _fill_fields(child_node))
                 }
             return fields
 
+        root_fields = {}
+        pseudo_node = cls._get_root_pseudo_node()
+        root_fields.update(_fill_fields(pseudo_node))
+        fields: dict[str, Any] = {}
+        if not cls._remap_total or not cls._remap:
+            root_fields.setdefault("children", fields)
+            fields = root_fields["children"]
+
         if cls._remap and cls._model_remapping:
-            fields = {}
             for field, target in cls._model_remapping.items():
-                _, target = target.split(".", -1)
+                if "." in target:
+                    _, target = target.split(".", -1)
+                logger.info("remapping: %s to %s", field, target)
                 pseudo_node = cls._make_pseudo_node_cls(target, wkri=None)
                 fields[snake(field)] = _fill_fields(pseudo_node)
-            return fields
-        else:
-            pseudo_node = cls._get_root_pseudo_node()
-            if pseudo_node:
-                return _fill_fields(pseudo_node).get("children")
-        return {}
+
+        return {"": root_fields} if include_root else fields
 
     @classmethod
     def all_ids(cls):
@@ -942,7 +985,7 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
                 if all_values.get(key, False) is not False:
                     for pseudo_node_list in all_values[key]:
                         if not isinstance(pseudo_node_list, PseudoNodeList):
-                            raise RuntimeError("Should be all lists")
+                            raise RuntimeError(f"Should be all lists not {type(pseudo_node_list)}")
                         if pseudo_node_list._parent_node == pseudo_node._parent_node:
                             for ps in pseudo_node:
                                 # FIXME: do we need to deal with _parent_node?
@@ -1024,12 +1067,6 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
         nodegroups = cls._nodegroup_objects()
 
         permitted = cls._permitted_nodegroups()
-        if node_obj.nodegroup_id is not None and str(node_obj.nodegroup_id) not in permitted:
-            return PseudoNodeUnavailable(
-                node=node_obj,
-                parent=wkri,
-                parent_cls=cls.view_model,
-            )
         edges = cls._edges().get(str(node_obj.nodeid))
         value = None
         if (
@@ -1053,21 +1090,21 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
                         if str(n.nodeid) in edges
                     }
                 )
-            child_nodes.update(
-                {
-                    n.alias: (n, True)
-                    for n in cls._node_objects().values()
-                    if n.nodegroup_id == node_obj.nodeid and n.nodeid != node_obj.nodeid
-                }
-            )
-            node_value = PseudoNodeValue(
-                tile=tile,
-                node=node_obj,
-                value=None,
-                parent=wkri,
-                parent_cls=cls.view_model,
-                child_nodes=child_nodes,
-            )
+            if node_obj.nodegroup_id is not None and str(node_obj.nodegroup_id) not in permitted:
+                node_value = PseudoNodeUnavailable(
+                    node=node_obj,
+                    parent=wkri,
+                    parent_cls=cls.view_model,
+                )
+            else:
+                node_value = PseudoNodeValue(
+                    tile=tile,
+                    node=node_obj,
+                    value=None,
+                    parent=wkri,
+                    parent_cls=cls.view_model,
+                    child_nodes=child_nodes,
+                )
             # If we have a tile in a list, add it
             if value is not None:
                 value.append(node_value)
@@ -1076,9 +1113,9 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
 
         return value
 
-    def __init_subclass__(cls, well_known_resource_model=None, proxy=None, context=None):
+    def __init_subclass__(cls, well_known_resource_model=None, proxy=None, adapter=None):
         super().__init_subclass__(
-            well_known_resource_model=well_known_resource_model, proxy=proxy, context=context
+            well_known_resource_model=well_known_resource_model, proxy=proxy, adapter=adapter
         )
         if proxy is not None:
             cls.proxy = proxy
@@ -1086,7 +1123,6 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
             # We should not actually fail without a graph...
             cls._nodes_real = {}
             cls._nodegroup_objects_real = {}
-            cls._build_nodes()
 
     @classmethod
     def _add_events(cls):
@@ -1095,27 +1131,38 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
         cls.post_related_from = Signal()
 
     @classmethod
+    @lru_cache
+    def _root_node(cls) -> Node:
+        nodes = cls._node_objects()
+        root_node = {
+            "root": node for node in nodes.values() if node.nodegroup_id is None
+        }.get("root")
+        if not root_node:
+            logger.error("COULD NOT FIND ROOT NODE FOR %s. Does the graph %s still exist?", cls, str(cls.graphid))
+        return root_node
+
+    @classmethod
     def _get_root_pseudo_node(cls):
-        if cls._root_node:
+        if (node := cls._root_node()):
             return cls._make_pseudo_node_cls(
-                cls._root_node.alias,
+                node.alias,
                 wkri=None
             )
         return None
 
     def get_root(self):
-        if self._root_node:
-            self._values.setdefault(self._root_node.alias, [])
-            if len(self._values[self._root_node.alias]) not in (0, 1):
+        if (node := self._root_node()):
+            self._values.setdefault(node.alias, [])
+            if len(self._values[node.alias]) not in (0, 1):
                 raise RuntimeError("Cannot have multiple root tiles")
-            if self._values[self._root_node.alias]:
-                value = self._values[self._root_node.alias][0]
+            if self._values[node.alias]:
+                value = self._values[node.alias][0]
             else:
                 value = self._make_pseudo_node_cls(
-                    self._root_node.alias,
+                    node.alias,
                     wkri=self.view_model_inst
                 )
-                self._values[self._root_node.alias] = [value]
+                self._values[node.alias] = [value]
             return value
 
     def delete(self):

@@ -1,4 +1,6 @@
 import logging
+import uuid
+import hashlib
 import slugify
 import re
 from functools import partial
@@ -58,11 +60,20 @@ def camel(string, studly=False):
     return string
 studly = partial(camel, studly=True)
 
-def is_unset(variable):
+def is_unset(variable, unavailable=True):
+    from arches_orm.view_models._base import UnavailableViewModel
+
     if variable is None:
         return True
+    if isinstance(variable, UnavailableViewModel):
+        return unavailable
     try:
         return hash(variable) == hash(None)
     except TypeError:
         ...
     return False
+
+def consistent_uuid(string):
+    hsh = hashlib.md5()
+    hsh.update(string.encode("utf-8"))
+    return uuid.UUID(hsh.hexdigest())

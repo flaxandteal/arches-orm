@@ -78,6 +78,14 @@ def test_can_save_with_name(arches_orm):
     person.save()
 
 @pytest.mark.skip(reason="dummy is WIP")
+def test_can_save_with_name(arches_orm):
+    Person = arches_orm.models.Person
+    person = Person.create()
+    ash = person.name.append()
+    ash.full_name = "Ash"
+    person.save()
+
+@pytest.mark.skip(reason="dummy is WIP")
 def test_can_save_with_blank_name(arches_orm):
     Person = arches_orm.models.Person
     person = Person.create()

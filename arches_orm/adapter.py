@@ -1,10 +1,21 @@
+from __future__ import annotations
+
+import logging
+from uuid import UUID
+from enum import Enum
 from typing import Any, Generator, Callable, Literal
 from inspect import isgenerator, isgeneratorfunction
 from functools import partial, wraps
 from contextlib import contextmanager
 from contextvars import ContextVar
+from abc import ABC, abstractmethod
 
-class Adapter:
+from .view_models._base import ResourceInstanceViewModel
+from .view_models.concepts import ConceptValueViewModel
+
+logger = logging.getLogger(__name__)
+
+class Adapter(ABC):
     config: dict[str, Any]
     _context: ContextVar[dict[str, Any] | None]
 
@@ -15,8 +26,39 @@ class Adapter:
     def __init_subclass__(cls):
         ADAPTER_MANAGER.register_adapter(cls)
 
+    def __str__(self):
+        return self.key
+
+    def __repr__(self):
+        return f"<AORA:{self.key}>"
+
+    @property
+    @abstractmethod
+    def key(self):
+        ...
+
     def set_context_free(self):
         self._context.set(None)
+
+    def get_rdm(self):
+        from .collection import ReferenceDataManager
+        return ReferenceDataManager(self)
+
+    @abstractmethod
+    def retrieve_concept(self, concept_id: str | UUID) -> ConceptValueViewModel:
+        ...
+
+    @abstractmethod
+    def make_concept(self, concept_id: str | UUID, values: dict[UUID, tuple[str, str]], children: list[UUID] | None) -> ConceptValueViewModel:
+        ...
+
+    @abstractmethod
+    def get_collection(self, collection_id: str) -> type[Enum]:
+        ...
+
+    @abstractmethod
+    def load_from_id(self, resource_id: str, from_prefetch: Callable[[str], Any] | None=None, lazy: bool=False) -> ResourceInstanceViewModel:
+        ...
 
     def get_context(self):
         return self._context
@@ -85,6 +127,7 @@ class AdapterManager:
         self.default_adapter = default_adapter
 
     def get_adapter(self, key=None):
+        print(self.default_adapter)
         if not self.adapters:
             raise RuntimeError(
                 "Must have at least one adapter available, "
@@ -113,13 +156,13 @@ def context(ctx: dict | None, adapter_key: str | None=None) -> Callable[[Any], A
         @wraps(f)
         def _g(*args, **kwargs):
             adapter = get_adapter(adapter_key)
-            with adapter.context(_ctx=ctx, _override=True) as cvar:
+            with adapter.context(_ctx=ctx, _override=True) as _:
                 yield from f(*args, **kwargs)
 
         @wraps(f)
         def _f(*args, **kwargs):
             adapter = get_adapter(adapter_key)
-            with adapter.context(_ctx=ctx, _override=True) as cvar:
+            with adapter.context(_ctx=ctx, _override=True) as _:
                 return f(*args, **kwargs)
         return _g if isgenerator(f) or isgeneratorfunction(f) else _f
 
@@ -129,6 +172,14 @@ def context(ctx: dict | None, adapter_key: str | None=None) -> Callable[[Any], A
 def admin(adapter_key: str | None=None):
     with get_adapter(adapter_key).context(None, _override=True) as cvar:
         yield cvar
+
+def admin_everywhere(key=None):
+    get_adapter(key=key).set_context_free()
+    logger.warning(
+        "ARCHES ORM ADMINISTRATION MODE ON: use for debugging only, "
+        "otherwise use the `context_free` or `context` decorator/with statement to "
+        "achieve this result safely."
+    )
 
 ADAPTER_MANAGER = AdapterManager()
 get_adapter = ADAPTER_MANAGER.get_adapter

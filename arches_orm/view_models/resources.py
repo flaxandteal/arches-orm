@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 import uuid
+import logging
 from collections import UserList
 from ._base import ViewModel, ResourceInstanceViewModel
 
@@ -39,7 +42,16 @@ class RelatedResourceInstanceListViewModel(UserList, ViewModel):
             resource_instance_id = item["resourceId"]
         # TODO: why no error on else?
 
-        value, _, __, ___ = self._make_ri_cb(resource_instance or resource_instance_id)
+        try:
+            value, _, __, ___ = self._make_ri_cb(resource_instance or resource_instance_id)
+        except Exception as exc:
+            logging.error(
+                "Tried to load %s for %s but could not: %s",
+                str(resource_instance or resource_instance_id),
+                str(self._parent_wkri.id if self._parent_wkri else "(unknown)"),
+                str(exc)
+            )
+            value = None
 
         if not value:
             raise RuntimeError(f"Could not append {item} to resource list within {self._parent_wkri}")

@@ -97,6 +97,40 @@
                 },
                 {
                     "active": true,
+                    "cardid": "9e6bd847-46da-4bb7-9ea6-43afbbd11c66",
+                    "component_id": "f05e4d3a-53c1-11e8-b0ea-784f435179ea",
+                    "config": null,
+                    "constraints": [
+                        {
+                            "card_id": "9e6bd847-46da-4bb7-9ea6-43afbbd11c66",
+                            "constraintid": "b6cce5a2-df2f-4b3f-a1e2-b78e00f9ae1b",
+                            "nodes": [],
+                            "uniquetoallinstances": false
+                        }
+                    ],
+                    "cssclass": null,
+                    "description": "",
+                    "graph_id": "22477f01-1a44-11e9-b0a9-000d3ab1e588",
+                    "helpenabled": false,
+                    "helptext": {
+                        "en": null
+                    },
+                    "helptitle": {
+                        "en": null
+                    },
+                    "instructions": {
+                        "en": null
+                    },
+                    "is_editable": true,
+                    "name": {
+                        "en": "Favourite Activity"
+                    },
+                    "nodegroup_id": "312aa645-bf2f-4783-bf25-1bb6423fb91c",
+                    "sortorder": 9,
+                    "visible": true
+                },
+                {
+                    "active": true,
                     "cardid": "25b3afc9-186c-11eb-bbd2-f875a44e0e11",
                     "component_id": "f05e4d3a-53c1-11e8-b0ea-784f435179ea",
                     "config": null,
@@ -200,6 +234,15 @@
                 "en": "Used to describe individuals associated with a heritage resource. \nA person can either be current (eg. owners, developers etc) or a person of historic interest (eg. an author who formerly lived in a heritage resource)."
             },
             "edges": [
+                {
+                    "description": null,
+                    "domainnode_id": "22477f00-1a44-11e9-a60e-000d3ab1e588",
+                    "edgeid": "3cf39a08-bd21-4bdf-9d57-fa0d9a802d9b",
+                    "graph_id": "22477f01-1a44-11e9-b0a9-000d3ab1e588",
+                    "name": null,
+                    "ontologyproperty": "http://www.cidoc-crm.org/cidoc-crm/P11i_participated_in",
+                    "rangenode_id": "312aa645-bf2f-4783-bf25-1bb6423fb91c"
+                },
                 {
                     "description": null,
                     "domainnode_id": "22477f00-1a44-11e9-a60e-000d3ab1e588",
@@ -1771,6 +1814,18 @@
                 "en": "Person"
             },
             "nodegroups": [
+                {
+                    "cardinality": "1",
+                    "legacygroupid": null,
+                    "nodegroupid": "b1f5c336-6a0e-11ee-b748-0242ac140009",
+                    "parentnodegroup_id": null
+                },
+                {
+                    "cardinality": "1",
+                    "legacygroupid": null,
+                    "nodegroupid": "312aa645-bf2f-4783-bf25-1bb6423fb91c",
+                    "parentnodegroup_id": null
+                },
                 {
                     "cardinality": "1",
                     "legacygroupid": null,
@@ -4303,7 +4358,7 @@
                     "fieldname": null,
                     "graph_id": "22477f01-1a44-11e9-b0a9-000d3ab1e588",
                     "hascustomalias": false,
-                    "is_collector": true,
+                    "is_collector": false,
                     "isrequired": false,
                     "issearchable": true,
                     "istopnode": false,
@@ -5810,6 +5865,38 @@
                     "nodegroup_id": "fed4c6c1-1fe5-11e9-bbdc-000d3ab1e588",
                     "nodeid": "fed4c6cb-1fe5-11e9-9722-000d3ab1e588",
                     "parentproperty": "http://www.cidoc-crm.org/cidoc-crm/P7_took_place_at",
+                    "sortorder": 0
+                },
+                {
+                    "alias": "favourite_activity",
+                    "config": {
+                        "graphid": [
+                            "b9e0701e-5463-11e9-b5f5-000d3ab1e588"
+                        ],
+                        "graphs": [
+                            {
+                                "graphid": "b9e0701e-5463-11e9-b5f5-000d3ab1e588",
+                                "name": "Activity"
+                            }
+                        ],
+                        "searchDsl": "",
+                        "searchString": ""
+                    },
+                    "datatype": "resource-instance",
+                    "description": "",
+                    "exportable": true,
+                    "fieldname": "Fav_Act",
+                    "graph_id": "22477f01-1a44-11e9-b0a9-000d3ab1e588",
+                    "hascustomalias": false,
+                    "is_collector": true,
+                    "isrequired": false,
+                    "issearchable": true,
+                    "istopnode": false,
+                    "name": "Favourite Activity",
+                    "nodegroup_id": "312aa645-bf2f-4783-bf25-1bb6423fb91c",
+                    "nodeid": "312aa645-bf2f-4783-bf25-1bb6423fb91c",
+                    "ontologyclass": "http://www.cidoc-crm.org/cidoc-crm/E7_Activity",
+                    "parentproperty": "http://www.cidoc-crm.org/cidoc-crm/P11i_participated_in",
                     "sortorder": 0
                 },
                 {

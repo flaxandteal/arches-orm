@@ -1,3 +1,4 @@
+import logging
 from django.contrib.auth.models import Group
 
 from arches_orm.view_models import (
@@ -5,6 +6,8 @@ from arches_orm.view_models import (
     GroupProtocol,
 )
 from ._register import REGISTER
+
+logger = logging.getLogger(__name__)
 
 
 class DjangoGroupViewModel(Group, GroupViewModelMixin):
@@ -18,10 +21,10 @@ class DjangoGroupViewModel(Group, GroupViewModelMixin):
         return bool(self.pk)
 
 
-@REGISTER("django_group")
+@REGISTER("django-group")
 def django_group(tile, node, value, _, __, ___, group) -> GroupProtocol:
     group = None
-    value = value or tile.data.get(str(node.nodeid))
+    value = (value if not isinstance(value, tuple) else value[0]) or tile.data.get(str(node.nodeid))
     if value:
         if isinstance(value, Group):
             if value.pk:
@@ -30,7 +33,10 @@ def django_group(tile, node, value, _, __, ___, group) -> GroupProtocol:
                 group = DjangoGroupViewModel()
                 group.__dict__.update(value.__dict__)
         if value:
-            group = DjangoGroupViewModel.objects.get(pk=int(value))
+            try:
+                group = DjangoGroupViewModel.objects.get(pk=int(value))
+            except DjangoGroupViewModel.DoesNotExist:
+                logger.warning("Django Group is missing for pk value %s", str(value))
     if not group:
         group = DjangoGroupViewModel()
     return group

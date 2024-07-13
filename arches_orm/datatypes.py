@@ -19,3 +19,4 @@ class DataTypeNames(enum.Enum):
     NODE_VALUE = "node-value"
     BNGCENTREPOINT = "bngcentrepoint"
     DOMAIN_VALUE_LIST = "domain-value-list"
+    DJANGO_GROUP = "django-group"

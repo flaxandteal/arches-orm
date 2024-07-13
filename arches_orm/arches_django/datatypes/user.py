@@ -1,3 +1,4 @@
+import logging
 from django.contrib.auth.models import User
 
 from arches_orm.view_models import (
@@ -5,6 +6,8 @@ from arches_orm.view_models import (
     UserProtocol,
 )
 from ._register import REGISTER
+
+logger = logging.getLogger(__name__)
 
 
 class UserViewModel(User, UserViewModelMixin):
@@ -30,7 +33,10 @@ def user(tile, node, value, _, __, ___, user_datatype) -> UserProtocol:
                 user = UserViewModel()
                 user.__dict__.update(value.__dict__)
         if value:
-            user = UserViewModel.objects.get(pk=int(value))
+            try:
+                user = UserViewModel.objects.get(pk=int(value))
+            except UserViewModel.DoesNotExist:
+                logger.warning("User is missing for pk value %s", str(value))
     if not user:
         user = UserViewModel()
     return user
