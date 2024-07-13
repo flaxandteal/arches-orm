@@ -335,6 +335,7 @@ def test_can_save_two_related_resources_many_times(arches_orm, lazy):
         assert len(reloaded_person.associated_activities) == 2
 
         reloaded_person = arches_orm.models.Person.find(person.id, lazy=lazy)
+        assert len(reloaded_person.name) == 1
         assert len(reloaded_person.associated_activities) == 2
 
 @pytest.mark.django_db
