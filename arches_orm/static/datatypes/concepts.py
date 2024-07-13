@@ -250,7 +250,9 @@ def update_collections(collection: CollectionEnum, source_file: Path, arches_url
     cgraph.bind("skos", Namespace("http://www.w3.org/2004/02/skos/core#"))
     cgraph.bind("rdf", Namespace("http://www.w3.org/1999/02/22-rdf-syntax-ns#"))
     cgraph.bind("dcterms", Namespace("http://purl.org/dc/terms/"))
-    xml_string = cgraph.serialize(format="pretty-xml").encode("utf-8")
+    xml_string = cgraph.serialize(format="pretty-xml")
+    if isinstance(xml_string, str):
+        xml_string = xml_string.encode("utf-8")
     etree = ET.ElementTree(ET.fromstring(xml_string))
     ET.indent(etree)
     etree.write(str(source_file), xml_declaration=True)
@@ -261,7 +263,9 @@ def save_concept(concept: ConceptValueViewModel, output_file: Path | None, arche
     if output_file is None:
         raise RuntimeError(f"Could not save concept {str(concept.title())} as no source/destination - perhaps you meant to use a parent concept?")
     graph = concept_to_skos(static_concept, arches_url)
-    xml_string = graph.serialize(format="pretty-xml").encode("utf-8")
+    xml_string = graph.serialize(format="pretty-xml")
+    if isinstance(xml_string, str):
+        xml_string = xml_string.encode("utf-8")
     etree = ET.ElementTree(ET.fromstring(xml_string))
     ET.indent(etree)
     etree.write(str(output_file), xml_declaration=True)
