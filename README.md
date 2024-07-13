@@ -31,8 +31,7 @@ pip install .[graphql]
 
 ### Arches
 
-Allows Arches ORM to directly manipulate the Arches database. Note that this is only
-necessary if you do not already have Arches installed in the current environment.
+Allows Arches ORM to directly manipulate the Arches database.
 
 ```
 pip install .[arches]
@@ -44,7 +43,6 @@ Runs tests across the various backends.
 
 ```
 pip install .[tests]
-python -m pytest
 ```
 
 ## Well-known Resource Models

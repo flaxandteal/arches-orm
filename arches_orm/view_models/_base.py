@@ -73,6 +73,10 @@ class ResourceInstanceViewModel(ViewModel, metaclass=ResourceModelViewModel):
         """Convert to representation string."""
         return self._.to_repr()
 
+    def __repr__(self):
+        """Convert to representation string."""
+        return self._.to_repr()
+
     def __getitem__(self, key):
         return self.__getattr__(key)
 
