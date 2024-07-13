@@ -178,12 +178,6 @@ def arches_orm_(search_engine, django_db_blocker, test_sql):
                 ResourceGraphImporter(archesfile["graph"], True)
         from arches_orm.adapter import ADAPTER_MANAGER
         ADAPTER_MANAGER.set_default_adapter("arches-django")
-
-        admin = User(username="admin", is_superuser=True)
-        admin.save()
-        user = User(username="rimmer", is_superuser=False)
-        user.save()
-
         import arches_orm.arches_django
         from arches_orm.adapter import get_adapter
         get_adapter("arches-django").config["save_crosses"] = True
