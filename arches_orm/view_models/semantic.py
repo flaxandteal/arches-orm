@@ -54,11 +54,12 @@ class SemanticViewModel(ViewModel, Mapping[str, ViewModel]):
             return super().__getattr__(key)
 
         child_value = self._get_child_value(key)
-        return child_value.value
+        value = child_value.value
+        return value
 
     def _get_child_value(self, key):
         if key not in self._child_keys:
-            raise AttributeError(f"Semantic node does not have this key: {key}")
+            raise AttributeError(f"Semantic node does not have this key: {key} ({list(self._child_keys)}")
 
         if key not in self._child_values:
             if (child := self._get_child_values(self, key)) is None:
@@ -82,7 +83,7 @@ class SemanticViewModel(ViewModel, Mapping[str, ViewModel]):
             return super().__setattr__(key, value)
 
         if key not in self._child_keys:
-            raise AttributeError(f"Semantic node does not have this key: {key}")
+            raise AttributeError(f"Semantic node does not have this key: {key} ({list(self._child_keys)}")
 
         if key not in self._child_values:
             if (child := self._get_child_values(self, key)) is None:
