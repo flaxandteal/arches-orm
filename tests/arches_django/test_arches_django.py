@@ -1,6 +1,6 @@
 import pytest
 import json
-from arches_orm.adapter import context_free
+from arches_orm.adapter import context_free, get_adapter
 from arches_orm.errors import DescriptorsNotYetSet
 
 JSON_PERSON = """
@@ -154,6 +154,16 @@ def test_can_save_with_geojson(arches_orm, lazy):
             }
         }
     }
+
+@pytest.mark.django_db
+@context_free
+def test_can_get_collection(arches_orm):
+    Activity = arches_orm.models.Activity
+    activity = Activity.create()
+    record_status = activity.record_status_assignment.record_status
+    StatusEnum = record_status.__collection__
+
+    assert StatusEnum == get_adapter().get_collection("7849cd3c-3f0d-454d-aaea-db9164629641")
 
 @pytest.mark.django_db
 @context_free

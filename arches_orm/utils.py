@@ -1,4 +1,6 @@
 import logging
+import uuid
+import hashlib
 import slugify
 import re
 from functools import partial
@@ -70,3 +72,8 @@ def is_unset(variable, unavailable=True):
     except TypeError:
         ...
     return False
+
+def consistent_uuid(string):
+    hsh = hashlib.md5()
+    hsh.update(string.encode("utf-8"))
+    return uuid.UUID(hsh.hexdigest())
