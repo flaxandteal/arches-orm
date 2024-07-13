@@ -987,7 +987,7 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
                 if all_values.get(key, False) is not False:
                     for pseudo_node_list in all_values[key]:
                         if not isinstance(pseudo_node_list, PseudoNodeList):
-                            raise RuntimeError("Should be all lists")
+                            raise RuntimeError(f"Should be all lists not {type(pseudo_node_list)}")
                         if pseudo_node_list._parent_node == pseudo_node._parent_node:
                             for ps in pseudo_node:
                                 # FIXME: do we need to deal with _parent_node?
