@@ -4,6 +4,47 @@ This provides simple (server-side) access to Arches resources from Python
 as Python objects. It makes no guarantees about efficiency or type-accuracy
 but such issues raised will be addressed as far as possible.
 
+## Installation
+
+Basic installation can then happen as follows, _without_ Arches backend support:
+
+```
+pip install .
+```
+
+To run tests, make sure you have `libsqlite3-mod-spatialite`, or your distribution's equivalent
+package for enabling Spatialite in Python. Instead of using a real Arches PostgreSQL database, we spin
+a fresh test database up in memory.
+
+**WARNING:** The mock DB behaviour for Python testing is not identical to a
+real Arches database, but is adequately close for now, is fast and has no server dependency.
+
+There are several sets of optional dependencies.
+
+### GraphQL
+
+Turns Arches ORM into an API server for Arches.
+
+```
+pip install .[graphql]
+```
+
+### Arches
+
+Allows Arches ORM to directly manipulate the Arches database.
+
+```
+pip install .[arches]
+```
+
+### Test
+
+Runs tests across the various backends.
+
+```
+pip install .[tests]
+```
+
 ## Well-known Resource Models
 
 To provide a partial boundary, this package expects a settings object called

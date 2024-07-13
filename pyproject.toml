@@ -52,6 +52,6 @@ test = [
     "httpx",
     "spatialite",
     "pytest_django",
-    "arches_graphql_client",
+    "arches_graphql_client @ git+https://github.com/flaxandteal/arches_graphql_client#release/0.0.11",
     "pytest-asyncio"
 ]

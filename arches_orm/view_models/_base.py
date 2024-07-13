@@ -27,6 +27,10 @@ class ResourceModelViewModel(type, ViewModel):
             # TODO: return getattr(self._._get_root_pseudo_node().value, key)
             return getattr(self._, key)
 
+    def __repr__(self):
+        """Convert to representation string."""
+        return self._.to_repr_cls()
+
     def __setattr__(self, key, value):
         raise NotImplementedError()
 
@@ -64,6 +68,10 @@ class ResourceInstanceViewModel(ViewModel, metaclass=ResourceModelViewModel):
             logging.error(str(exc))
             string = repr(self)
         return string
+
+    def __repr__(self):
+        """Convert to representation string."""
+        return self._.to_repr()
 
     def __getitem__(self, key):
         return self.__getattr__(key)

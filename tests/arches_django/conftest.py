@@ -156,6 +156,8 @@ def arches_orm(search_engine, django_db_blocker, test_sql):
             with (Path(__file__).parent / "_django" / model).open("r") as f:
                 archesfile = JSONDeserializer().deserialize(f)
                 ResourceGraphImporter(archesfile["graph"], True)
+        from arches_orm.adapter import ADAPTER_MANAGER
+        ADAPTER_MANAGER.set_default_adapter("arches-django")
         import arches_orm.arches_django
         from arches_orm.adapter import get_adapter
         get_adapter("arches-django").config["save_crosses"] = True

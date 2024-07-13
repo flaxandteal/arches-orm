@@ -26,6 +26,17 @@ class Adapter(ABC):
     def __init_subclass__(cls):
         ADAPTER_MANAGER.register_adapter(cls)
 
+    def __str__(self):
+        return self.key
+
+    def __repr__(self):
+        return f"<AORA:{self.key}>"
+
+    @property
+    @abstractmethod
+    def key(self):
+        ...
+
     def set_context_free(self):
         self._context.set(None)
 
@@ -116,6 +127,7 @@ class AdapterManager:
         self.default_adapter = default_adapter
 
     def get_adapter(self, key=None):
+        print(self.default_adapter)
         if not self.adapters:
             raise RuntimeError(
                 "Must have at least one adapter available, "

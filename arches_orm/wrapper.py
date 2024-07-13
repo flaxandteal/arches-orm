@@ -263,6 +263,18 @@ class ResourceWrapper(ABC):
                     table.append([key, "", "(empty)"])
         return description + tabulate(table)
 
+    def __repr__(self):
+        return f"{self.to_repr()}._"
+
+    def to_repr(self):
+        """Convert to string."""
+        return f"<AOR:{str(self.get_adapter())} {self._model_name} {self.id}>"
+
+    @classmethod
+    def to_repr_cls(self):
+        """Convert to string."""
+        return f"<AORM:{str(self.get_adapter())} {self._model_name}>"
+
     def to_string(self):
         """Convert to string."""
         return str(self._wkrm.to_string(self))
