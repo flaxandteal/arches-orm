@@ -277,7 +277,7 @@ def concept_to_skos(concept: StaticConcept, arches_url: str) -> Graph:
     ARCHES = Namespace(urlunparse(arches_url_prefix))
     identifier = ARCHES[str(concept.id)]
     graph.add((identifier, RDF.type, SKOS.ConceptScheme))
-    graph.add((identifier, SKOS.prefLabel, Literal(json.dumps({
+    graph.add((identifier, DCTERMS.title, Literal(json.dumps({
         "id": str(cuuid(f"{identifier}/value")),
         "value": concept.title().value,
     }), lang=concept.title().language)))
