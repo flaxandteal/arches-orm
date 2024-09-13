@@ -29,6 +29,33 @@
             "cards": [
                 {
                     "active": true,
+                    "cardid": "d19bfff4-a60d-4e37-b025-1ea1f996f739",
+                    "component_id": "f05e4d3a-53c1-11e8-b0ea-784f435179ea",
+                    "config": null,
+                    "constraints": [],
+                    "cssclass": null,
+                    "description": null,
+                    "graph_id": "076f9381-7b00-11e9-8d6b-80000b44d1d9",
+                    "helpenabled": false,
+                    "helptext": {
+                        "en": ""
+                    },
+                    "helptitle": {
+                        "en": ""
+                    },
+                    "instructions": {
+                        "en": ""
+                    },
+                    "is_editable": false,
+                    "name": {
+                        "en": "Nismr Numbering Type"
+                    },
+                    "nodegroup_id": "86c19e92-3ea7-11ef-818b-0242ac140006",
+                    "sortorder": null,
+                    "visible": true
+                },
+                {
+                    "active": true,
                     "cardid": "554b62c9-9504-11ea-b2d7-f875a44e0e11",
                     "component_id": "f05e4d3a-53c1-11e8-b0ea-784f435179ea",
                     "config": null,
@@ -234,6 +261,33 @@
                 "en": "Used to describe individuals associated with a heritage resource. \nA person can either be current (eg. owners, developers etc) or a person of historic interest (eg. an author who formerly lived in a heritage resource)."
             },
             "edges": [
+                {
+                    "description": null,
+                    "domainnode_id": "86c19e92-3ea7-11ef-818b-0242ac140006",
+                    "edgeid": "8320b1fe-cc10-4a66-a92e-7e48ecb816b4",
+                    "graph_id": "076f9381-7b00-11e9-8d6b-80000b44d1d9",
+                    "name": null,
+                    "ontologyproperty": "http://www.cidoc-crm.org/cidoc-crm/P2_has_type",
+                    "rangenode_id": "a1f6d2f4-3ea7-11ef-b911-0242ac140006"
+                },
+                {
+                    "description": null,
+                    "domainnode_id": "86c19e92-3ea7-11ef-818b-0242ac140006",
+                    "edgeid": "7c676bc4-58c2-4023-8136-4c2be1cf68a9",
+                    "graph_id": "076f9381-7b00-11e9-8d6b-80000b44d1d9",
+                    "name": null,
+                    "ontologyproperty": "http://www.cidoc-crm.org/cidoc-crm/P3_has_note",
+                    "rangenode_id": "b46b5bba-3ec2-11ef-bb61-0242ac140006"
+                },
+                {
+                    "description": null,
+                    "domainnode_id": "22477f00-1a44-11e9-a60e-000d3ab1e588",
+                    "edgeid": "55186b26-062a-4ffc-9e17-0850971a889e",
+                    "graph_id": "076f9381-7b00-11e9-8d6b-80000b44d1d9",
+                    "name": null,
+                    "ontologyproperty": "http://www.cidoc-crm.org/cidoc-crm/P2_has_type",
+                    "rangenode_id": "86c19e92-3ea7-11ef-818b-0242ac140006"
+                },
                 {
                     "description": null,
                     "domainnode_id": "22477f00-1a44-11e9-a60e-000d3ab1e588",
@@ -1818,6 +1872,12 @@
                     "cardinality": "1",
                     "legacygroupid": null,
                     "nodegroupid": "b1f5c336-6a0e-11ee-b748-0242ac140009",
+                    "parentnodegroup_id": null
+                },
+                {
+                    "cardinality": "1",
+                    "legacygroupid": null,
+                    "nodegroupid": "86c19e92-3ea7-11ef-818b-0242ac140006",
                     "parentnodegroup_id": null
                 },
                 {
@@ -5949,6 +6009,75 @@
                     "nodeid": "ffffaaf0-9043-11ea-b115-f875a44e0e11",
                     "parentproperty": "http://www.cidoc-crm.org/cidoc-crm/P3_has_note",
                     "sortorder": 0
+                },
+                {
+                    "alias": "generated_smr",
+                    "config": {
+                        "en": ""
+                    },
+                    "datatype": "string",
+                    "description": null,
+                    "exportable": false,
+                    "fieldname": null,
+                    "graph_id": "076f9381-7b00-11e9-8d6b-80000b44d1d9",
+                    "hascustomalias": false,
+                    "is_collector": false,
+                    "isrequired": false,
+                    "issearchable": true,
+                    "istopnode": false,
+                    "name": "Generated SMR",
+                    "nodegroup_id": "86c19e92-3ea7-11ef-818b-0242ac140006",
+                    "nodeid": "b46b5bba-3ec2-11ef-bb61-0242ac140006",
+                    "ontologyclass": "http://www.w3.org/2000/01/rdf-schema#Literal",
+                    "parentproperty": "http://www.cidoc-crm.org/cidoc-crm/P3_has_note",
+                    "sortorder": 0,
+                    "sourcebranchpublication_id": null
+                },
+                {
+                    "alias": "nismr_numbering_metatype",
+                    "config": {
+                        "rdmCollection": "1e63c514-eb9d-48d3-94b5-35e060e5f368"
+                    },
+                    "datatype": "concept",
+                    "description": null,
+                    "exportable": false,
+                    "fieldname": null,
+                    "graph_id": "076f9381-7b00-11e9-8d6b-80000b44d1d9",
+                    "hascustomalias": false,
+                    "is_collector": false,
+                    "isrequired": false,
+                    "issearchable": true,
+                    "istopnode": false,
+                    "name": "Nismr Numbering Metatype",
+                    "nodegroup_id": "86c19e92-3ea7-11ef-818b-0242ac140006",
+                    "nodeid": "a1f6d2f4-3ea7-11ef-b911-0242ac140006",
+                    "ontologyclass": "http://www.cidoc-crm.org/cidoc-crm/E55_Type",
+                    "parentproperty": "http://www.cidoc-crm.org/cidoc-crm/P2_has_type",
+                    "sortorder": 0,
+                    "sourcebranchpublication_id": null
+                },
+                {
+                    "alias": "nismr_numbering_type",
+                    "config": {
+                        "rdmCollection": "a51ff316-0223-4c30-92a5-27ed43840ae0"
+                    },
+                    "datatype": "concept",
+                    "description": null,
+                    "exportable": false,
+                    "fieldname": null,
+                    "graph_id": "076f9381-7b00-11e9-8d6b-80000b44d1d9",
+                    "hascustomalias": false,
+                    "is_collector": true,
+                    "isrequired": false,
+                    "issearchable": true,
+                    "istopnode": false,
+                    "name": "Nismr Numbering Type",
+                    "nodegroup_id": "86c19e92-3ea7-11ef-818b-0242ac140006",
+                    "nodeid": "86c19e92-3ea7-11ef-818b-0242ac140006",
+                    "ontologyclass": "http://www.cidoc-crm.org/cidoc-crm/E55_Type",
+                    "parentproperty": "http://www.cidoc-crm.org/cidoc-crm/P2_has_type",
+                    "sortorder": 0,
+                    "sourcebranchpublication_id": null
                 }
             ],
             "publication": {

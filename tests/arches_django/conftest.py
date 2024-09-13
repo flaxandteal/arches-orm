@@ -5,6 +5,7 @@ from pathlib import Path
 from unittest.mock import Mock
 import uuid
 from django.db.models import fields
+from django.db.transaction import atomic, rollback, savepoint, savepoint_commit, savepoint_rollback
 
 
 # Workaround for Sqlite being given string UUIDs
@@ -40,6 +41,24 @@ if os.environ.get("WITH_GRAPHQL", True):
     os.environ["DJANGO_SETTINGS_MODULE"] = "_django.settings_graphql"
 else:
     os.environ["DJANGO_SETTINGS_MODULE"] = "_django.settings"
+os.environ["DJANGO_MODE"] = "DEV"
+os.environ["DJANGO_ALLOW_ASYNC_UNSAFE"] = "true"
+os.environ.update({
+    "INSTALL_DEFAULT_GRAPHS": "True",
+    "INSTALL_DEFAULT_CONCEPTS": "True",
+    "PGUSERNAME": "postgres",
+    "PGPASSWORD": "postgres",
+    "PGDBNAME": "arches",
+    "PGHOST": "sut_db",
+    "PGPORT": "5432",
+    "ESHOST": "sut_es",
+    "ESPORT": "9200",
+    "DJANGO_MODE": "PROD",
+    "DJANGO_DEBUG": "False",
+    "DOMAIN_NAMES": "localhost",
+    "PYTHONUNBUFFERED": "0",
+    "TZ": "PST",
+})
 django.setup()
 
 from django.db import connection # noqa: E402
@@ -50,7 +69,7 @@ def django_db_use_migrations():
     return False
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture(scope="session")
 def search_engine():
     sef = Mock()
     sys.modules["arches.app.search.search_engine_factory"] = sef
@@ -60,17 +79,17 @@ def search_engine():
     yield
     del sys.modules["arches.app.search.search_engine_factory"]
 
-@pytest.fixture(scope="function")
-def test_sql(transactional_db, django_db_blocker):
+@pytest.fixture(scope="session")
+def test_sql(django_db_setup, django_db_blocker):
     with django_db_blocker.unblock():
         with (Path(__file__).parent / "_django" / "test.sql").open("r") as sql_f:
             with connection.cursor() as c:
                 c.executescript(sql_f.read())
-            yield
+    yield
 
 
-@pytest.fixture(scope="function")
-def arches_orm(search_engine, django_db_blocker, test_sql):
+@pytest.fixture(scope="session")
+def arches_orm_(search_engine, django_db_blocker, test_sql):
     # Sqlite cannot handle JSON-contains filtering, or jsonb_set
     from arches.app.models import tile
     from arches.app.models.fields import i18n
@@ -141,6 +160,7 @@ def arches_orm(search_engine, django_db_blocker, test_sql):
     Concept.get_child_collections = _get_child_collections
     Concept.get_child_collections_hierarchically = _get_child_collections_hierarchically
 
+    from django.contrib.auth.models import User
     from arches.app.utils.betterJSONSerializer import JSONDeserializer
     from arches.app.utils.data_management.resource_graphs.importer import (
         import_graph as ResourceGraphImporter,
@@ -148,7 +168,7 @@ def arches_orm(search_engine, django_db_blocker, test_sql):
 
     with django_db_blocker.unblock():
         skos = SKOSReader()
-        for rdf_file in ("collections.xml", "Record_Status.xml"):
+        for rdf_file in ("collections.xml", "Record_Status.xml", "Nismr_Numbering.xml"):
             rdf = skos.read_file(str(Path(__file__).parent / "_django" / rdf_file))
             skos.save_concepts_from_skos(rdf, "overwrite", "keep", prevent_indexing=True)
 
@@ -158,9 +178,20 @@ def arches_orm(search_engine, django_db_blocker, test_sql):
                 ResourceGraphImporter(archesfile["graph"], True)
         from arches_orm.adapter import ADAPTER_MANAGER
         ADAPTER_MANAGER.set_default_adapter("arches-django")
+
+        admin = User(username="admin", is_superuser=True)
+        admin.save()
+        user = User(username="rimmer", is_superuser=False)
+        user.save()
+
         import arches_orm.arches_django
         from arches_orm.adapter import get_adapter
         get_adapter("arches-django").config["save_crosses"] = True
         import arches_orm.models
 
         yield arches_orm
+
+@pytest.fixture(scope="function")
+def arches_orm(django_db_serialized_rollback, arches_orm_, search_engine):
+    with atomic():
+        yield arches_orm_
