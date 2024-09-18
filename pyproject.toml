@@ -45,6 +45,9 @@ graphql = [
 arches = [
     "arches",
 ]
+static = [
+    "pydantic"
+]
 test = [
     "pytest",
     "httpx",

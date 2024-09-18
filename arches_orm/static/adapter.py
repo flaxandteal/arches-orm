@@ -6,8 +6,9 @@ from enum import Enum
 from uuid import UUID
 from arches_orm.adapter import Adapter
 from arches_orm.view_models.concepts import ConceptValueViewModel
-from .wrapper import _STATIC_STORE
 from .datatypes.concepts import load_collection_path, load_concept_path, retrieve_collection, make_concept, retrieve_concept, save_concept, update_collections
+from .datatypes.resource_models import load_model_path
+from .datatypes.resource_instances import STATIC_STORE, scan_resource_path
 
 logger = logging.getLogger(__name__)
 
@@ -21,11 +22,12 @@ class StaticAdapter(Adapter):
 
     key = "static"
     _collections_loaded = False
+    _wkrm_definitions_loaded = False
 
     def get_wrapper(self):
-        from ..wrapper import ResourceWrapper
+        from .wrapper import StaticResourceWrapper
 
-        return ResourceWrapper
+        return StaticResourceWrapper
 
     def update_collections(self, concept: ConceptValueViewModel, source_file: Path) -> None:
         update_collections(concept, source_file, arches_url=self.config["arches_url"])
@@ -47,11 +49,18 @@ class StaticAdapter(Adapter):
         return retrieve_collection(collection_id)
 
     def load_from_id(self, resource_id, from_prefetch=None):
-        return (
+        static_resource = (
             from_prefetch(resource_id)
             if from_prefetch is not None
-            else _STATIC_STORE.get(resource_id)
+            else STATIC_STORE[resource_id]
         )
+        return static_resource
 
     def get_wkrm_definitions(self):
+        global WKRM_DEFINITIONS
+        if not self._wkrm_definitions_loaded:
+            for model_path in self.config["model_paths"]:
+                WKRM_DEFINITIONS += load_model_path(model_path)
+            for resource_path in self.config["resource_paths"]:
+                scan_resource_path(resource_path)
         return WKRM_DEFINITIONS

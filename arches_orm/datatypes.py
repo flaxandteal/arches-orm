@@ -20,3 +20,10 @@ class DataTypeNames(enum.Enum):
     BNGCENTREPOINT = "bngcentrepoint"
     DOMAIN_VALUE_LIST = "domain-value-list"
     DJANGO_GROUP = "django-group"
+
+COLLECTS_MULTIPLE_VALUES = {
+    DataTypeNames.CONCEPT_LIST,
+    DataTypeNames.FILE_LIST,
+    DataTypeNames.DOMAIN_VALUE_LIST,
+    DataTypeNames.RESOURCE_INSTANCE_LIST,
+}

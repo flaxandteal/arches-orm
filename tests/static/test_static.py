@@ -24,3 +24,48 @@ def test_can_save_collection():
     MyStatusEnum = rdm.concept_to_collection(my_status)
     rdm.save_concept(my_status, "/tmp/test.xml")
     rdm.update_collections(MyStatusEnum, Path("/tmp/collections.xml"))
+
+@context_free
+def test_can_load_resource_models(arches_orm):
+    from arches_orm.models import Group
+    Group.all()
+
+@context_free
+def test_can_load_a_resource(arches_orm):
+    from arches_orm.models import Group
+    groups = Group.all()
+    assert str(groups[0]) == "Global Group"
+
+@context_free
+def test_can_create_a_resource(arches_orm):
+    from arches_orm.models import Person
+    ash = Person()
+    name = ash.name.append()
+    name.full_name = "Ash"
+    assert name.full_name._value == {"en": {"direction": "ltr", "value": "Ash"}} # type: ignore
+
+@context_free
+def test_can_search_for_a_resource(arches_orm):
+    from arches_orm.models import Group
+    groups = list(Group._.where(name=".*Global Group.*"))
+    assert len(groups) == 1
+    for group in groups:
+        assert group.basic_info[0].name == "Global Group"
+        assert group.statement[0].description == "Global root of group hierarchy."
+
+@context_free
+def test_can_get_text_in_language(arches_orm):
+    from arches_orm.models import Group
+    with get_adapter("static").context() as cx:
+        # TODO check ga search
+        cx.get()["language"] = "ga"
+        groups = list(Group._.where(name=".*Global Group.*"))
+        assert len(groups) == 1
+        for group in groups:
+            assert group.basic_info[0].name == "Grúpa Domhanda"
+
+        cx.get()["language"] = "en"
+        groups = list(Group._.where(name=".*Global Group.*"))
+        assert len(groups) == 1
+        for group in groups:
+            assert group.basic_info[0].name == "Global Group"
