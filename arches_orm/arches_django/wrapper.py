@@ -24,11 +24,11 @@ from arches_orm.wrapper import ResourceWrapper
 from arches_orm.utils import snake
 from arches_orm.errors import WKRIPermissionDenied, WKRMPermissionDenied, DescriptorsNotYetSet
 from arches_orm.view_models.resources import RelatedResourceInstanceViewModelMixin
-
+from arches_orm.pseudo_node.pseudo_nodes import PseudoNodeList, PseudoNodeValue, PseudoNodeUnavailable
 
 from .bulk_create import BulkImportWKRM
-from .pseudo_nodes import PseudoNodeList, PseudoNodeValue, PseudoNodeUnavailable
 from .filters import SearchMixin
+from .datatypes import get_view_model_for_datatype
 
 logger = logging.getLogger(__name__)
 
@@ -1112,6 +1112,8 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
             else:
                 node_value = PseudoNodeValue(
                     tile=tile,
+                    TileProxyModel=TileProxyModel,
+                    get_view_model_for_datatype=get_view_model_for_datatype,
                     node=node_obj,
                     value=None,
                     parent=wkri,
