@@ -3,13 +3,14 @@ from __future__ import annotations
 import logging
 from typing import Any
 import uuid
-from abc import abstractmethod, abstractclassmethod, abstractstaticmethod, ABC
+from abc import abstractmethod, ABC
 from collections.abc import Callable
 from collections import UserList
 from arches_orm.adapter import Adapter
 from .view_models import ResourceInstanceViewModel
 from .view_models.node_list import RemappedNodeListViewModel
 from .errors import WKRMPermissionDenied
+from .wkrm import WKRM
 
 
 logger = logging.getLogger(__name__)
@@ -26,6 +27,7 @@ class ResourceWrapper(ABC):
     view_model_inst: ResourceInstanceViewModel
     graphid: str
     id: str
+    _wkrm: WKRM
     _adapter: Adapter
     _values: dict | None = None
     _cross_record: dict | None = None
@@ -130,6 +132,19 @@ class ResourceWrapper(ABC):
                         cmpt = cmpt.append()
                 cmpt = getattr(cmpt, ckey)
             return cmpt
+
+    def get_orm_dir(self):
+        """Retrieve Python keys for nodes attributes."""
+
+        attributes = []
+        if self._remap and self._model_remapping is not None:
+            if self._remap_total:
+                return sorted(self._model_remapping)
+            else:
+                attributes += list(self._model_remapping)
+        if (root := self.get_root()):
+            attributes += dir(root.value)
+        return attributes
 
     def get_orm_attribute(self, key):
         """Retrieve Python values for nodes attributes."""
@@ -299,23 +314,28 @@ class ResourceWrapper(ABC):
             cls._wkrm = well_known_resource_model
             cls._add_events()
 
-    @abstractclassmethod
+    @classmethod
+    @abstractmethod
     def _add_events(cls):
         """Add events to this model."""
 
-    @abstractclassmethod
+    @classmethod
+    @abstractmethod
     def search(cls, text, fields=None, _total=None):
         """Search for resources of this model, and return as well-known resources."""
 
-    @abstractclassmethod
+    @classmethod
+    @abstractmethod
     def all_ids(cls):
         """Get IDs for all resources of this type."""
 
-    @abstractclassmethod
-    def all(cls, related_prefetch=None):
+    @classmethod
+    @abstractmethod
+    def all(cls, related_prefetch: Callable[[str], "ResourceWrapper"] | None=None, limit: int | None=None) -> list["ResourceWrapper"]:
         """Get all resources of this type."""
 
-    @abstractclassmethod
+    @classmethod
+    @abstractmethod
     def find(cls, resourceinstanceid):
         """Find an individual well-known resource by instance ID."""
 
@@ -331,11 +351,13 @@ class ResourceWrapper(ABC):
     def append(self, _no_save=False):
         """When called via a relationship (dot), append to the relationship."""
 
-    @abstractclassmethod
+    @classmethod
+    @abstractmethod
     def where(cls, cross_record=None, **kwargs):
         """Do a filtered query returning a list of well-known resources."""
 
-    @abstractstaticmethod
+    @staticmethod
+    @abstractmethod
     def get_adapter():
         """Get the adapter that encapsulates this wrapper."""
 

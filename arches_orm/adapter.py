@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 class Adapter(ABC):
     config: dict[str, Any]
     _context: ContextVar[dict[str, Any] | None]
+    _singleton: Adapter | None = None
 
     def __init__(self, key):
         self.config = {}
@@ -150,6 +151,7 @@ class AdapterManager:
                 "Must set a default adapter, if registering multiple in one process"
             )
         adapter = adapter_cls(key=key)
+        adapter_cls._singleton = adapter
         self.adapters[key] = adapter
 
     def set_default_adapter(self, default_adapter):
