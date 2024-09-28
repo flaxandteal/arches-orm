@@ -4,7 +4,7 @@
 
 import os
 import threading
-from arches.app.models.graph import Graph
+# RMV from arches.app.models.graph import Graph
 from asgiref.sync import sync_to_async
 
 from arches_orm.utils import snake
@@ -14,11 +14,13 @@ import graphene
 from aiodataloader import DataLoader
 from arches_orm.wkrm import WELL_KNOWN_RESOURCE_MODELS
 
-from arches.app.models import models
-from arches.app.models.concept import Concept
-from django.utils.translation import get_language
+# RMV from arches.app.models import models
+# RMV from arches.app.models.concept import Concept
 
-LANG = get_language() or "en"
+# RMV from django.utils.translation import get_language
+
+LANG = "en"
+# RMV LANG = get_language() or "en"
 ALLOW_NON_WKRM_GRAPHS = str(os.environ.get("ARCHES_GRAPH_API_ALLOW_NON_WKRM_GRAPHS", "false")).lower() == "true"
 
 

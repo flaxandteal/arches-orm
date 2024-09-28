@@ -1,4 +1,5 @@
 import logging
+import enum
 import uuid
 import hashlib
 import slugify
@@ -29,6 +30,36 @@ _SYMBOL_NAMES = {
     "€": "EUR",
 }
 
+# Has to be here so it can be populated before the enum is created.
+_CUSTOM_DATATYPES: dict[str, str] | None = {
+}
+
+def add_custom_datatype(key: str, value: str, collects_multiple_values: bool=False) -> None:
+    if _CUSTOM_DATATYPES is None:
+        raise RuntimeError("Cannot add custom datatypes after initialization complete")
+    _CUSTOM_DATATYPES[key] = (value, collects_multiple_values)
+
+
+class StandardDataTypeNames(enum.Enum):
+    SEMANTIC = "semantic"
+    STRING = "string"
+    CONCEPT = "concept"
+    CONCEPT_LIST = "concept-list"
+    RESOURCE_INSTANCE = "resource-instance"
+    RESOURCE_INSTANCE_LIST = "resource-instance-list"
+    GEOJSON_FEATURE_COLLECTION = "geojson-feature-collection"
+    EDTF = "edtf"
+    FILE_LIST = "file-list"
+    USER = "user"
+    BOOLEAN  = "boolean"
+    NUMBER  = "number"
+    DATE  = "date"
+    URL = "url"
+    DOMAIN_VALUE = "domain-value"
+    NODE_VALUE = "node-value"
+    BNGCENTREPOINT = "bngcentrepoint"
+    DOMAIN_VALUE_LIST = "domain-value-list"
+    DJANGO_GROUP = "django-group"
 
 def snake(class_name):
     class_name = class_name[0].lower() + class_name[1:]

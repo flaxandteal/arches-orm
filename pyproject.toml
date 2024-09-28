@@ -27,6 +27,7 @@ dependencies = [
     "tabulate",
     "geojson",
     "rdflib",
+    "pydantic",
 ]
 
 [project.optional-dependencies]
@@ -44,9 +45,6 @@ graphql = [
 ]
 arches = [
     "arches",
-]
-static = [
-    "pydantic"
 ]
 test = [
     "pytest",

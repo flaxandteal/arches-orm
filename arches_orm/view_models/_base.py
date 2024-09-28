@@ -48,6 +48,10 @@ class ResourceInstanceViewModel(ViewModel, metaclass=ResourceModelViewModel):
         self._.save(*args, **kwargs)
         return self
 
+    def __dir__(self):
+        super_dir = super().__dir__()
+        return super_dir + self._.get_orm_dir()
+
     def __new__(cls, *args, **kwargs):
         obj = super().__new__(cls)
         cls._(obj, *args, **kwargs)

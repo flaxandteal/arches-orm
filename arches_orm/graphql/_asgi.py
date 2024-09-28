@@ -19,10 +19,10 @@ from starlette_context.middleware import RawContextMiddleware
 from starlette_context import context as starlette_context
 from arches_orm.adapter import get_adapter
 
-from .auth import BasicAuthBackend
+#from .django_auth import BasicAuthBackend
 from .resources import ResourceQuery, FullResourceMutation
-from .concepts import ConceptQuery, FullConceptMutation
-from .resource_models import ResourceModelQuery
+# RMV from .concepts import ConceptQuery, FullConceptMutation
+# RMV from .resource_models import ResourceModelQuery
 
 class UnauthorizedException(Exception):
     ...
@@ -30,8 +30,8 @@ class UnauthorizedException(Exception):
 DEBUG = os.getenv("DEBUG", "False") == "True"
 
 resources_schema = graphene.Schema(query=ResourceQuery, mutation=FullResourceMutation)
-concept_schema = graphene.Schema(query=ConceptQuery, mutation=FullConceptMutation)
-resource_model_schema = graphene.Schema(query=ResourceModelQuery)
+# RMV concept_schema = graphene.Schema(query=ConceptQuery, mutation=FullConceptMutation)
+# RMV resource_model_schema = graphene.Schema(query=ResourceModelQuery)
 
 class App(HTTPEndpoint):
     async def get(self, request):
@@ -39,7 +39,7 @@ class App(HTTPEndpoint):
 
 class ORMContextMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):
-        with get_adapter().context(user=starlette_context.data["user"]) as _:
+        with get_adapter().context(user=starlette_context.data.get("user")) as _:
             return await call_next(request)
 
 # TODO: More elegant solution, using the schema.
@@ -57,7 +57,7 @@ middleware = [
             plugins.CorrelationIdPlugin()
         )
     ),
-    Middleware(AuthenticationMiddleware, backend=BasicAuthBackend()),
+    #Middleware(AuthenticationMiddleware, backend=BasicAuthBackend()),
     Middleware(ORMContextMiddleware),
 ]
 
@@ -67,5 +67,5 @@ graphql_admin_middleware = [
 
 app = Starlette(debug=DEBUG, routes=[Route("/", App)], middleware=middleware)
 app.mount("/resources/", GraphQLApp(resources_schema, on_get=make_graphiql_handler()))
-app.mount("/concepts/", GraphQLApp(concept_schema, on_get=make_graphiql_handler(), middleware=graphql_admin_middleware))
-app.mount("/resource-models/", GraphQLApp(resource_model_schema, on_get=make_graphiql_handler(), middleware=graphql_admin_middleware))
+# RMV app.mount("/concepts/", GraphQLApp(concept_schema, on_get=make_graphiql_handler(), middleware=graphql_admin_middleware))
+# RMV app.mount("/resource-models/", GraphQLApp(resource_model_schema, on_get=make_graphiql_handler(), middleware=graphql_admin_middleware))

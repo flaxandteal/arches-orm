@@ -23,6 +23,9 @@ class SemanticViewModel(ViewModel, Mapping[str, ViewModel]):
     def __getitem__(self, item):
         return getattr(self, item)
 
+    def __dir__(self):
+        return list(self._child_keys)
+
     def __len__(self):
         return len(self._child_keys)
 

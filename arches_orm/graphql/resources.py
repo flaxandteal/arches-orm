@@ -6,6 +6,7 @@
 #     are copyright (c) 2020 Taku Fukada
 
 from os import environ
+from uuid import UUID
 import threading
 from inspect import iscoroutinefunction
 from dataclasses import dataclass, asdict
@@ -28,10 +29,9 @@ from arches_orm.wkrm import attempt_well_known_resource_model, get_well_known_re
 from arches_orm.wkrm import WELL_KNOWN_RESOURCE_MODELS
 from arches_orm.wkrm import get_resource_models_for_adapter
 
-from arches.app.models import models
-import arches.app.models.resource
+# RMV import arches.app.models.resource
 
-from arches.app.datatypes.datatypes import DataTypeFactory
+# RMV from arches.app.datatypes.datatypes import DataTypeFactory
 from arches_orm.datatypes import DataTypeNames
 from arches_orm.utils import is_unset
 from arches_orm.errors import WKRIPermissionDenied, WKRMPermissionDenied
@@ -57,11 +57,12 @@ class UserInputType(graphene.InputObjectType):
     email = graphene.String(required=False)
 
 def related_prefetch(id):
+    return 
+    ...
     # TODO: use loader
-    return arches.app.models.resource.Resource.objects.get(pk=id)
+    # RMV return arches.app.models.resource.Resource.objects.get(pk=id)
 
 class DataTypes:
-    node_datatypes = None
     inited = False
     exc = None
 
@@ -94,26 +95,25 @@ class DataTypes:
                 value = await value
         return value
 
-    def _build_related(self, nodeid, related_field, model_name):
-        node = models.Node.objects.get(nodeid=nodeid)
+    def _build_related(self, nodeid, related_field, model):
+        node = model._node_objects()[nodeid]
         if nodeid not in self.related_nodes:
-            assert str(nodeid) in self.node_datatypes and self.node_datatypes[str(nodeid)].startswith("resource-instance")
             self.related_nodes[nodeid] = {}
             self.related_nodes[nodeid] = {
                 "name": related_field,
-                "model_name": model_name,
+                "model_name": model._model_name,
                 "relatable_graphs": []
             }
         assert related_field.split("/")[-1] == self.related_nodes[nodeid]["name"].split("/")[-1], f"{related_field} != {self.related_nodes[nodeid]['name']}"
         self.related_nodes[nodeid]["relatable_graphs"] += [str(graph["graphid"]) for graph in node.config["graphs"] if str(graph["graphid"]) in self.graphs]
         return self.related_nodes[nodeid]["name"]
 
-    def _build_semantic(self, field, subfield, field_info, model_name, model_class_name):
+    def _build_semantic(self, field, subfield, field_info, model, model_class_name):
         semantic_type = (model_class_name, field)
         if semantic_type not in self.semantic_nodes:
             self.semantic_nodes[semantic_type] = {
                 "name": field,
-                "model_name": model_name,
+                "model_name": model._model_name,
                 "model_class_name": model_class_name,
                 "fields": []
             }
@@ -125,11 +125,9 @@ class DataTypes:
     def init(self):
         if not self.inited:
             try:
-                self.node_datatypes = {str(nodeid): datatype for nodeid, datatype in models.Node.objects.values_list("nodeid", "datatype")}
-                self.datatype_factory = DataTypeFactory()
                 orm_models = get_resource_models_for_adapter()["by-class"]
                 self.graphs = {
-                    str(model.graphid): model for model in orm_models.values()
+                    model.graphid: model for model in orm_models.values()
                 }
                 self.definitions = {}
 
@@ -144,22 +142,22 @@ class DataTypes:
                             "id": {"type": DataTypeNames.STRING, "multiple": False}
                         }
                     }
-                    self._process_field(model_name, field, info, model, top_level=True)
+                    self._process_field(model, field, info, top_level=True)
 
                 self.inited = True
             except Exception as exc:
                 self.exc = exc
                 raise exc
 
-    def _process_field(self, model_name, field, info, model, top_level=False):
+    def _process_field(self, model, field, info, top_level=False):
         typ = info["type"]
         model_class_name = model.__name__
         if typ == DataTypeNames.SEMANTIC:
             for subfield, subinfo in info.get("children", {}).items():
-                self._build_semantic(field, subfield, subinfo, model_name, model.__name__)
-                self._process_field(model_name, subfield, subinfo, model)
+                self._build_semantic(field, subfield, subinfo, model, model.__name__)
+                self._process_field(model, subfield, subinfo, model)
                 if top_level:
-                    self.definitions[model_name]["fields"][subfield] = subinfo
+                    self.definitions[model._model_name]["fields"][subfield] = subinfo
 
             async def _map_semantic(model_class_name, field, v):
                 if isinstance(v, Sequence):
@@ -175,14 +173,14 @@ class DataTypes:
             )
         elif typ in (DataTypeNames.RESOURCE_INSTANCE, DataTypeNames.RESOURCE_INSTANCE_LIST):
             nodeid = info["nodeid"]
-            self._build_related(nodeid, field, model_name)
-            async def _construct_resource(vs, nodeid, field, model_name, datatype_instance, graph=None):
-                graphs = {wkrm.model_class_name: str(wkrm.graphid) for wkrm in WELL_KNOWN_RESOURCE_MODELS if str(wkrm.graphid) in self.related_nodes[nodeid]["relatable_graphs"]}
+            self._build_related(nodeid, field, model)
+            async def _construct_resource(vs, nodeid, field, model, datatype_instance, graph=None):
+                graphs = {wkrm.model_class_name: UUID(wkrm.graphid) for wkrm in WELL_KNOWN_RESOURCE_MODELS if str(wkrm.graphid) in self.related_nodes[nodeid]["relatable_graphs"]}
                 if graph is None:
                     if len(graphs) > 1:
                         return sum(
                             [
-                                await _construct_resource(v_, nodeid, field, model_name, datatype_instance, graph)
+                                await _construct_resource(v_, nodeid, field, model, datatype_instance, graph)
                                 for graph, v_ in vs.items()
                             ],
                             []
@@ -190,7 +188,7 @@ class DataTypes:
                     else:
                         graph = graphs[0]
                 elif graph not in graphs:
-                    raise RuntimeError(f"Could not match a valid type for this subgraph {field} of {model_name}: {graph} not in {graphs}")
+                    raise RuntimeError(f"Could not match a valid type for this subgraph {field} of {model._model_name}: {graph} not in {graphs}")
                 model = self.graphs[graphs[graph]]
                 resources = [await _build_resource(model, **v) for v in vs]
                 return resources
@@ -200,7 +198,7 @@ class DataTypes:
                 nodeid=nodeid
             )
             self.remapped[(model_class_name, field)] = partial(
-                lambda vs, nodeid: _construct_resource(vs, nodeid, field, model_name, None),
+                lambda vs, nodeid: _construct_resource(vs, nodeid, field, model, None),
                 nodeid=nodeid
             )
         elif typ in (DataTypeNames.CONCEPT, DataTypeNames.CONCEPT_LIST):
@@ -210,7 +208,7 @@ class DataTypes:
                 return
             try:
                 collection = info["node"].value.__collection__
-            except models.Concept.DoesNotExist:
+            except:
                 logging.warning(f"Collection concept missing for node {info['nodeid']}")
                 return
 
@@ -490,8 +488,9 @@ with get_adapter().context_free() as _:
         def _batch_load_fn_real(self, keys):
             ret: list[UnavailableResourceInstance | None | WKRI] = []
             for key in keys:
+                print("Key", key)
                 try:
-                    resource = attempt_well_known_resource_model(key, from_prefetch=related_prefetch)
+                    resource = attempt_well_known_resource_model(key)
                 except WKRIPermissionDenied:
                     ret.append(UnavailableResourceInstance("Instance permission denied") if GRAPHQL_DEBUG_PERMISSIONS else None) # must send back the same number
                 except WKRMPermissionDenied:
@@ -499,8 +498,9 @@ with get_adapter().context_free() as _:
                     # an entry to a user without permissions, but this creates a significant
                     # debugging challenge.
                     ret.append(UnavailableResourceInstance("Model permission denied") if GRAPHQL_DEBUG_PERMISSIONS else None) # must send back the same number
-                except arches.app.models.resource.Resource.DoesNotExist:
+                except Exception as e: # RMV
                     ret.append(None) # must send back the same number
+                    print(e)
                 else:
                     ret.append(resource)
 

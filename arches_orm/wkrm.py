@@ -1,4 +1,5 @@
 import logging
+from uuid import UUID
 from typing import Callable
 from .adapter import get_adapter
 from .view_models.resources import ResourceInstanceViewModel
@@ -16,7 +17,7 @@ class WKRM:
     """
 
     model_name: str
-    graphid: str
+    graphid: UUID
     nodes: dict
     remapping: dict | None
     total_remap: bool
@@ -26,7 +27,7 @@ class WKRM:
     def model_class_name(self):
         return self.model_name.replace(" ", "")
 
-    def __init__(self, model_name, graphid, __str__=None, total_remap=False, remapping=None, **kwargs):
+    def __init__(self, model_name: str, graphid: UUID, __str__=None, total_remap=False, remapping=None, **kwargs):
         self.model_name = model_name
         self.graphid = graphid
         self.to_string = __str__ or repr

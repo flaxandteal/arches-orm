@@ -8,19 +8,17 @@ from inspect import isgenerator, isgeneratorfunction
 from functools import partial, wraps
 from contextlib import contextmanager
 from contextvars import ContextVar
-
 from abc import ABC, abstractmethod
 
 from .view_models._base import ResourceInstanceViewModel
 from .view_models.concepts import ConceptValueViewModel
-
-_ADMINISTRATION_MODE: bool = False
 
 logger = logging.getLogger(__name__)
 
 class Adapter(ABC):
     config: dict[str, Any]
     _context: ContextVar[dict[str, Any] | None]
+    _singleton: Adapter | None = None
 
     def __init__(self, key):
         self.config = {}
@@ -28,6 +26,17 @@ class Adapter(ABC):
 
     def __init_subclass__(cls):
         ADAPTER_MANAGER.register_adapter(cls)
+
+    def __str__(self):
+        return self.key
+
+    def __repr__(self):
+        return f"<AORA:{self.key}>"
+
+    @property
+    @abstractmethod
+    def key(self):
+        ...
 
     def set_context_free(self):
         self._context.set(None)
@@ -53,12 +62,6 @@ class Adapter(ABC):
         ...
 
     def get_context(self):
-        if _ADMINISTRATION_MODE:
-            try:
-                self._context.get()
-            except LookupError:
-                self._context.set(None)
-
         return self._context
 
     @contextmanager
@@ -119,6 +122,7 @@ class AdapterManager:
                 "Must set a default adapter, if registering multiple in one process"
             )
         adapter = adapter_cls(key=key)
+        adapter_cls._singleton = adapter
         self.adapters[key] = adapter
 
     def set_default_adapter(self, default_adapter):
@@ -170,9 +174,8 @@ def admin(adapter_key: str | None=None):
     with get_adapter(adapter_key).context(None, _override=True) as cvar:
         yield cvar
 
-def admin_everywhere():
-    global _ADMINISTRATION_MODE 
-    _ADMINISTRATION_MODE = True
+def admin_everywhere(key=None):
+    get_adapter(key=key).set_context_free()
     logger.warning(
         "ARCHES ORM ADMINISTRATION MODE ON: use for debugging only, "
         "otherwise use the `context_free` or `context` decorator/with statement to "
