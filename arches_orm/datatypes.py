@@ -1,25 +1,11 @@
 import enum
+from . import utils
 
-class DataTypeNames(enum.Enum):
-    SEMANTIC = "semantic"
-    STRING = "string"
-    CONCEPT = "concept"
-    CONCEPT_LIST = "concept-list"
-    RESOURCE_INSTANCE = "resource-instance"
-    RESOURCE_INSTANCE_LIST = "resource-instance-list"
-    GEOJSON_FEATURE_COLLECTION = "geojson-feature-collection"
-    EDTF = "edtf"
-    FILE_LIST = "file-list"
-    USER = "user"
-    BOOLEAN  = "boolean"
-    NUMBER  = "number"
-    DATE  = "date"
-    URL = "url"
-    DOMAIN_VALUE = "domain-value"
-    NODE_VALUE = "node-value"
-    BNGCENTREPOINT = "bngcentrepoint"
-    DOMAIN_VALUE_LIST = "domain-value-list"
-    DJANGO_GROUP = "django-group"
+DataTypeNames = enum.Enum(
+    "DataTypeNames",
+    [(es.name, es.value) for es in utils.StandardDataTypeNames]
+    + [(key, value) for key, (value, _) in utils._CUSTOM_DATATYPES.items()]
+)
 
 COLLECTS_MULTIPLE_VALUES = {
     DataTypeNames.CONCEPT_LIST,
@@ -27,3 +13,7 @@ COLLECTS_MULTIPLE_VALUES = {
     DataTypeNames.DOMAIN_VALUE_LIST,
     DataTypeNames.RESOURCE_INSTANCE_LIST,
 }
+COLLECTS_MULTIPLE_VALUES |= {DataTypeNames(key) for key, (_, c) in utils._CUSTOM_DATATYPES.items() if c}
+
+# Prevent further custom datatypes being added.
+utils._CUSTOM_DATATYPES = None

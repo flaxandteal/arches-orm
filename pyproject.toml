@@ -66,6 +66,7 @@ dependencies = [
     "tabulate",
     "geojson",
     "rdflib",
+    "pydantic",
 ]
 
 [tool.hatch.metadata]
@@ -86,9 +87,6 @@ graphql = [
 ]
 arches = [
     "arches",
-]
-static = [
-    "pydantic"
 ]
 test = [
     "pytest",
