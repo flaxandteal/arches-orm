@@ -144,6 +144,8 @@ def load_concept_path(concept_root: Path) -> None:
                         "value": value_dict["value"],
                         "id": UUID(value_dict["id"]),
                     }
+            if "id" not in top_attributes:
+                continue
             title_attributes["concept_id"] = top_attributes["id"]
             top_attributes["values"] = {title_attributes["id"]: StaticValue(**title_attributes)}
             static_concept =  StaticConcept(**top_attributes)
