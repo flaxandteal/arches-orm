@@ -31,7 +31,8 @@ pip install .[graphql]
 
 ### Arches
 
-Allows Arches ORM to directly manipulate the Arches database.
+Allows Arches ORM to directly manipulate the Arches database. Note that this is only
+necessary if you do not already have Arches installed in the current environment.
 
 ```
 pip install .[arches]
@@ -43,6 +44,7 @@ Runs tests across the various backends.
 
 ```
 pip install .[tests]
+python -m pytest
 ```
 
 ## Well-known Resource Models
@@ -80,11 +82,7 @@ extension loading:
 
 ## Documentation
 
-Documentation is generated using [pdocs](https://github.com/timothycrosley/pdocs) but,
-as the `arches_django` subpackage expects a running Arches instance to be importable
-(a side-effect of Django), we add an initialization routine.
-
-    python docs/make_doc.py
+Documentation is available on [https://flaxandteal.github.io/arches-orm/](https://flaxandteal.github.io/arches-orm/).
 
 ## Thanks
 
