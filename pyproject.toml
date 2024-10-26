@@ -1,15 +1,52 @@
 [build-system]
-requires = ["setuptools", "setuptools-scm"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling < 1.22"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["arches_orm"]
+
+[tool.portray]
+modules = [
+    "arches_orm.static",
+    "arches_orm.adapter",
+    "arches_orm.collection",
+    "arches_orm.datatypes",
+    "arches_orm.errors",
+    "arches_orm.utils",
+    "arches_orm.wkrm",
+    "arches_orm.wrapper",
+]
+extra_markdown_extensions = [
+  "pymdownx.inlinehilite",
+  "pymdownx.snippets",
+  "pymdownx.highlight",
+]
+
+[tool.portray.pdocs]
+exclude_source = true
+
+[tool.portray.mkdocs]
+markdown_extensions = [
+  { "pymdownx.superfences" = {} }
+]
+
+[tool.ruff.lint]
+select = ["D", "F", "B"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
 
 [project]
 name = "arches-orm"
-version = "0.1.4"
+description = "Representation of Arches graphs for client and server side manipulation"
+homepage = "https://github.com/flaxandteal/arches-orm"
+repository = "https://github.com/flaxandteal/arches-orm"
+documentation = "https://flaxandteal.github.io/arches-orm"
+readme = "README.md"
+version = "0.2.1"
 authors = [
     {name = "Phil Weir", email = "phil.weir@flaxandteal.co.uk"},
 ]
-description = "Experimental Arches Object Relational Mapper"
-readme = "README.md"
 requires-python = ">=3.9"
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -31,6 +68,9 @@ dependencies = [
     "rdflib",
 ]
 
+[tool.hatch.metadata]
+allow-direct-references = true
+
 [project.optional-dependencies]
 graphql = [
     "starlette",
@@ -50,8 +90,15 @@ arches = [
 test = [
     "pytest",
     "httpx",
+    "ruff",
+    "mypy",
+    "coverage",
     "spatialite",
     "pytest_django",
     "arches_graphql_client @ git+https://github.com/flaxandteal/arches_graphql_client#release/0.0.11",
     "pytest-asyncio"
+]
+docs = [
+  "portray @ git+https://github.com/flaxandteal/portray.git#v1.8.0-fat",
+  "mkdocs-material==7.0"
 ]

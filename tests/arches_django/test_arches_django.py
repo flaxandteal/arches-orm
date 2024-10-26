@@ -359,6 +359,24 @@ def test_user_account(arches_orm, person_ashs, lazy):
 
 @context_free
 @pytest.mark.parametrize("lazy", [False, True])
+def test_django_group(arches_orm, person_ashs, lazy):
+    from django.contrib.auth.models import Group
+
+    reloaded_person = arches_orm.models.Person.find(person_ashs.id, lazy=lazy)
+    assert len(reloaded_person.django_group) == 0
+
+    group = Group(name="my_group")
+    group.save()
+    person_ashs.django_group.append(group)
+    assert person_ashs.django_group[0].name == "my_group"
+
+    person_ashs.save()
+
+    reloaded_person = arches_orm.models.Person.find(person_ashs.id, lazy=lazy)
+    assert reloaded_person.django_group[0].name == "my_group"
+
+@context_free
+@pytest.mark.parametrize("lazy", [False, True])
 def test_hooks_setup(arches_orm, lazy):
     hooks = arches_orm.add_hooks()
     assert hooks == {"post_save", "post_delete", "post_init"}

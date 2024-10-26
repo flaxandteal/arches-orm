@@ -220,8 +220,36 @@
                 },
                 {
                     "active": true,
-                    "cardid": "b06a1d0b-2987-440d-8347-5617d7b78f17",
+                    "cardid": "0a172af0-2dc6-4974-b5ee-40fca140114d",
                     "component_id": "f554c976-9026-463b-a11d-47528e77cf67",
+                    "config": null,
+                    "constraints": [
+                    ],
+                    "cssclass": null,
+                    "description": "",
+                    "graph_id": "22477f01-1a44-11e9-b0a9-000d3ab1e588",
+                    "helpenabled": true,
+                    "helptext": {
+                        "en": "Django Group"
+                    },
+                    "helptitle": {
+                        "en": "Django Group"
+                    },
+                    "instructions": {
+                        "en": null
+                    },
+                    "is_editable": true,
+                    "name": {
+                        "en": "Django Group"
+                    },
+                    "nodegroup_id": "5acdfb22-1135-11ef-a3bd-0242ac170006",
+                    "sortorder": 1,
+                    "visible": true
+                },
+                {
+                    "active": true,
+                    "cardid": "b06a1d0b-2987-440d-8347-5617d7b78f17",
+                    "component_id": "84c4e9f8-6e05-4e99-9c09-fcd74466e6a5",
                     "config": null,
                     "constraints": [
                     ],
@@ -261,6 +289,15 @@
                 "en": "Used to describe individuals associated with a heritage resource. \nA person can either be current (eg. owners, developers etc) or a person of historic interest (eg. an author who formerly lived in a heritage resource)."
             },
             "edges": [
+                {
+                    "description": null,
+                    "domainnode_id": "22477f00-1a44-11e9-a60e-000d3ab1e588",
+                    "edgeid": "56a90ad4-d894-4e1a-b476-747336dd752c",
+                    "graph_id": "076f9381-7b00-11e9-8d6b-80000b44d1d9",
+                    "name": null,
+                    "ontologyproperty": "http://www.ics.forth.gr/isl/CRMsci/O12_has_dimension",
+                    "rangenode_id": "5acdfb22-1135-11ef-a3bd-0242ac170006"
+                },
                 {
                     "description": null,
                     "domainnode_id": "86c19e92-3ea7-11ef-818b-0242ac140006",
@@ -1869,6 +1906,12 @@
             },
             "nodegroups": [
                 {
+                    "cardinality": "n",
+                    "legacygroupid": null,
+                    "nodegroupid": "5acdfb22-1135-11ef-a3bd-0242ac170006",
+                    "parentnodegroup_id": null
+                },
+                {
                     "cardinality": "1",
                     "legacygroupid": null,
                     "nodegroupid": "b1f5c336-6a0e-11ee-b748-0242ac140009",
@@ -2356,6 +2399,29 @@
                     "nodeid": "2a6a53c0-9043-11ea-9c79-f875a44e0e11",
                     "parentproperty": "http://www.cidoc-crm.org/cidoc-crm/P3_has_note",
                     "sortorder": 0
+                },
+                {
+                    "alias": "django_group",
+                    "config": {
+                        "en": ""
+                    },
+                    "datatype": "django-group",
+                    "description": null,
+                    "exportable": false,
+                    "fieldname": null,
+                    "graph_id": "22477f01-1a44-11e9-b0a9-000d3ab1e588",
+                    "hascustomalias": false,
+                    "is_collector": true,
+                    "isrequired": false,
+                    "issearchable": true,
+                    "istopnode": false,
+                    "name": "Django Group",
+                    "nodegroup_id": "5acdfb22-1135-11ef-a3bd-0242ac170006",
+                    "nodeid": "5acdfb22-1135-11ef-a3bd-0242ac170006",
+                    "ontologyclass": "http://www.cidoc-crm.org/cidoc-crm/E54_Dimension",
+                    "parentproperty": "http://www.ics.forth.gr/isl/CRMsci/O12_has_dimension",
+                    "sortorder": 0,
+                    "sourcebranchpublication_id": null
                 },
                 {
                     "alias": "contact_names",
