@@ -49,6 +49,9 @@ class ReferenceDataManager:
     def make_collection(self, name: str, collection: list[ConceptValueViewModel]) -> type[Enum]:
         return make_collection(name=name, collection=collection, identifier=None)
 
+    def get_concept(self, concept_id: str | UUID) -> ConceptValueViewModel:
+        return self.adapter.retrieve_concept(concept_id)
+
     def save_concept(self, concept: ConceptValueViewModel, output_file: Path | None) -> None:
         return self.adapter.save_concept(concept, output_file)
 

@@ -90,6 +90,13 @@ class StaticConcept:
                 ...
         return next(iter(self.values.values()))
 
+@dataclass
+class StaticConceptScheme(StaticConcept):
+    """Minimal representation of a concept scheme.
+
+    For simplicity, this is a subclass of concept.
+    """
+
 _CONCEPTS: dict[UUID, StaticConcept] = {}
 _RAW_COLLECTIONS: dict[UUID, StaticCollection] = {}
 
@@ -132,6 +139,11 @@ def load_concept_path(concept_root: Path) -> None:
             graph.parse(data=xml.read(), format="application/rdf+xml")
         for scheme, v, o in graph.triples((None, RDF.type, SKOS.ConceptScheme)):
             top_attributes = StaticConceptDict(children=[], values={}, source=concept_root)
+            try:
+                scheme_id = UUID(scheme.split("/", -1)[-1])
+                top_attributes["id"] = scheme_id
+            except IndexError:
+                ...
             for predicate, object in graph.predicate_objects(subject=scheme):
                 if predicate == SKOS.hasTopConcept:
                     top_concepts.append(UUID(str(object).split("/", -1)[-1]))
@@ -148,14 +160,18 @@ def load_concept_path(concept_root: Path) -> None:
                 continue
             title_attributes["concept_id"] = top_attributes["id"]
             top_attributes["values"] = {title_attributes["id"]: StaticValue(**title_attributes)}
-            static_concept =  StaticConcept(**top_attributes)
+            static_concept =  StaticConceptScheme(**top_attributes)
             _CONCEPTS[top_attributes["id"]] = static_concept
             for s, v, o in graph.triples((None, SKOS.inScheme, scheme)):
                 attributes = StaticConceptDict(children=[], values={}, source=None)
+                try:
+                    concept_id = UUID(s.split("/", -1)[-1])
+                    attributes["id"] = concept_id
+                except IndexError:
+                    ...
                 for predicate, object in graph.predicate_objects(subject=s):
                     if predicate == DCTERMS.identifier and hasattr(object, "value"):
-                        concept_id = json.loads(object.value)["value"].split("/", -1)[-1]
-                        attributes["id"] = UUID(concept_id)
+                        attributes["id"] = UUID(json.loads(object.value)["value"].split("/", -1)[-1])
                     elif predicate == SKOS.prefLabel and hasattr(object, "value"):
                         value_dict = json.loads(object.value)
                         value = StaticValue(
@@ -279,10 +295,13 @@ def concept_to_skos(concept: StaticConcept, arches_url: str) -> Graph:
     ARCHES = Namespace(urlunparse(arches_url_prefix))
     identifier = ARCHES[str(concept.id)]
     graph.add((identifier, RDF.type, SKOS.ConceptScheme))
+    title = concept.title()
+    if not title.id:
+        title.id = cuuid(f"{identifier}/{concept.id}/value")
     graph.add((identifier, SKOS.prefLabel, Literal(json.dumps({
-        "id": str(cuuid(f"{identifier}/value")),
-        "value": concept.title().value,
-    }), lang=concept.title().language)))
+        "id": str(title.id),
+        "value": title.value,
+    }), lang=title.language)))
 
     graph.add((identifier, DCTERMS.identifier, Literal(json.dumps({
         "id": str(cuuid(f"{identifier}/identifier")),
@@ -293,10 +312,13 @@ def concept_to_skos(concept: StaticConcept, arches_url: str) -> Graph:
         child_identifier = ARCHES[str(child.id)]
         graph.add((identifier, SKOS.hasTopConcept, child_identifier))
         graph.add((child_identifier, RDF.type, SKOS.Concept))
+        title = child.title()
+        if not title.id:
+            title.id = cuuid(f"{identifier}/{child.id}/value")
         graph.add((child_identifier, SKOS.prefLabel, Literal(json.dumps({
-            "id": str(cuuid(f"{identifier}/{child.id}/value")),
-            "value": child.title().value
-        }), lang="en")))
+            "id": str(title.id),
+            "value": title.value
+        }), lang=title.language)))
         graph.add((child_identifier, DCTERMS.identifier, Literal(json.dumps({
             "id": str(cuuid(f"{identifier}/{child.id}/identifier")),
             "value": child_identifier

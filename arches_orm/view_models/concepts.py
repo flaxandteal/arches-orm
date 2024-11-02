@@ -44,11 +44,16 @@ class EmptyConceptValueViewModel(CollectionChild, ViewModel):
         return other is None or isinstance(other, EmptyConceptValueViewModel)
 
 class ConceptValueViewModel(str, CollectionChild, ViewModel):
-    """Wraps a concept, allowing interrogation.
+    """Wraps a concept value, allowing interrogation.
 
     Subclasses str, so it can be handled like a string enum, but keeps
     the `.value`, `.lang` and `.text` properties cached, so you can
     find out more.
+
+    Note that, the internal Arches representation of collections seems
+    to treat values as the (primary) children - for example,
+    `Concept.get_child_collections(...)` returns values and a valueid
+    is stored in a tile for a concept node.
     """
 
     _concept_value_id: uuid.UUID
