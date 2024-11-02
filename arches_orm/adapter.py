@@ -127,7 +127,6 @@ class AdapterManager:
         self.default_adapter = default_adapter
 
     def get_adapter(self, key=None):
-        print(self.default_adapter)
         if not self.adapters:
             raise RuntimeError(
                 "Must have at least one adapter available, "
