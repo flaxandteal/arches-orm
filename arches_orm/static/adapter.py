@@ -5,6 +5,7 @@ from pathlib import Path
 from enum import Enum
 from uuid import UUID
 from typing import IO
+from rdflib.term import Node
 from arches_orm.adapter import Adapter
 from arches_orm.view_models.concepts import ConceptValueViewModel
 from .wrapper import _STATIC_STORE
@@ -59,7 +60,7 @@ class StaticAdapter(Adapter):
         self._check_collections_loaded()
         return retrieve_concept_value(concept_id)
 
-    def make_concept(self, concept_id: str | UUID, values: dict[UUID, tuple[str, str]], children: list[UUID] | None) -> ConceptValueViewModel:
+    def make_concept(self, concept_id: str | UUID, values: dict[UUID, tuple[str, str, Node]], children: list[UUID] | None) -> ConceptValueViewModel:
         return make_concept(concept_id, values, children)
 
     def derive_collection(self, collection_id: str | UUID, include: list[UUID] | None=None, exclude: list[UUID] | None=None, language: str | None=None) -> type[Enum]:
