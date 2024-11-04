@@ -109,3 +109,13 @@ def test_can_replace_collection(arches_orm):
     stream = BytesIO()
     rdm.export_collection(StatusEnum, stream)
     assert f"http://arches:8000/{concept_1.conceptid}" in bytes(stream.getbuffer()).decode("utf-8")
+
+@context_free
+def test_can_search_for_collection(arches_orm):
+    rdm = get_adapter().get_rdm()
+    assert rdm.find_collection_by_label("Record Status")
+
+@context_free
+def test_can_search_for_concept(arches_orm):
+    rdm = get_adapter().get_rdm()
+    assert rdm.find_concept_by_label("Cistercian Nunnery")

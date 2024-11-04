@@ -57,6 +57,14 @@ class Adapter(ABC):
         ...
 
     @abstractmethod
+    def get_collections_by_label(self, label: str, pref_label_only: bool=False) -> list[type[Enum]]:
+        ...
+
+    @abstractmethod
+    def get_concepts_by_label(self, label: str, pref_label_only: bool=False) -> list[ConceptValueViewModel]:
+        ...
+
+    @abstractmethod
     def derive_collection(self, collection_id: str | UUID, include: list[UUID] | None, exclude: list[UUID] | None, language: str | None=None) -> type[Enum]:
         """Note that include and exclude should be lists of concept, not value, IDs."""
         ...

@@ -398,3 +398,22 @@ def concept_to_skos(concept: StaticConcept, arches_url: str) -> Graph:
     graph.bind("rdf", Namespace("http://www.w3.org/1999/02/22-rdf-syntax-ns#"))
     graph.bind("dcterms", Namespace("http://purl.org/dc/terms/"))
     return graph
+
+def get_concepts_by_label(label: str, pref_only: bool=False) -> list[ConceptValueViewModel]:
+    concepts = []
+    for concept in _CONCEPTS.values():
+        if (title := concept.title()) and title.value == label:
+            concepts.append(title.id)
+        else:
+            for value in concept.values:
+                if isinstance(value, StaticPrefLabel) or (not pref_only and isinstance(value, StaticAltLabel)):
+                    if value.value == label:
+                        concepts.append(value.id)
+    return [_make_concept_value(vid, None) for vid in concepts]
+
+def get_collections_by_label(label: str, pref_only: bool=False, language: str | None=None) -> list[type[Enum]]:
+    collections = []
+    for collection in _RAW_COLLECTIONS.values():
+        if collection.title.value == label:
+            collections.append(collection.id)
+    return [retrieve_collection(cid, language=language) for cid in collections]
