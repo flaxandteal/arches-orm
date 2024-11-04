@@ -49,6 +49,21 @@ class ReferenceDataManager:
     def make_collection(self, name: str, collection: list[ConceptValueViewModel]) -> type[Enum]:
         return make_collection(name=name, collection=collection, identifier=None)
 
+    def derive_collection(self, collection_id: str | UUID, include: list[ConceptValueViewModel] | None, exclude: list[ConceptValueViewModel] | None, language: str | None=None) -> type[Enum]:
+        """Note that this method creates a new Enum but does not overwrite the old Collection, and the old version will still be returned from get_collection."""
+        if include:
+            include_concepts = [inc.conceptid for inc in include]
+        else:
+            include_concepts = None
+        if exclude:
+            exclude_concepts = [exc.conceptid for exc in exclude]
+        else:
+            exclude_concepts = None
+        return self.adapter.derive_collection(collection_id, include=include_concepts, exclude=exclude_concepts, language=language)
+
+    def get_collection(self, collection_id: str | UUID) -> type[Enum]:
+        return self.adapter.get_collection(collection_id)
+
     def get_concept(self, concept_id: str | UUID) -> ConceptValueViewModel:
         return self.adapter.retrieve_concept(concept_id)
 

@@ -7,7 +7,16 @@ from uuid import UUID
 from arches_orm.adapter import Adapter
 from arches_orm.view_models.concepts import ConceptValueViewModel
 from .wrapper import _STATIC_STORE
-from .datatypes.concepts import load_collection_path, load_concept_path, retrieve_collection, make_concept, retrieve_concept, save_concept, update_collections
+from .datatypes.concepts import (
+    load_collection_path,
+    load_concept_path,
+    retrieve_collection,
+    make_concept,
+    retrieve_concept,
+    save_concept,
+    update_collections,
+    build_collection
+)
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +48,11 @@ class StaticAdapter(Adapter):
     def make_concept(self, concept_id: str | UUID, values: dict[UUID, tuple[str, str]], children: list[UUID] | None) -> ConceptValueViewModel:
         return make_concept(concept_id, values, children)
 
-    def get_collection(self, collection_id: str) -> type[Enum]:
+    def derive_collection(self, collection_id: str | UUID, include: list[UUID] | None, exclude: list[UUID] | None, language: str | None=None) -> type[Enum]:
+        """Note that include and exclude should be lists of concept, not value, IDs."""
+        return build_collection(collection_id, include=include, exclude=exclude, language=language)
+
+    def get_collection(self, collection_id: str | UUID) -> type[Enum]:
         if not self._collections_loaded:
             for concept_path in self.config["concept_paths"]:
                 load_concept_path(concept_path)

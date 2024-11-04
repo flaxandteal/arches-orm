@@ -53,7 +53,12 @@ class Adapter(ABC):
         ...
 
     @abstractmethod
-    def get_collection(self, collection_id: str) -> type[Enum]:
+    def get_collection(self, collection_id: str | UUID) -> type[Enum]:
+        ...
+
+    @abstractmethod
+    def derive_collection(self, collection_id: str | UUID, include: list[UUID] | None, exclude: list[UUID] | None, language: str | None=None) -> type[Enum]:
+        """Note that include and exclude should be lists of concept, not value, IDs."""
         ...
 
     @abstractmethod

@@ -99,7 +99,7 @@ class ConceptValueViewModel(str, CollectionChild, ViewModel):
         return mystr
 
     @property
-    def conceptid(self):
+    def conceptid(self) -> uuid.UUID:
         return self.value.concept_id
 
     @property

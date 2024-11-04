@@ -148,7 +148,7 @@ def load_concept_path(concept_root: Path) -> None:
                 if predicate == SKOS.hasTopConcept:
                     top_concepts.append(UUID(str(object).split("/", -1)[-1]))
                 elif predicate == DCTERMS.identifier:
-                    top_attributes["id"] = json.loads(object.value)["value"].split("/", -1)[-1]
+                    top_attributes["id"] = UUID(json.loads(object.value)["value"].split("/", -1)[-1])
                 elif predicate == DCTERMS.title:
                     value_dict = json.loads(object.value)
                     title_attributes = {
@@ -164,6 +164,7 @@ def load_concept_path(concept_root: Path) -> None:
             _CONCEPTS[top_attributes["id"]] = static_concept
             for s, v, o in graph.triples((None, SKOS.inScheme, scheme)):
                 attributes = StaticConceptDict(children=[], values={}, source=None)
+                concept_id = None
                 try:
                     concept_id = UUID(s.split("/", -1)[-1])
                     attributes["id"] = concept_id
@@ -178,7 +179,7 @@ def load_concept_path(concept_root: Path) -> None:
                             language=object.language,
                             value=value_dict["value"],
                             id=UUID(value_dict["id"]),
-                            concept_id=top_attributes["id"]
+                            concept_id=concept_id
                         )
                         attributes["values"][value.id] = value
                 _CONCEPTS[attributes["id"]] = StaticConcept(**attributes)
@@ -223,19 +224,33 @@ def retrieve_collection(collection_id: UUID | str, language: None | str = None) 
     collection_id = collection_id if isinstance(collection_id, UUID) else UUID(collection_id)
     if collection_id in _COLLECTIONS:
         return _COLLECTIONS[collection_id]
+    made_collection = build_collection(collection_id, language=language)
+    _COLLECTIONS[collection_id] = made_collection
+    return made_collection
+
+def build_collection(collection_id: UUID | str, include: list[UUID] | None=None, exclude: list[UUID] | None=None, language: None | str = None) -> type[Enum]:
+    collection_id = collection_id if isinstance(collection_id, UUID) else UUID(collection_id)
     collection = _RAW_COLLECTIONS[collection_id]
     if not isinstance(collection, StaticCollection):
         raise TypeError("ID corresponds to a concept, not a collection")
-    made_collection = make_collection(
+    concepts = collection.concepts
+    if exclude:
+        if set(exclude) - set(concepts):
+            raise RuntimeError(f"Asked to remove concepts from {collection_id} that are not present")
+        concepts = [c for c in concepts if c not in exclude]
+    if include:
+        if set(include) & set(concepts):
+            raise RuntimeError(f"Asked to insert concepts from {collection_id} that are already present")
+        concepts += include
+
+    return make_collection(
         collection.title.value,
         [
             _make_concept(c.title(language).id, collection_id) for concept in
-            collection.concepts if isinstance((c := _CONCEPTS[concept]), StaticConcept)
+            concepts if isinstance((c := _CONCEPTS[concept]), StaticConcept)
         ],
         str(collection_id)
     )
-    _COLLECTIONS[collection_id] = made_collection
-    return made_collection
 
 def update_collections(collection: CollectionEnum, source_file: Path, arches_url: str) -> None:
     cgraph = Graph()
