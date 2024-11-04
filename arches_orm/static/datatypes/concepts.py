@@ -394,10 +394,11 @@ def concept_to_skos(concept: StaticConcept, arches_url: str) -> Graph:
         for related in child.related:
             graph.add((child_identifier, related.__type__ or SKOS.related, URIRef(related.rdf_resource)))
 
-        graph.add((child_identifier, DCTERMS.identifier, Literal(json.dumps({
-            "id": str(cuuid(f"{identifier}/{child.id}/identifier")),
-            "value": child_identifier
-        }), lang="en")))
+        # Removing for now, as Arches identifies this as the label.
+        # graph.add((child_identifier, DCTERMS.identifier, Literal(json.dumps({
+        #     "id": str(cuuid(f"{identifier}/{child.id}/identifier")),
+        #     "value": child_identifier
+        # }), lang="en")))
 
         if not top:
             graph.add((child_identifier, SKOS.inScheme, identifier))
