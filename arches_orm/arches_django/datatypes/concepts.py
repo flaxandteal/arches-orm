@@ -8,6 +8,7 @@ from arches_orm.view_models import (
     ConceptListValueViewModel,
     ConceptValueViewModel,
     EmptyConceptValueViewModel,
+    StaticConcept,
 )
 from arches_orm.collection import make_collection, CollectionEnum
 from ._register import REGISTER
@@ -18,8 +19,17 @@ def invalidate_collection(concept_id):
     if concept_id in _COLLECTIONS:
         del _COLLECTIONS[concept_id]
 
+def retrieve_concept(concept_id: uuid.UUID, language: str | None, datatype) -> StaticConcept:
+    concept = Concept().get(id=concept_id, include=["label"])
+    # TODO: export values, etc.
+    return StaticConcept(
+        id=concept.id,
+        values={},
+        source=None,
+        children=[]
+    )
+
 def retrieve_children(concept_id: uuid.UUID, language: str | None, datatype) -> list[ConceptValueViewModel]:
-    # RMV TEST
     concept = Concept().get(id=concept_id, include=["label"])
     return [
         make_concept_value(concept.get_preflabel().valueid, collection_id=None, datatype=datatype)
@@ -36,6 +46,7 @@ def retrieve_collection(collection_id: uuid.UUID, datatype=None) -> type[Enum]:
         return ConceptValueViewModel(
             id,
             lambda value_id: datatype.get_value(value_id),
+            retrieve_concept,
             collection_id if collection_id else None,
             (lambda _: retrieve_collection(collection_id, datatype=datatype) if collection_id else None),
             partial(retrieve_children, datatype=datatype)
@@ -107,6 +118,7 @@ def make_concept_value(value: uuid.UUID | None, collection_id: uuid.UUID | None,
     return ConceptValueViewModel(
         value,
         concept_value_cb,
+        retrieve_concept,
         collection_id,
         partial(retrieve_collection, datatype=datatype),
         partial(retrieve_children, datatype=datatype)
