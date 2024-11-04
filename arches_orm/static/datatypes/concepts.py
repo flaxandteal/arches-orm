@@ -10,7 +10,7 @@ from urllib.parse import urlparse, urlunparse
 from uuid import UUID
 from pathlib import Path
 from dataclasses import dataclass
-from typing import TypedDict, Callable
+from typing import TypedDict, Callable, IO
 try:
     from typing import NotRequired
 except ImportError: # 3.9
@@ -196,7 +196,8 @@ def load_concept_path(concept_root: Path) -> None:
                     elif predicate in (SKOS.inScheme, RDF.type):
                         continue
                     else:
-                        logging.warn("Predicate not recognised for concept {}: {}", top_attributes["id"], predicate)
+                        # TODO: sortorder
+                        logger.warning("Predicate not recognised for concept %s: %s", top_attributes["id"], predicate)
                 attributes["_children"] = partial(get_concept_children, concept_id)
                 _CONCEPTS[attributes["id"]] = StaticConcept(**attributes)
             children = [_CONCEPTS[c] for c in top_concepts]
@@ -278,6 +279,15 @@ def build_collection(collection_id: UUID | str, include: list[UUID] | None=None,
 
 def update_collections(collection: CollectionEnum, source_file: Path, arches_url: str) -> None:
     cgraph = Graph()
+    try:
+        with source_file.open() as xml:
+            cgraph.parse(data=xml.read(), format="application/rdf+xml")
+    except IOError:
+        # RMV handle more clearly
+        ...
+    export_collection(collection, source_file, arches_url, cgraph=cgraph)
+
+def export_collection(collection: CollectionEnum, source_file: Path | str | IO, arches_url: str, cgraph: Graph | None = None) -> None:
     if not hasattr(collection, "__identifier__"):
         raise TypeError("This seems to be a malformed collection, or an unrelated Enum")
     arches_url_prefix = list(urlparse(arches_url))
@@ -286,12 +296,16 @@ def update_collections(collection: CollectionEnum, source_file: Path, arches_url
     if not collection.__identifier__:
         collection.__identifier__ = str(cuuid(ARCHES[collection.__original_name__]))
     identifier = ARCHES[collection.__identifier__]
-    try:
-        with source_file.open() as xml:
-            cgraph.parse(data=xml.read(), format="application/rdf+xml")
-    except IOError:
-        # RMV handle more clearly
-        ...
+    if cgraph is None:
+        cgraph = Graph()
+
+    def _add_concept_members(concept: StaticConcept):
+        identifier = ARCHES[str(concept.id)]
+        for child in concept.children:
+            child_identifier = ARCHES[str(child.id)]
+            cgraph.add((identifier, SKOS.member, child_identifier))
+            cgraph.add((child_identifier, RDF.type, SKOS.Concept))
+            _add_concept_members(child)
 
     cgraph.add((identifier, RDF.type, SKOS.Collection))
     cgraph.add((identifier, SKOS.prefLabel, Literal(json.dumps({
@@ -303,6 +317,7 @@ def update_collections(collection: CollectionEnum, source_file: Path, arches_url
         child_identifier = ARCHES[str(concept.id)]
         cgraph.add((identifier, SKOS.member, child_identifier))
         cgraph.add((child_identifier, RDF.type, SKOS.Concept))
+        _add_concept_members(concept)
 
     cgraph.bind("skos", Namespace("http://www.w3.org/2004/02/skos/core#"))
     cgraph.bind("rdf", Namespace("http://www.w3.org/1999/02/22-rdf-syntax-ns#"))
@@ -312,7 +327,9 @@ def update_collections(collection: CollectionEnum, source_file: Path, arches_url
         xml_string = xml_string.encode("utf-8")
     etree = ET.ElementTree(ET.fromstring(xml_string))
     ET.indent(etree)
-    etree.write(str(source_file), xml_declaration=True)
+    if isinstance(source_file, Path):
+        source_file = str(source_file)
+    etree.write(source_file, xml_declaration=True)
 
 def save_concept(concept: ConceptValueViewModel, output_file: Path | None | str, arches_url: str) -> None:
     static_concept = _CONCEPTS[concept.conceptid]

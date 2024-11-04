@@ -1,5 +1,6 @@
 from pathlib import Path
 from rdflib import RDF
+from io import BytesIO
 from rdflib.namespace import SKOS
 from arches_orm.adapter import context_free, get_adapter
 from arches_orm.static.datatypes.concepts import concept_to_skos
@@ -97,13 +98,14 @@ def test_can_derive_a_new_collection():
     StatusEnum = rdm.get_collection("7849cd3c-3f0d-454d-aaea-db9164629641")
     concept_1 = rdm.make_simple_concept("My Status", "Done")
     StatusEnum = rdm.derive_collection("7849cd3c-3f0d-454d-aaea-db9164629641", include=[concept_1], exclude=[StatusEnum.BacklogDashSkeleton.value])
-    assert len(StatusEnum.__members__) == 4
+    assert len(StatusEnum.__members__) == 3
     assert StatusEnum.Done
 
 @context_free
 def test_can_replace_collection(arches_orm):
     rdm = get_adapter().get_rdm()
-    StatusEnum = rdm.get_collection("7849cd3c-3f0d-454d-aaea-db9164629641")
-    concept_1 = rdm.make_simple_concept("My Status", "Done")
-    StatusEnum = rdm.derive_collection("7849cd3c-3f0d-454d-aaea-db9164629641", include=[concept_1], exclude=[StatusEnum.BacklogDashSkeleton.value])
-    print(list(StatusEnum))
+    concept_1 = rdm.make_simple_concept("Monuments", "My Monument")
+    StatusEnum = rdm.derive_collection("b82ee4cf-2f90-4dab-bed7-bda3feaf6d64", include=[concept_1])
+    stream = BytesIO()
+    rdm.export_collection(StatusEnum, stream)
+    assert f"http://arches:8000/{concept_1.conceptid}" in bytes(stream.getbuffer()).decode("utf-8")

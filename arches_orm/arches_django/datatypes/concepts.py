@@ -1,7 +1,9 @@
 import uuid
+import logging
 from enum import Enum
 from functools import partial
 
+from django.db.utils import OperationalError
 from arches.app.models.concept import Concept
 
 from arches_orm.view_models import (
@@ -31,9 +33,16 @@ def retrieve_concept(concept_id: uuid.UUID, language: str | None, datatype) -> S
 
 def retrieve_children(concept_id: uuid.UUID, language: str | None, datatype) -> list[ConceptValueViewModel]:
     concept = Concept().get(id=concept_id, include=["label"])
+
+    try:
+        children = Concept().get_child_concepts(concept.id)
+    except OperationalError:
+        logging.warn("This backend does not support child concepts.")
+        children = []
+
     return [
         make_concept_value(concept.get_preflabel().valueid, collection_id=None, datatype=datatype)
-        for child in concept.children
+        for child in children
     ]
 
 def retrieve_collection(collection_id: uuid.UUID, datatype=None) -> type[Enum]:
