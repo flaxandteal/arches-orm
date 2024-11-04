@@ -103,7 +103,13 @@ def load_collection_path(concept_root: Path) -> None:
                     for concept, _, _ in graph.triples((object, RDF.type, SKOS.Concept)):
                         top_attributes["concepts"].append(UUID(concept.split("/", -1)[-1]))
                 elif predicate == SKOS.prefLabel and hasattr(object, "value"):
-                    value_dict = json.loads(object.value)
+                    try:
+                        value_dict = json.loads(object.value)
+                    except json.JSONDecodeError:
+                        value_dict = {
+                            "id": str(cuuid(f"{collection_id}/{object.value}/{object.language}")),
+                            "value": object.value
+                        }
                     title = StaticValue(
                         language=object.language,
                         value=value_dict["value"],
@@ -139,7 +145,13 @@ def load_concept_path(concept_root: Path) -> None:
                         top_attributes["id"] = UUID(json.loads(object.value)["value"].split("/", -1)[-1])
                     top_attributes["identifier"] = object.value
                 elif predicate == DCTERMS.title:
-                    value_dict = json.loads(object.value)
+                    try:
+                        value_dict = json.loads(object.value)
+                    except json.JSONDecodeError:
+                        value_dict = {
+                            "id": str(cuuid(f"{scheme_id}/{object.value}/{object.language}")),
+                            "value": object.value
+                        }
                     title_attributes = {
                         "language": object.language,
                         "value": value_dict["value"],
@@ -185,7 +197,13 @@ def load_concept_path(concept_root: Path) -> None:
                             value_cls = StaticAltLabel
                         elif predicate == SKOS.scopeNote:
                             value_cls = StaticScopeNote
-                        value_dict = json.loads(object.value)
+                        try:
+                            value_dict = json.loads(object.value)
+                        except json.JSONDecodeError:
+                            value_dict = {
+                                "id": str(cuuid(f"{concept_id}/{object.value}/{object.language}")),
+                                "value": object.value
+                            }
                         value = value_cls(
                             language=object.language,
                             value=value_dict["value"],
