@@ -1,6 +1,7 @@
 import logging
 import uuid
 from enum import Enum
+from rdflib.term import Node
 from arches_orm.adapter import Adapter
 from arches_orm.view_models.concepts import ConceptValueViewModel
 
@@ -66,3 +67,6 @@ class ArchesDjangoAdapter(Adapter):
     def get_wkrm_definitions(self):
         from django.conf import settings
         return settings.WELL_KNOWN_RESOURCE_MODELS
+
+    def make_concept(self, concept_id: str | uuid.UUID, values: dict[uuid.UUID, tuple[str, str, Node]], children: list[uuid.UUID] | None) -> ConceptValueViewModel:
+        raise NotImplementedError()
