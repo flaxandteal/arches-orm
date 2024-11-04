@@ -17,6 +17,7 @@ except ImportError: # 3.9
     from typing_extensions import NotRequired
 
 from rdflib import Graph, Literal, Namespace, RDF, URIRef
+from rdflib.term import Node
 from rdflib.resource import Resource
 from rdflib.namespace import SKOS, DCTERMS
 from arches_orm.collection import make_collection, CollectionEnum
@@ -243,17 +244,22 @@ def retrieve_concept_value(concept_id: str | UUID) -> ConceptValueViewModel:
     value_id = concept.title().id
     return _make_concept_value(value_id, None)
 
-def make_concept(concept_id: str | UUID, values: dict[UUID, tuple[str, str]], children: list[UUID] | None) -> ConceptValueViewModel:
+def make_concept(concept_id: str | UUID, values: dict[UUID, tuple[str, str, Node]], children: list[UUID] | None) -> ConceptValueViewModel:
+    node_classes = {
+        SKOS.prefLabel: StaticPrefLabel,
+        SKOS.scopeNode: StaticScopeNote,
+        SKOS.altLabel: StaticAltLabel,
+    }
     concept_id = UUID(concept_id) if not isinstance(concept_id, UUID) else concept_id
     attributes: StaticConceptDict = {
         "id": concept_id,
         "values": {
-            id: StaticValue(
+            id: node_classes[node_cls](
                 value=value,
                 language=lang,
                 concept_id=concept_id,
                 id=id
-            ) for id, (lang, value) in values.items()
+            ) for id, (lang, value, node_cls) in values.items()
         },
         "_children": [_CONCEPTS[child] for child in (children or [])],
         "source": None,
@@ -412,6 +418,11 @@ def concept_to_skos(concept: StaticConcept, arches_url: str) -> Graph:
                     "id": str(cuuid(f"{identifier}/{child.id}/description")),
                     "value": description.value
                 }), lang=description.language)))
+
+            graph.add((child_identifier, DCTERMS.identifier, Literal(json.dumps({
+                "id": str(cuuid(f"{identifier}/{child.id}/identifier")),
+                "value": child_identifier
+            }), lang="en")))
         else:
             graph.add((child_identifier, SKOS.inScheme, identifier))
 
