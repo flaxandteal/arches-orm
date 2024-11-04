@@ -1,6 +1,8 @@
 import logging
+import uuid
 from enum import Enum
 from arches_orm.adapter import Adapter
+from arches_orm.view_models.concepts import ConceptValueViewModel
 
 logger = logging.getLogger(__name__)
 
@@ -51,6 +53,15 @@ class ArchesDjangoAdapter(Adapter):
         from .hooks import HOOKS
 
         return HOOKS
+
+    def derive_collection(self, collection_id: str | uuid.UUID, include: list[uuid.UUID] | None=None, exclude: list[uuid.UUID] | None=None, language: str | None=None) -> type[Enum]:
+        raise NotImplementedError()
+
+    def get_concepts_by_label(self, label: str, pref_label_only: bool=False) -> list[ConceptValueViewModel]:
+        raise NotImplementedError()
+
+    def get_collections_by_label(self, label: str, pref_label_only: bool=False) -> list[type[Enum]]:
+        raise NotImplementedError()
 
     def get_wkrm_definitions(self):
         from django.conf import settings

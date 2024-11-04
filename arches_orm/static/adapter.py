@@ -17,7 +17,9 @@ from .datatypes.concepts import (
     save_concept,
     update_collections,
     export_collection,
-    build_collection
+    build_collection,
+    get_collections_by_label,
+    get_concepts_by_label,
 )
 
 logger = logging.getLogger(__name__)
@@ -75,6 +77,14 @@ class StaticAdapter(Adapter):
             if from_prefetch is not None
             else _STATIC_STORE.get(resource_id)
         )
+
+    def get_concepts_by_label(self, label: str, pref_label_only: bool=False) -> list[ConceptValueViewModel]:
+        self._check_collections_loaded()
+        return get_concepts_by_label(label, pref_label_only)
+
+    def get_collections_by_label(self, label: str, pref_label_only: bool=False) -> list[type[Enum]]:
+        self._check_collections_loaded()
+        return get_collections_by_label(label, pref_label_only)
 
     def get_wkrm_definitions(self):
         return WKRM_DEFINITIONS
