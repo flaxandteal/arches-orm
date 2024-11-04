@@ -383,9 +383,15 @@ def concept_to_skos(concept: StaticConcept, arches_url: str) -> Graph:
         else:
             values = []
 
+        title = None
+        description = None
         for value in values:
             if not value.id:
                 value.id = cuuid(f"{identifier}/{child.id}/{value.value}")
+            if value.__type__ == SKOS.prefLabel:
+                title = value
+            elif value.__type__ == SKOS.scopeNote:
+                description = value
             graph.add((child_identifier, value.__type__ or SKOS.prefLabel, Literal(json.dumps({
                 "id": str(value.id),
                 "value": value.value
@@ -394,13 +400,19 @@ def concept_to_skos(concept: StaticConcept, arches_url: str) -> Graph:
         for related in child.related:
             graph.add((child_identifier, related.__type__ or SKOS.related, URIRef(related.rdf_resource)))
 
-        # Removing for now, as Arches identifies this as the label.
-        # graph.add((child_identifier, DCTERMS.identifier, Literal(json.dumps({
-        #     "id": str(cuuid(f"{identifier}/{child.id}/identifier")),
-        #     "value": child_identifier
-        # }), lang="en")))
+        if top:
+            if title:
+                graph.add((child_identifier, DCTERMS.title, Literal(json.dumps({
+                    "id": str(cuuid(f"{identifier}/{child.id}/title")),
+                    "value": title.value
+                }), lang=value.language)))
 
-        if not top:
+            if description:
+                graph.add((child_identifier, DCTERMS.description, Literal(json.dumps({
+                    "id": str(cuuid(f"{identifier}/{child.id}/description")),
+                    "value": description.value
+                }), lang=description.language)))
+        else:
             graph.add((child_identifier, SKOS.inScheme, identifier))
 
         if child.children:
