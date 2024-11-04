@@ -14,9 +14,12 @@ class CollectionEnum(Enum):
 
 def make_collection(name: str, collection: list[ConceptValueViewModel], identifier: str | None) -> type[CollectionEnum]:
     values = dict()
-    for entry in collection:
-        if hasattr(entry, "_concept_value_id"):
-            values[entry.enum] = entry
+    def _get_children(entries: list[ConceptValueViewModel]) -> None:
+        for entry in entries:
+            if hasattr(entry, "_concept_value_id"):
+                values[entry.enum] = entry
+            _get_children(entry.children)
+    _get_children(collection)
     new_collection = CollectionEnum(string_to_enum(name), values) # type: ignore
     setattr(new_collection, "__original_name__", name)
     setattr(new_collection, "__identifier__", identifier)
@@ -65,7 +68,7 @@ class ReferenceDataManager:
         return self.adapter.get_collection(collection_id)
 
     def get_concept(self, concept_id: str | UUID) -> ConceptValueViewModel:
-        return self.adapter.retrieve_concept(concept_id)
+        return self.adapter.retrieve_concept_value(concept_id)
 
     def save_concept(self, concept: ConceptValueViewModel, output_file: Path | None) -> None:
         return self.adapter.save_concept(concept, output_file)

@@ -2,53 +2,61 @@ from __future__ import annotations
 
 from enum import Enum
 from lxml import etree as ET
+from functools import lru_cache
 import json
+import logging
+from functools import partial
 from urllib.parse import urlparse, urlunparse
 from uuid import UUID
 from pathlib import Path
 from dataclasses import dataclass
-from typing import TypedDict
+from typing import TypedDict, Callable
 try:
     from typing import NotRequired
 except ImportError: # 3.9
     from typing_extensions import NotRequired
 
-from rdflib import Graph, Literal, Namespace, RDF
+from rdflib import Graph, Literal, Namespace, RDF, URIRef
+from rdflib.resource import Resource
 from rdflib.namespace import SKOS, DCTERMS
 from arches_orm.collection import make_collection, CollectionEnum
 from arches_orm.utils import consistent_uuid as cuuid
-from arches_orm.view_models.concepts import ConceptValueViewModel
+from arches_orm.view_models.concepts import (
+    ConceptValueViewModel,
+    StaticConcept,
+    StaticValue,
+    StaticRelationship,
+    StaticPrefLabel,
+    StaticAltLabel,
+    StaticRelated,
+    StaticNarrower,
+    StaticBroader,
+    StaticScopeNote,
+    StaticConceptScheme,
+    DEFAULT_LANGUAGE,
+)
+
+logger = logging.getLogger(__name__)
+
 
 _COLLECTIONS: dict[UUID, type[Enum]] = {}
 
-DEFAULT_LANGUAGE: str = "en"
+@lru_cache
+def value_from_concept(value_id: str | UUID) -> StaticValue:
+    value_id = UUID(value_id) if isinstance(value_id, str) else value_id
+    value: StaticValue
+    try:
+        concept = next(concept for concept in _CONCEPTS.values() if hasattr(concept, "values") and value_id in concept.values)
+        value = concept.values[value_id]
+    except StopIteration:
+        concept = next(concept for concept in _CONCEPTS.values() if concept.title().id == value_id)
+        value = concept.title()
+    return value
 
-@dataclass
-class StaticValue:
-    """Parallel of the Arches Value model."""
-
-    id: UUID
-    value: str
-    language: str
-    concept_id: UUID | None
-
-    @classmethod
-    def from_concept(cls, value_id: str | UUID) -> "StaticValue":
-        value_id = UUID(value_id) if isinstance(value_id, str) else value_id
-        value: "StaticValue"
-        try:
-            concept = next(concept for concept in _CONCEPTS.values() if hasattr(concept, "values") and value_id in concept.values)
-            value = concept.values[value_id]
-        except StopIteration:
-            concept = next(concept for concept in _CONCEPTS.values() if concept.title().id == value_id)
-            value = concept.title()
-        return value
-
-    @property
-    def concept(self) -> "StaticConcept":
-        if not self.concept_id:
-            raise RuntimeError("No concept for this value. Perhaps a collection title?")
-        return _CONCEPTS[self.concept_id]
+@lru_cache
+def get_concept_children(concept_id: UUID) -> list[StaticConcept]:
+    concept = _CONCEPTS[concept_id]
+    return [_CONCEPTS[UUID(c.rdf_resource.split("/")[-1])] for c in concept.related if isinstance(c, StaticNarrower)]
 
 class StaticCollectionDict(TypedDict):
     """Loading holder for collections."""
@@ -62,8 +70,10 @@ class StaticConceptDict(TypedDict):
 
     id: NotRequired[UUID]
     values: dict[UUID, StaticValue]
-    children: NotRequired[list["StaticConcept"]]
+    _children: NotRequired[list["StaticConcept"] | Callable[[], list["StaticConcept"]]]
     source: Path | None
+    identifier: NotRequired[str]
+    related: list[StaticRelationship]
 
 @dataclass
 class StaticCollection:
@@ -72,30 +82,6 @@ class StaticCollection:
     id: UUID
     title: StaticValue
     concepts: list[UUID]
-
-@dataclass
-class StaticConcept:
-    """Minimal representation of an Arches concept."""
-
-    id: UUID
-    values: dict[UUID, StaticValue]
-    source: Path | None
-    children: list["StaticConcept"]
-
-    def title(self, language: str | None = DEFAULT_LANGUAGE) -> StaticValue:
-        if language:
-            try:
-                return next(value for value in self.values.values() if value.language == language)
-            except StopIteration:
-                ...
-        return next(iter(self.values.values()))
-
-@dataclass
-class StaticConceptScheme(StaticConcept):
-    """Minimal representation of a concept scheme.
-
-    For simplicity, this is a subclass of concept.
-    """
 
 _CONCEPTS: dict[UUID, StaticConcept] = {}
 _RAW_COLLECTIONS: dict[UUID, StaticCollection] = {}
@@ -116,7 +102,7 @@ def load_collection_path(concept_root: Path) -> None:
                 if predicate == SKOS.member:
                     for concept, _, _ in graph.triples((object, RDF.type, SKOS.Concept)):
                         top_attributes["concepts"].append(UUID(concept.split("/", -1)[-1]))
-                elif predicate == SKOS.prefLabel:
+                elif predicate == SKOS.prefLabel and hasattr(object, "value"):
                     value_dict = json.loads(object.value)
                     title = StaticValue(
                         language=object.language,
@@ -138,7 +124,7 @@ def load_concept_path(concept_root: Path) -> None:
         with concept_root.open() as xml:
             graph.parse(data=xml.read(), format="application/rdf+xml")
         for scheme, v, o in graph.triples((None, RDF.type, SKOS.ConceptScheme)):
-            top_attributes = StaticConceptDict(children=[], values={}, source=concept_root)
+            top_attributes = StaticConceptDict(_children=[], values={}, source=concept_root, related=[])
             scheme_id = None
             try:
                 scheme_id = UUID(scheme.split("/", -1)[-1])
@@ -149,8 +135,9 @@ def load_concept_path(concept_root: Path) -> None:
                 if predicate == SKOS.hasTopConcept:
                     top_concepts.append(UUID(str(object).split("/", -1)[-1]))
                 elif predicate == DCTERMS.identifier:
-                    if not scheme_id:
+                    if "id" not in top_attributes:
                         top_attributes["id"] = UUID(json.loads(object.value)["value"].split("/", -1)[-1])
+                    top_attributes["identifier"] = object.value
                 elif predicate == DCTERMS.title:
                     value_dict = json.loads(object.value)
                     title_attributes = {
@@ -165,8 +152,8 @@ def load_concept_path(concept_root: Path) -> None:
             static_concept =  StaticConceptScheme(**top_attributes)
             _CONCEPTS[top_attributes["id"]] = static_concept
             for s, v, o in graph.triples((None, SKOS.inScheme, scheme)):
-                attributes = StaticConceptDict(children=[], values={}, source=None)
-                concept_id = None
+                attributes = StaticConceptDict(_children=[], values={}, source=None, related=[])
+                concept_id: UUID
                 try:
                     concept_id = UUID(s.split("/", -1)[-1])
                     attributes["id"] = concept_id
@@ -174,35 +161,68 @@ def load_concept_path(concept_root: Path) -> None:
                     ...
                 for predicate, object in graph.predicate_objects(subject=s):
                     if predicate == DCTERMS.identifier and hasattr(object, "value"):
-                        if not concept_id:
-                            attributes["id"] = UUID(json.loads(object.value)["value"].split("/", -1)[-1])
-                    elif predicate == SKOS.prefLabel and hasattr(object, "value"):
+                        if "id" not in attributes:
+                            concept_id = UUID(json.loads(object.value)["value"].split("/", -1)[-1])
+                            attributes["id"] = concept_id
+                        attributes["identifier"] = object.value
+                    elif predicate in (SKOS.related, SKOS.narrower):
+                        related_cls: type[StaticRelationship]
+                        if predicate == SKOS.related:
+                            related_cls = StaticRelated
+                        elif predicate == SKOS.narrower:
+                            related_cls = StaticNarrower
+                        elif predicate == SKOS.broader:
+                            related_cls = StaticBroader
+                        related = related_cls(
+                            rdf_resource=str(object)
+                        )
+                        attributes["related"].append(related)
+                    elif predicate in (SKOS.prefLabel, SKOS.altLabel, SKOS.scopeNote) and hasattr(object, "value"):
+                        value_cls: type[StaticValue]
+                        if predicate == SKOS.prefLabel:
+                            value_cls = StaticPrefLabel
+                        elif predicate == SKOS.altLabel:
+                            value_cls = StaticAltLabel
+                        elif predicate == SKOS.scopeNote:
+                            value_cls = StaticScopeNote
                         value_dict = json.loads(object.value)
-                        value = StaticValue(
+                        value = value_cls(
                             language=object.language,
                             value=value_dict["value"],
                             id=UUID(value_dict["id"]),
-                            concept_id=concept_id
+                            concept_id=attributes["id"]
                         )
                         attributes["values"][value.id] = value
+                    elif predicate in (SKOS.inScheme, RDF.type):
+                        continue
+                    else:
+                        logging.warn("Predicate not recognised for concept {}: {}", top_attributes["id"], predicate)
+                attributes["_children"] = partial(get_concept_children, concept_id)
                 _CONCEPTS[attributes["id"]] = StaticConcept(**attributes)
             children = [_CONCEPTS[c] for c in top_concepts]
-            static_concept.children += [concept for concept in children if isinstance(concept, StaticConcept)]
+            static_concept._children += [concept for concept in children if isinstance(concept, StaticConcept)]
 
-def _make_concept(value_id: UUID, collection_id: None | UUID) -> ConceptValueViewModel:
-    return ConceptValueViewModel(
+@lru_cache
+def _make_concept_value(value_id: UUID, collection_id: None | UUID) -> ConceptValueViewModel:
+    value = ConceptValueViewModel(
         value_id,
-        StaticValue.from_concept,
+        value_from_concept,
+        retrieve_concept,
         collection_id if collection_id else None,
         (lambda _: retrieve_collection(collection_id) if collection_id else None),
-        lambda concept_id, language: [_make_concept(c.title(language).id, None) for c in _CONCEPTS[concept_id].children]
+        lambda concept_id, language: [_make_concept_value(c.title(language).id, None) for c in _CONCEPTS[concept_id].children]
     )
+    return value
 
-def retrieve_concept(concept_id: str | UUID) -> ConceptValueViewModel:
+def retrieve_concept(concept_id: str | UUID) -> StaticConcept:
     concept_id = UUID(concept_id) if not isinstance(concept_id, UUID) else concept_id
     concept = _CONCEPTS[concept_id]
+    return concept
+
+def retrieve_concept_value(concept_id: str | UUID) -> ConceptValueViewModel:
+    concept = retrieve_concept(concept_id)
     value_id = concept.title().id
-    return _make_concept(value_id, None)
+    return _make_concept_value(value_id, None)
 
 def make_concept(concept_id: str | UUID, values: dict[UUID, tuple[str, str]], children: list[UUID] | None) -> ConceptValueViewModel:
     concept_id = UUID(concept_id) if not isinstance(concept_id, UUID) else concept_id
@@ -216,12 +236,13 @@ def make_concept(concept_id: str | UUID, values: dict[UUID, tuple[str, str]], ch
                 id=id
             ) for id, (lang, value) in values.items()
         },
-        "children": [_CONCEPTS[child] for child in (children or [])],
-        "source": None
+        "_children": [_CONCEPTS[child] for child in (children or [])],
+        "source": None,
+        "related": []
     }
     concept = StaticConcept(**attributes)
     _CONCEPTS[concept.id] = concept
-    return _make_concept(concept.title().id, None)
+    return _make_concept_value(concept.title().id, None)
 
 def retrieve_collection(collection_id: UUID | str, language: None | str = None) -> type[Enum]:
     collection_id = collection_id if isinstance(collection_id, UUID) else UUID(collection_id)
@@ -249,7 +270,7 @@ def build_collection(collection_id: UUID | str, include: list[UUID] | None=None,
     return make_collection(
         collection.title.value,
         [
-            _make_concept(c.title(language).id, collection_id) for concept in
+            _make_concept_value(c.title(language).id, collection_id) for concept in
             concepts if isinstance((c := _CONCEPTS[concept]), StaticConcept)
         ],
         str(collection_id)
@@ -293,7 +314,7 @@ def update_collections(collection: CollectionEnum, source_file: Path, arches_url
     ET.indent(etree)
     etree.write(str(source_file), xml_declaration=True)
 
-def save_concept(concept: ConceptValueViewModel, output_file: Path | None, arches_url: str) -> None:
+def save_concept(concept: ConceptValueViewModel, output_file: Path | None | str, arches_url: str) -> None:
     static_concept = _CONCEPTS[concept.conceptid]
     output_file = output_file or static_concept.source
     if output_file is None:
@@ -304,46 +325,58 @@ def save_concept(concept: ConceptValueViewModel, output_file: Path | None, arche
         xml_string = xml_string.encode("utf-8")
     etree = ET.ElementTree(ET.fromstring(xml_string))
     ET.indent(etree)
-    etree.write(str(output_file), xml_declaration=True)
+    if isinstance(output_file, Path):
+        output_file = str(output_file)
+    etree.write(output_file, xml_declaration=True)
 
 def concept_to_skos(concept: StaticConcept, arches_url: str) -> Graph:
     graph = Graph()
     arches_url_prefix = list(urlparse(arches_url))
     arches_url_prefix[2] = "/"
     ARCHES = Namespace(urlunparse(arches_url_prefix))
-    identifier = ARCHES[str(concept.id)]
-    graph.add((identifier, RDF.type, SKOS.ConceptScheme))
-    title = concept.title()
-    if not title.id:
-        title.id = cuuid(f"{identifier}/{concept.id}/value")
-    graph.add((identifier, SKOS.prefLabel, Literal(json.dumps({
-        "id": str(title.id),
-        "value": title.value,
-    }), lang=title.language)))
 
-    graph.add((identifier, DCTERMS.identifier, Literal(json.dumps({
-        "id": str(cuuid(f"{identifier}/identifier")),
-        "value": identifier
-    }), lang="en")))
+    def _add_concept(child_identifier: URIRef, child: StaticConcept, top: bool=False) -> None:
+        if top:
+            graph.add((identifier, RDF.type, SKOS.ConceptScheme))
+        else:
+            graph.add((child_identifier, RDF.type, SKOS.Concept))
 
-    for child in concept.children:
-        child_identifier = ARCHES[str(child.id)]
-        graph.add((identifier, SKOS.hasTopConcept, child_identifier))
-        graph.add((child_identifier, RDF.type, SKOS.Concept))
-        title = child.title()
-        if not title.id:
-            title.id = cuuid(f"{identifier}/{child.id}/value")
-        graph.add((child_identifier, SKOS.prefLabel, Literal(json.dumps({
-            "id": str(title.id),
-            "value": title.value
-        }), lang=title.language)))
+        if child.values:
+            values = list(child.values.values())
+        elif (title := child.title()):
+            values = [title]
+        else:
+            values = []
+
+        for value in values:
+            if not value.id:
+                value.id = cuuid(f"{identifier}/{child.id}/{value.value}")
+            graph.add((child_identifier, value.__type__ or SKOS.prefLabel, Literal(json.dumps({
+                "id": str(value.id),
+                "value": value.value
+            }), lang=value.language)))
+
+        for related in child.related:
+            graph.add((child_identifier, related.__type__ or SKOS.related, URIRef(related.rdf_resource)))
+
         graph.add((child_identifier, DCTERMS.identifier, Literal(json.dumps({
             "id": str(cuuid(f"{identifier}/{child.id}/identifier")),
             "value": child_identifier
         }), lang="en")))
 
-        graph.add((child_identifier, SKOS.inScheme, identifier))
+        if not top:
+            graph.add((child_identifier, SKOS.inScheme, identifier))
 
+        if child.children:
+            for grandchild in child.children:
+                grandchild_identifier = ARCHES[str(grandchild.id)]
+                if top:
+                    graph.add((identifier, SKOS.hasTopConcept, grandchild_identifier))
+                _add_concept(grandchild_identifier, grandchild)
+
+
+    identifier = ARCHES[str(concept.id)]
+    _add_concept(identifier, concept, top=True)
     graph.bind("skos", Namespace("http://www.w3.org/2004/02/skos/core#"))
     graph.bind("rdf", Namespace("http://www.w3.org/1999/02/22-rdf-syntax-ns#"))
     graph.bind("dcterms", Namespace("http://purl.org/dc/terms/"))

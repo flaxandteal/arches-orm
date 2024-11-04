@@ -4,6 +4,7 @@ import hashlib
 import slugify
 import re
 from functools import partial
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -55,12 +56,12 @@ def string_to_enum(string: str, full: bool=True) -> str:
     return string
 
 
-def camel(string, studly=False):
+def camel(string: str, studly: bool=False) -> str:
     string = ((string[0].upper() if studly else string[0].lower()) + string.replace("_", " ").title()[1:]).replace(" ", "")
     return string
 studly = partial(camel, studly=True)
 
-def is_unset(variable, unavailable=True):
+def is_unset(variable: Any, unavailable: bool=True) -> bool:
     from arches_orm.view_models._base import UnavailableViewModel
 
     if variable is None:
@@ -73,7 +74,7 @@ def is_unset(variable, unavailable=True):
         ...
     return False
 
-def consistent_uuid(string):
+def consistent_uuid(string: str) -> uuid.UUID:
     hsh = hashlib.md5()
     hsh.update(string.encode("utf-8"))
     return uuid.UUID(hsh.hexdigest())
