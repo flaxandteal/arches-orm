@@ -26,7 +26,9 @@ def test_can_save_collection(arches_orm):
     concept_2 = rdm.make_simple_concept("My Status", "Backlog - Everything")
     my_status = rdm.make_simple_concept("My Status", children=[concept_1, concept_2])
     MyStatusEnum = rdm.concept_to_collection(my_status)
-    rdm.save_concept(my_status, "/tmp/test.xml")
+    stream = BytesIO()
+    rdm.save_concept(my_status, stream)
+    assert "My Status" in bytes(stream.getbuffer()).decode("utf-8")
     rdm.update_collections(MyStatusEnum, Path("/tmp/collections.xml"))
 
 @context_free

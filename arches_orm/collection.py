@@ -5,6 +5,9 @@ from pathlib import Path
 from uuid import UUID
 from typing import IO
 
+from rdflib.term import Node
+from rdflib.namespace import SKOS
+
 from .utils import string_to_enum, consistent_uuid
 from .view_models.concepts import ConceptValueViewModel
 from .adapter import Adapter
@@ -37,9 +40,9 @@ class ReferenceDataManager:
             value = namespace
         concept_id = consistent_uuid(namespace + "/" + value)
         value_id = consistent_uuid(namespace + "/" + language + "/" + value)
-        return self.make_concept(concept_id, {value_id: (language, value)}, children=children)
+        return self.make_concept(concept_id, {value_id: (language, value, SKOS.prefLabel)}, children=children)
 
-    def make_concept(self, concept_id: str | UUID, values: dict[UUID, tuple[str, str]], children: list[UUID] | list[ConceptValueViewModel] | None = None) -> ConceptValueViewModel:
+    def make_concept(self, concept_id: str | UUID, values: dict[UUID, tuple[str, str, Node]], children: list[UUID] | list[ConceptValueViewModel] | None = None) -> ConceptValueViewModel:
         children_uuids = [child.conceptid if isinstance(child, ConceptValueViewModel) else child for child in (children or [])]
         return self.adapter.make_concept(
             concept_id=concept_id,

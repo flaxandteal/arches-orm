@@ -10,6 +10,8 @@ from contextlib import contextmanager
 from contextvars import ContextVar
 from abc import ABC, abstractmethod
 
+from rdflib.term import Node
+
 from .view_models._base import ResourceInstanceViewModel
 from .view_models.concepts import ConceptValueViewModel
 
@@ -49,7 +51,7 @@ class Adapter(ABC):
         ...
 
     @abstractmethod
-    def make_concept(self, concept_id: str | UUID, values: dict[UUID, tuple[str, str]], children: list[UUID] | None) -> ConceptValueViewModel:
+    def make_concept(self, concept_id: str | UUID, values: dict[UUID, tuple[str, str, Node]], children: list[UUID] | None) -> ConceptValueViewModel:
         ...
 
     @abstractmethod
