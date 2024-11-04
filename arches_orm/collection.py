@@ -3,6 +3,7 @@ from __future__ import annotations
 from enum import Enum
 from pathlib import Path
 from uuid import UUID
+from typing import IO
 
 from .utils import string_to_enum, consistent_uuid
 from .view_models.concepts import ConceptValueViewModel
@@ -52,7 +53,7 @@ class ReferenceDataManager:
     def make_collection(self, name: str, collection: list[ConceptValueViewModel]) -> type[Enum]:
         return make_collection(name=name, collection=collection, identifier=None)
 
-    def derive_collection(self, collection_id: str | UUID, include: list[ConceptValueViewModel] | None, exclude: list[ConceptValueViewModel] | None, language: str | None=None) -> type[Enum]:
+    def derive_collection(self, collection_id: str | UUID, include: list[ConceptValueViewModel] | None=None, exclude: list[ConceptValueViewModel] | None=None, language: str | None=None) -> type[Enum]:
         """Note that this method creates a new Enum but does not overwrite the old Collection, and the old version will still be returned from get_collection."""
         if include:
             include_concepts = [inc.conceptid for inc in include]
@@ -72,6 +73,9 @@ class ReferenceDataManager:
 
     def save_concept(self, concept: ConceptValueViewModel, output_file: Path | None) -> None:
         return self.adapter.save_concept(concept, output_file)
+
+    def export_collection(self, concept: ConceptValueViewModel, output_file: Path | IO) -> None:
+        return self.adapter.export_collection(concept, output_file)
 
     def update_collections(self, concept: ConceptValueViewModel, output_file: Path) -> None:
         return self.adapter.update_collections(concept, output_file)

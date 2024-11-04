@@ -68,6 +68,7 @@ class StaticConcept:
     _children: list["StaticConcept"] | Callable[[], list["StaticConcept"]]
     identifier: str | None = None
     related: list[StaticRelationship] = field(default_factory=list)
+    sort_order: int | None = None
     _title: dict[str | None, StaticValue | None] = field(default_factory=dict)
 
     @property
@@ -220,9 +221,6 @@ class ConceptValueViewModel(str, CollectionChild, ViewModel):
     @property
     def children(self) -> list[ConceptValueViewModel]:
         children = self._children_cb(self.conceptid, self.lang)
-        for child in children:
-            if child.conceptid == self.conceptid:
-                asdf
         return children
 
     @property
