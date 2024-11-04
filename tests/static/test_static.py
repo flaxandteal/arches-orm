@@ -3,7 +3,7 @@ from rdflib import RDF
 from io import BytesIO
 from rdflib.namespace import SKOS
 from arches_orm.adapter import context_free, get_adapter
-from arches_orm.static.datatypes.concepts import concept_to_skos
+from arches_orm.static.datatypes.concepts import concept_to_skos, load_collection_path
 
 @context_free
 def test_can_get_collection(arches_orm):
@@ -119,3 +119,8 @@ def test_can_search_for_collection(arches_orm):
 def test_can_search_for_concept(arches_orm):
     rdm = get_adapter().get_rdm()
     assert rdm.find_concept_by_label("Cistercian Nunnery")
+
+@context_free
+def test_can_load_collections_xml(arches_orm):
+    collections = Path("../coral-arches/coral/pkg/reference_data/collections/collections.xml")
+    load_collection_path(collections)
