@@ -65,6 +65,27 @@ class ReferenceDataManager:
             exclude_concepts = None
         return self.adapter.derive_collection(collection_id, include=include_concepts, exclude=exclude_concepts, language=language)
 
+    def find_collection_by_label(self, title: str, pref_label_only=True) -> type[Enum]:
+        return self.adapter.get_collections_by_label(title, pref_label_only)[0]
+
+    def find_concept_by_label(self, title: str, pref_label_only=True) -> ConceptValueViewModel:
+        concepts = self.adapter.get_concepts_by_label(title, pref_label_only)
+        if len(concepts) == 1:
+            return concepts[0]
+        elif concepts:
+            raise ValueError(f"Multiple collections found for '{title}': {' '.join([str(c) for c in concepts])}")
+        else:
+            raise KeyError(f"Collection {title} not found")
+
+    def find_collection_by_label(self, title: str, pref_label_only=True) -> type[Enum]:
+        collections = self.adapter.get_collections_by_label(title, pref_label_only)
+        if len(collections) == 1:
+            return collections[0]
+        elif collections:
+            raise ValueError(f"Multiple collections found for '{title}': {' '.join([str(c) for c in collections])}")
+        else:
+            raise KeyError(f"Collection {title} not found")
+
     def get_collection(self, collection_id: str | UUID) -> type[Enum]:
         return self.adapter.get_collection(collection_id)
 
