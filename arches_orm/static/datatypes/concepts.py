@@ -139,6 +139,7 @@ def load_concept_path(concept_root: Path) -> None:
             graph.parse(data=xml.read(), format="application/rdf+xml")
         for scheme, v, o in graph.triples((None, RDF.type, SKOS.ConceptScheme)):
             top_attributes = StaticConceptDict(children=[], values={}, source=concept_root)
+            scheme_id = None
             try:
                 scheme_id = UUID(scheme.split("/", -1)[-1])
                 top_attributes["id"] = scheme_id
@@ -148,7 +149,8 @@ def load_concept_path(concept_root: Path) -> None:
                 if predicate == SKOS.hasTopConcept:
                     top_concepts.append(UUID(str(object).split("/", -1)[-1]))
                 elif predicate == DCTERMS.identifier:
-                    top_attributes["id"] = UUID(json.loads(object.value)["value"].split("/", -1)[-1])
+                    if not scheme_id:
+                        top_attributes["id"] = UUID(json.loads(object.value)["value"].split("/", -1)[-1])
                 elif predicate == DCTERMS.title:
                     value_dict = json.loads(object.value)
                     title_attributes = {
@@ -172,7 +174,8 @@ def load_concept_path(concept_root: Path) -> None:
                     ...
                 for predicate, object in graph.predicate_objects(subject=s):
                     if predicate == DCTERMS.identifier and hasattr(object, "value"):
-                        attributes["id"] = UUID(json.loads(object.value)["value"].split("/", -1)[-1])
+                        if not concept_id:
+                            attributes["id"] = UUID(json.loads(object.value)["value"].split("/", -1)[-1])
                     elif predicate == SKOS.prefLabel and hasattr(object, "value"):
                         value_dict = json.loads(object.value)
                         value = StaticValue(
