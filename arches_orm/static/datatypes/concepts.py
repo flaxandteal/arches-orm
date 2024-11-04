@@ -247,7 +247,7 @@ def retrieve_concept_value(concept_id: str | UUID) -> ConceptValueViewModel:
 def make_concept(concept_id: str | UUID, values: dict[UUID, tuple[str, str, Node]], children: list[UUID] | None) -> ConceptValueViewModel:
     node_classes = {
         SKOS.prefLabel: StaticPrefLabel,
-        SKOS.scopeNode: StaticScopeNote,
+        SKOS.scopeNote: StaticScopeNote,
         SKOS.altLabel: StaticAltLabel,
     }
     concept_id = UUID(concept_id) if not isinstance(concept_id, UUID) else concept_id
