@@ -12,7 +12,7 @@ from .datatypes.concepts import (
     load_concept_path,
     retrieve_collection,
     make_concept,
-    retrieve_concept,
+    retrieve_concept_value,
     save_concept,
     update_collections,
     build_collection
@@ -42,8 +42,8 @@ class StaticAdapter(Adapter):
     def save_concept(self, concept: ConceptValueViewModel, output_file: Path | None) -> None:
         save_concept(concept, output_file, arches_url=self.config["arches_url"])
 
-    def retrieve_concept(self, concept_id: str | UUID) -> ConceptValueViewModel:
-        return retrieve_concept(concept_id)
+    def retrieve_concept_value(self, concept_id: str | UUID) -> ConceptValueViewModel:
+        return retrieve_concept_value(concept_id)
 
     def make_concept(self, concept_id: str | UUID, values: dict[UUID, tuple[str, str]], children: list[UUID] | None) -> ConceptValueViewModel:
         return make_concept(concept_id, values, children)

@@ -45,7 +45,7 @@ class Adapter(ABC):
         return ReferenceDataManager(self)
 
     @abstractmethod
-    def retrieve_concept(self, concept_id: str | UUID) -> ConceptValueViewModel:
+    def retrieve_concept_value(self, concept_id: str | UUID) -> ConceptValueViewModel:
         ...
 
     @abstractmethod
