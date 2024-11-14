@@ -23,7 +23,13 @@ class RelatedResourceInstanceListViewModel(UserList, ViewModel):
         self._make_ri_cb = make_ri_cb
         if resource_instance_list:
             for resource_instance in resource_instance_list:
-                self.append(resource_instance)
+                try:
+                    self.append(resource_instance)
+                except RuntimeError:
+                    logging.error(
+                        "Tried to append a non-existent instance to a list"
+                    )
+
 
     def append(self, item: str | uuid.UUID | ResourceInstanceViewModel):
         """Add a well-known resource to the list."""
