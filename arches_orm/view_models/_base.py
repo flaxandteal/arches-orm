@@ -1,5 +1,7 @@
 import logging
 
+import logging
+
 class ViewModel:
     _parent_pseudo_node = None
 
