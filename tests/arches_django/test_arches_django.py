@@ -179,7 +179,9 @@ def test_can_get_descriptors(arches_orm):
     name = person.name.append()
     name.full_name = "Ash"
     with pytest.raises(DescriptorsNotYetSet):
-        str(person)
+        person._.to_string()
+
+    str(person)
     person.save()
     assert str(person) == "Ash"
     assert person._._name == "Ash"

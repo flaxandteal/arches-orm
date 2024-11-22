@@ -1,3 +1,5 @@
+import logging
+
 class ViewModel:
     _parent_pseudo_node = None
 
@@ -55,7 +57,13 @@ class ResourceInstanceViewModel(ViewModel, metaclass=ResourceModelViewModel):
 
     def __str__(self):
         """Convert to string."""
-        return self._.to_string()
+        string: str
+        try:
+            string = self._.to_string()
+        except Exception as exc:
+            logging.error(str(exc))
+            string = repr(self)
+        return string
 
     def __getitem__(self, key):
         return self.__getattr__(key)
