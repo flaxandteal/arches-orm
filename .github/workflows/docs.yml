@@ -2,7 +2,9 @@ name: Docs
 on: 
   push:
     tags:
-      - 'release/v*' 
+      - 'v*' 
+    branches:
+      - 'release/*' 
   pull_request:
 jobs:
   static:
