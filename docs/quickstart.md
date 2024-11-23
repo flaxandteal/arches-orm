@@ -13,7 +13,16 @@ If you wish to use the GraphQL auto-API, then you should also run:
 
     pip install -e .\[graphql\]
 
-To your `settings.py`, you should add the resource models that you wish to
+To your `settings.py`, add the ORM to the end of your installed apps:
+
+```
+    INSTALLED_APPS = (
+        ...
+        "arches_orm.arches_django.apps.ArchesORMConfig"
+    )
+```
+
+Furthermore in `settings.py`, you should add the resource models that you wish to
 use via the ORM, for example (from Arches for HERs):
 
     WELL_KNOWN_RESOURCE_MODELS = [{
