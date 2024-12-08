@@ -261,7 +261,6 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
 
         This may be new or existing, for this well-known resource.
         """
-
         if not _no_save and not self._can_edit_resource():
             raise WKRIPermissionDenied()
 
@@ -381,6 +380,9 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
                 resource.save()
             resource = Resource.objects.get(resourceinstanceid=self.id)
             self.resource = resource
+
+        if _do_index:
+            self.resource.index()
 
         return resource
 
