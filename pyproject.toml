@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "arches-orm"
-version = "0.0.1"
+version = "0.1.4"
 authors = [
     {name = "Phil Weir", email = "phil.weir@flaxandteal.co.uk"},
 ]
@@ -19,6 +19,8 @@ classifiers = [
     "Programming Language :: Python",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
 ]
 dependencies = [
     "tabulate",
