@@ -38,12 +38,7 @@ convention = "google"
 
 [project]
 name = "arches-orm"
-description = "Representation of Arches graphs for client and server side manipulation"
-homepage = "https://github.com/flaxandteal/arches-orm"
-repository = "https://github.com/flaxandteal/arches-orm"
-documentation = "https://flaxandteal.github.io/arches-orm"
-readme = "README.md"
-version = "0.3.0a2"
+version = "0.1.4"
 authors = [
     {name = "Phil Weir", email = "phil.weir@flaxandteal.co.uk"},
 ]
