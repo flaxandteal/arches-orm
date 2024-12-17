@@ -506,6 +506,16 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
 
     @classmethod
     @lru_cache
+    def collections(cls):
+        # TODO: move upwards
+        fields = cls.all_fields()
+        return {
+            name: field["node"].value.__collection__ for name, field in cls.all_fields().items()
+            if field["type"] in (DataTypeNames.CONCEPT, DataTypeNames.CONCEPT_LIST)
+        }
+
+    @classmethod
+    @lru_cache
     def _graph(cls):
         return Graph.objects.get(graphid=cls.graphid)
 

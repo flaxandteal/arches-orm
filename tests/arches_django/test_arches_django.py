@@ -179,6 +179,13 @@ def test_can_retrieve_collection(arches_orm, lazy):
 @pytest.mark.django_db
 @context_free
 @pytest.mark.parametrize("lazy", [False, True])
+def test_can_retrieve_collections(arches_orm, lazy):
+    Activity = arches_orm.models.Activity
+    assert "record_status" in Activity._.collections()
+
+@pytest.mark.django_db
+@context_free
+@pytest.mark.parametrize("lazy", [False, True])
 def test_can_save_with_concept(arches_orm, lazy):
     Activity = arches_orm.models.Activity
     activity = Activity.create()
