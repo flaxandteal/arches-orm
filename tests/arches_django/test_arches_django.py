@@ -1,6 +1,8 @@
 import pytest
 import json
+from uuid import UUID
 from arches_orm.adapter import context_free, get_adapter
+from arches_orm.utils import string_to_enum
 from arches_orm.errors import DescriptorsNotYetSet
 
 JSON_PERSON = """
@@ -159,6 +161,20 @@ def test_can_get_collection(arches_orm):
     StatusEnum = record_status.__collection__
 
     assert StatusEnum == get_adapter().get_collection("7849cd3c-3f0d-454d-aaea-db9164629641")
+
+@pytest.mark.django_db
+@context_free
+@pytest.mark.parametrize("lazy", [False, True])
+def test_can_retrieve_collection(arches_orm, lazy):
+    Activity = arches_orm.models.Activity
+    activity = Activity.create()
+    record_status = activity.record_status_assignment.record_status
+
+    mangled_name = string_to_enum("Backlog - Full or Published")
+    assert mangled_name in record_status.__collection__.__members__
+    concept = record_status.__collection__[mangled_name]
+
+    assert concept._value_._concept_value_id == UUID("53a8be8b-156d-443d-b514-3af8bf582f72")
 
 @pytest.mark.django_db
 @context_free

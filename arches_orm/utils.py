@@ -38,7 +38,7 @@ def snake(class_name):
     return class_name.lower()
 
 
-def string_to_enum(string, full=True):
+def string_to_enum(string: str, full: bool=True) -> str:
     if not string:
         return ""
     for sym, word in _SYMBOL_NAMES.items():
