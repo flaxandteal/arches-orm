@@ -244,7 +244,7 @@ def retrieve_concept_value(concept_id: str | UUID) -> ConceptValueViewModel:
     value_id = concept.title().id
     return _make_concept_value(value_id, None)
 
-def make_concept(concept_id: str | UUID, values: dict[UUID, tuple[str, str, Node]], children: list[UUID] | None, arches_url: str) -> ConceptValueViewModel:
+def make_concept(concept_id: str | UUID, values: dict[UUID, tuple[str, str, Node]], children: list[UUID] | None, arches_url: str, scheme: bool=False) -> ConceptValueViewModel:
     node_classes = {
         SKOS.prefLabel: StaticPrefLabel,
         SKOS.scopeNote: StaticScopeNote,
@@ -266,9 +266,13 @@ def make_concept(concept_id: str | UUID, values: dict[UUID, tuple[str, str, Node
         },
         "_children": [_CONCEPTS[child] for child in (children or [])],
         "source": None,
-        "related": [StaticNarrower(rdf_resource=str(ARCHES[str(child)])) for child in (children or [])]
+        "related": (
+            []
+            if scheme else
+            [StaticNarrower(rdf_resource=str(ARCHES[str(child)])) for child in (children or [])]
+        )
     }
-    concept = StaticConcept(**attributes)
+    concept = (StaticConceptScheme if scheme else StaticConcept)(**attributes)
     _CONCEPTS[concept.id] = concept
     return _make_concept_value(concept.title().id, None)
 
