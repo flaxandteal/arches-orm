@@ -33,21 +33,22 @@ class ReferenceDataManager:
     def __init__(self, adapter: Adapter):
         self.adapter = adapter
 
-    def make_simple_concept(self, namespace: str, value: str | None = None, language: str = "en", children: list[UUID] | list[ConceptValueViewModel] | None = None) -> ConceptValueViewModel:
+    def make_simple_concept(self, namespace: str, value: str | None = None, language: str = "en", children: list[UUID] | list[ConceptValueViewModel] | None = None, scheme: bool = False) -> ConceptValueViewModel:
         """Creates a concept with a consistent set of UUIDs, but depends on namespace+value being globally unique."""
 
         if value is None:
             value = namespace
         concept_id = consistent_uuid(namespace + "/" + value)
         value_id = consistent_uuid(namespace + "/" + language + "/" + value)
-        return self.make_concept(concept_id, {value_id: (language, value, SKOS.prefLabel)}, children=children)
+        return self.make_concept(concept_id, {value_id: (language, value, SKOS.prefLabel)}, children=children, scheme=scheme)
 
-    def make_concept(self, concept_id: str | UUID, values: dict[UUID, tuple[str, str, Node]], children: list[UUID] | list[ConceptValueViewModel] | None = None) -> ConceptValueViewModel:
+    def make_concept(self, concept_id: str | UUID, values: dict[UUID, tuple[str, str, Node]], children: list[UUID] | list[ConceptValueViewModel] | None = None, scheme: bool = False) -> ConceptValueViewModel:
         children_uuids = [child.conceptid if isinstance(child, ConceptValueViewModel) else child for child in (children or [])]
         return self.adapter.make_concept(
             concept_id=concept_id,
             values=values,
-            children=children_uuids
+            children=children_uuids,
+            scheme=scheme
         )
 
     def concept_to_collection(self, concept: ConceptValueViewModel) -> type[Enum]:

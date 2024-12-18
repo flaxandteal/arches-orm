@@ -60,8 +60,8 @@ class StaticAdapter(Adapter):
         self._check_collections_loaded()
         return retrieve_concept_value(concept_id)
 
-    def make_concept(self, concept_id: str | UUID, values: dict[UUID, tuple[str, str, Node]], children: list[UUID] | None) -> ConceptValueViewModel:
-        return make_concept(concept_id, values, children, arches_url=self.config["arches_url"])
+    def make_concept(self, concept_id: str | UUID, values: dict[UUID, tuple[str, str, Node]], children: list[UUID] | None, scheme: bool = False) -> ConceptValueViewModel:
+        return make_concept(concept_id, values, children, arches_url=self.config["arches_url"], scheme=scheme)
 
     def derive_collection(self, collection_id: str | UUID, include: list[UUID] | None=None, exclude: list[UUID] | None=None, language: str | None=None) -> type[Enum]:
         """Note that include and exclude should be lists of concept, not value, IDs."""
