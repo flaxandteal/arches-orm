@@ -244,12 +244,15 @@ def retrieve_concept_value(concept_id: str | UUID) -> ConceptValueViewModel:
     value_id = concept.title().id
     return _make_concept_value(value_id, None)
 
-def make_concept(concept_id: str | UUID, values: dict[UUID, tuple[str, str, Node]], children: list[UUID] | None) -> ConceptValueViewModel:
+def make_concept(concept_id: str | UUID, values: dict[UUID, tuple[str, str, Node]], children: list[UUID] | None, arches_url: str) -> ConceptValueViewModel:
     node_classes = {
         SKOS.prefLabel: StaticPrefLabel,
         SKOS.scopeNote: StaticScopeNote,
         SKOS.altLabel: StaticAltLabel,
     }
+    arches_url_prefix = list(urlparse(arches_url))
+    arches_url_prefix[2] = "/"
+    ARCHES = Namespace(urlunparse(arches_url_prefix))
     concept_id = UUID(concept_id) if not isinstance(concept_id, UUID) else concept_id
     attributes: StaticConceptDict = {
         "id": concept_id,
@@ -263,8 +266,9 @@ def make_concept(concept_id: str | UUID, values: dict[UUID, tuple[str, str, Node
         },
         "_children": [_CONCEPTS[child] for child in (children or [])],
         "source": None,
-        "related": []
+        "related": [StaticNarrower(rdf_resource=str(ARCHES[str(child)])) for child in (children or [])]
     }
+    print(attributes)
     concept = StaticConcept(**attributes)
     _CONCEPTS[concept.id] = concept
     return _make_concept_value(concept.title().id, None)
