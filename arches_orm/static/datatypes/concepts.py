@@ -268,7 +268,6 @@ def make_concept(concept_id: str | UUID, values: dict[UUID, tuple[str, str, Node
         "source": None,
         "related": [StaticNarrower(rdf_resource=str(ARCHES[str(child)])) for child in (children or [])]
     }
-    print(attributes)
     concept = StaticConcept(**attributes)
     _CONCEPTS[concept.id] = concept
     return _make_concept_value(concept.title().id, None)
