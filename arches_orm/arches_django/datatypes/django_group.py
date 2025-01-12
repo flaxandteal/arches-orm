@@ -20,6 +20,8 @@ class DjangoGroupViewModel(Group, GroupViewModelMixin):
         # We have to do this as we do not have a concept of an empty node
         return bool(self.pk)
 
+class MissingDjangoGroupViewModel(Group, GroupViewModelMixin):
+    ...
 
 @REGISTER("django-group")
 def django_group(tile, node, value, _, __, ___, group) -> GroupProtocol:
@@ -40,7 +42,7 @@ def django_group(tile, node, value, _, __, ___, group) -> GroupProtocol:
             except DjangoGroupViewModel.DoesNotExist:
                 logger.warning("Django Group is missing for pk value %s", str(value))
     if not group:
-        group = DjangoGroupViewModel()
+        group = MissingDjangoGroupViewModel()
         group.pk = pk
     return group
 
