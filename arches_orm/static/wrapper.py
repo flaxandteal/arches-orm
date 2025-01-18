@@ -6,6 +6,7 @@ from collections import UserDict
 from functools import lru_cache
 from arches_orm.errors import DescriptorsNotYetSet
 from threading import Event
+from arches_orm.datatypes import DataTypeNames
 from arches_orm.wrapper import ResourceWrapper
 from arches_orm.pseudo_node.pseudo_nodes import PseudoNodeList, PseudoNodeValue, PseudoNodeUnavailable
 from arches_orm.pseudo_node.value_list import ValueList
