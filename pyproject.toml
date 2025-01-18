@@ -28,6 +28,7 @@ dependencies = [
     "geojson",
     "rdflib",
     "pydantic",
+    "eval_type_backport",
 ]
 
 [project.optional-dependencies]
