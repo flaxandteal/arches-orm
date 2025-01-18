@@ -1,3 +1,4 @@
+from __future__ import annotations
 from arches_orm.view_models import (
     GeoJSONFeatureCollectionViewModel,
 )
