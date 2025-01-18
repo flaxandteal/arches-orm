@@ -1,0 +1,35 @@
+{
+  "business_data": {
+    "resources": [
+      {
+        "resourceinstance": {
+          "descriptors": {},
+          "graph_id": "22477f01-1a44-11e9-b0a9-000d3ab1e588",
+          "graph_publication_id": null,
+          "legacyid": null,
+          "name": "Ash",
+          "principaluser_id": null,
+          "resourceinstanceid": "<UUID:1>",
+          "publication_id": null
+        },
+        "tiles": [
+          {
+            "data": {
+              "5f8ded26-7ef9-11ea-8e29-f875a44e0e11": {
+                "en": {
+                  "direction": "ltr",
+                  "value": "Ash"
+                }
+              }
+            },
+            "nodegroup_id": "4110f741-1a44-11e9-885e-000d3ab1e588",
+            "tileid": "<UUID:2>",
+            "parenttile_id": null,
+            "provisionaledits": null,
+            "sortorder": null
+          }
+        ]
+      }
+    ]
+  }
+}
