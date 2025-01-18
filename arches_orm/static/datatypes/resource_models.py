@@ -86,7 +86,7 @@ class StaticCardsXNodesXWidgets(BaseModel):
     id: UUID
     label: StaticTranslatableString
     node_id: UUID
-    sortorder: int
+    sortorder: int | None
     visible: bool
     widget_id: UUID
 
