@@ -91,6 +91,7 @@ class StaticCardsXNodesXWidgets(BaseModel):
     widget_id: UUID
 
 class StaticEdge(BaseModel):
+    description: None | str = None
     domainnode_id: UUID
     edgeid: UUID
     graph_id: UUID
@@ -112,7 +113,7 @@ class StaticPublication(BaseModel):
     published_time: str
 
 class StaticRoot(BaseModel):
-    alias: str
+    alias: str | None
     config: dict[str, Any]
     datatype: str
     description: StaticTranslatableString
@@ -135,7 +136,7 @@ class StaticGraph(BaseModel):
     author: str
     cards: list[StaticCard]
     cards_x_nodes_x_widgets: list[StaticCardsXNodesXWidgets]
-    color: None | str
+    color: str | None
     config: dict[str, Any]
     deploymentdate: None | str
     deploymentfile: None | str
