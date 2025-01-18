@@ -1,3 +1,4 @@
+from __future__ import annotations
 import logging
 from uuid import uuid4
 from typing import Any
@@ -102,7 +103,7 @@ class StaticResourceWrapper(ResourceWrapper, proxy=True):
             if node_name not in string:
                 continue
             node_value = self._values.get(node_alias)
-            while isinstance(node_value, PseudoNodeList | list):
+            while isinstance(node_value, PseudoNodeList) or isinstance(node_value, list):
                 if node_value:
                     node_value = node_value[0]
                 else:

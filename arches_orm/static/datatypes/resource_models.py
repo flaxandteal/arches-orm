@@ -6,7 +6,7 @@ import json
 from urllib.parse import urlparse, urlunparse
 from uuid import UUID
 from pathlib import Path
-from typing import TypedDict, Any, Literal
+from typing import TypedDict, Any, Literal, Optional
 try:
     from typing import NotRequired
 except ImportError: # 3.9
@@ -21,7 +21,7 @@ _MODELS: dict[UUID, dict[str, Any]] = {}
 
 DEFAULT_LANGUAGE: str = "en"
 
-StaticTranslatableString = dict[str, str | None]
+StaticTranslatableString = dict[str, Optional[str]]
 
 def _(string: str | StaticTranslatableString):
     if isinstance(string, str):

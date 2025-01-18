@@ -1,3 +1,4 @@
+from __future__ import annotations
 from typing import Any, Generator
 import re
 import json
@@ -33,7 +34,7 @@ class StaticResource(BaseModel):
     resourceinstance: StaticResourceInstanceInfo
     tiles: list[StaticTile]
 
-class StaticStore(UserDict[str | UUID, StaticResource]):
+class StaticStore(UserDict[str, StaticResource]):
     _node_tile_index: dict[str, dict[tuple[str, str], str]]
 
     def __init__(self, *args, **kwargs):

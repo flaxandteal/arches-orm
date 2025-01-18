@@ -1,5 +1,8 @@
 *.egg-info
 /.env
+/.env*
 *.pyc
 /build
 /dist
+/.ipynb_checkpoints
+/.virtual_documents

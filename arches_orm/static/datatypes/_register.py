@@ -1,3 +1,4 @@
+from __future__ import annotations
 from functools import lru_cache
 from uuid import UUID
 from typing import Any
