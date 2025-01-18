@@ -250,15 +250,11 @@ class ResourceWrapper(ABC):
 
     def index(self):
         """Index the underlying resource."""
-        resource = self.to_resource(strict=True, _no_save=False)
-        resource.index()
-        return self
+        raise NotImplementedError()
 
     def save(self):
         """Rebuild and save the underlying resource."""
-        resource = self.to_resource(strict=True, _no_save=False)
-        self.id = resource.pk
-        return self
+        raise NotImplementedError()
 
     def describe(self):
         """Give a textual description of this well-known resource."""

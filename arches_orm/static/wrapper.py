@@ -1,14 +1,16 @@
 import logging
-from typing import Literal, Any
+from uuid import uuid4
+from typing import Any
 from collections import UserDict
 from functools import lru_cache
-from dataclasses import dataclass
+from arches_orm.errors import DescriptorsNotYetSet
 from threading import Event
 from arches_orm.wrapper import ResourceWrapper
 from arches_orm.pseudo_node.pseudo_nodes import PseudoNodeList, PseudoNodeValue, PseudoNodeUnavailable
+from arches_orm.view_models.resources import RelatedResourceInstanceViewModelMixin
 from .datatypes._register import get_view_model_for_datatype
 from .datatypes.resource_models import StaticNodeGroup, StaticNode, retrieve_graph
-from .datatypes.resource_instances import StaticTile, STATIC_STORE
+from .datatypes.resource_instances import StaticTile, STATIC_STORE, StaticResource, StaticResourceInstanceInfo, add_resource_instance
 
 
 logger = logging.getLogger(__name__)
@@ -133,12 +135,27 @@ class StaticResourceWrapper(ResourceWrapper, proxy=True):
             context = {
                 "language": lang
             }
-        if not self.resource or descriptor != "name":
-            raise NotImplementedError()
-        descriptor = self.resource.resourceinstance.name
-        if descriptor is None:
+        config = self._descriptor_config()
+        if config is None or not (config := config.get("descriptor_types", {}).get(descriptor)):
             raise DescriptorsNotYetSet()
-        return descriptor
+
+        nodes = {
+            f"<{node.name}>": node.alias for node in
+            self._node_objects().values()
+            if str(node.nodegroup_id) == str(config["nodegroup_id"])
+        }
+        string = config["string_template"]
+        for node_name, node_alias in nodes.items():
+            if node_name not in string:
+                continue
+            node_value = self._values.get(node_alias)
+            while isinstance(node_value, PseudoNodeList | list):
+                if node_value:
+                    node_value = node_value[0]
+                else:
+                    node_value = None
+            string = string.replace(node_name, "Undefined" if node_value is None else node_value.value)
+        return string
 
     @property
     def _name(self):
@@ -817,6 +834,22 @@ class StaticResourceWrapper(ResourceWrapper, proxy=True):
         return root_node
 
     @classmethod
+    @lru_cache
+    def _descriptor_config(cls):
+        graph = retrieve_graph(cls._wkrm.graphid)
+        functions = [
+            fn for fn in graph.functions_x_graphs
+            if str(fn.function_id) == "60000000-0000-0000-0000-000000000001"
+        ]
+        try:
+            descriptor_function = next(iter(functions))
+        except StopIteration:
+            return None
+
+        # TODO: we assume the standard function
+        return descriptor_function.config
+
+    @classmethod
     def _get_root_pseudo_node(cls):
         if (node := cls._root_node()):
             return cls._make_pseudo_node_cls(
@@ -851,6 +884,78 @@ class StaticResourceWrapper(ResourceWrapper, proxy=True):
         inst._.to_resource(_no_save=_no_save, _do_index=_do_index)
         return inst
 
+    def to_resource(
+        self,
+        verbose=False,
+        strict=False,
+        _no_save=False,
+        _known_new=False,
+        _do_index=True,
+        save_related_if_missing=True,
+    ):
+        resource_instance_info = StaticResourceInstanceInfo(
+            descriptors={},
+            graph_id=self.graphid,
+            graph_publication_id=None,
+            legacyid=None,
+            name=self.to_string(),
+            principaluser_id=None,
+            resourceinstanceid=self.id or uuid4(),
+            publication_id=None,
+        )
+        tiles = {}
+        permitted_nodegroups = self._permitted_nodegroups()
+        relationships, ghost_tiles = self._update_tiles(tiles, self._values, permitted_nodegroups=permitted_nodegroups)
+        for tile in ghost_tiles:
+            tile.delete()
+
+        # parented tiles are saved hierarchically
+        resource_tiles = []
+        for t in sum((ts for ts in tiles.values()), []):
+            if not t.tileid:
+                t.tileid = uuid4()
+            resource_tiles.append(t)
+        resource = StaticResource(resourceinstance=resource_instance_info, tiles=resource_tiles)
+
+        # errors = resource.validate(verbose=verbose, strict=strict)
+        # if len(errors):
+        #    raise RuntimeError(str(errors))
+
+        # FIXME: potential consequences for thread-safety
+        # This is required to avoid e.g. missing related models preventing
+        # saving (as we cannot import those via CSV on first step)
+        self._pending_relationships = []
+        self.id = resource_instance_info.resourceinstanceid
+        self.resource = resource
+
+        for tile_ix, nodegroup_id, nodeid, related in relationships:
+            value = tiles[nodegroup_id][tile_ix].data[nodeid]
+            if not related.id:
+                related.id = uuid4()
+            cross_resourcexid = uuid4()
+            cross_value = {
+                "resourceId": str(related.id),
+                "ontologyProperty": "",
+                "resourceXresourceId": cross_resourcexid,
+                "inverseOntologyProperty": "",
+            }
+            if isinstance(value, list):
+                if not any(
+                    (entry["resourceId"] == cross_value["resourceId"]) or
+                    (
+                        entry["resourceXresourceId"] is not None and
+                        entry["resourceXresourceId"] == cross_value["resourceXresourceId"]
+                    )
+                    for entry in value
+                ):
+                    value.append(cross_value)
+            else:
+                value.update(cross_value)
+
+        self.resource = resource
+
+        return resource
+
     @classmethod
     def create_bulk(cls, fields: list, do_index: bool = True):
         requested_wkrms = []
@@ -870,3 +975,16 @@ class StaticResourceWrapper(ResourceWrapper, proxy=True):
         from arches_orm import adapter
 
         return adapter.get_adapter(key="static")
+
+    def index(self):
+        """Index the underlying resource."""
+        self.to_resource(strict=True, _no_save=False)
+        add_resource_instance(self.resource, load_data_to_index=True)
+        return self
+
+    def save(self):
+        """Rebuild and save the underlying resource."""
+        self.to_resource(strict=True, _no_save=False)
+        self.id = self.resource.resourceinstance.resourceinstanceid
+        return self
+
