@@ -89,6 +89,7 @@ arches = [
     "arches",
 ]
 test = [
+    "jsondiff",
     "pytest",
     "httpx",
     "ruff",

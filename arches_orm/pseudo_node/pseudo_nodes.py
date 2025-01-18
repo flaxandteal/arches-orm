@@ -1,6 +1,10 @@
 from collections import UserList
+from uuid import UUID
+
+from typing import Any
 
 from arches_orm.view_models import ViewModel, NodeListViewModel, UnavailableViewModel, ResourceInstanceViewModel
+from arches_orm.view_models.resources import RelatedResourceInstanceViewModelMixin
 
 
 class PseudoNodeList(UserList):
@@ -315,3 +319,73 @@ class PseudoNodeUnavailable:
 
     def get_children(self, direct=None):
         return []
+
+def update_tiles(
+    resource_id: UUID | str, tiles, all_values=None, nodegroup_id=None, root=None, parent=None, permitted_nodegroups: None | list[str]=None
+) -> tuple[list[tuple[int, ...]], set[Any]]:
+    if not root:
+        if not all_values:
+            return [], set()
+        root = [
+            nodelist[0]
+            for nodelist in all_values.values()
+            if nodelist[0].node.nodegroup_id is None
+        ][0]
+
+    combined_tiles = []
+    relationships = []
+    ghost_tiles = set()
+    if not isinstance(root, PseudoNodeList):
+        parent = root
+    for pseudo_node in root.get_children():
+        if isinstance(pseudo_node.value, RelatedResourceInstanceViewModelMixin):
+            # Do not cross between resources. The relationship should
+            # be captured. The canonical example of this is a semantic node that
+            # gives us a related resource instance.
+            t, r = pseudo_node.get_tile()
+            combined_tiles.append((t, r))
+            continue
+        if isinstance(pseudo_node, PseudoNodeList) or pseudo_node.accessed:
+            if len(pseudo_node):
+                subrelationships, subghost_tiles = update_tiles(
+                    resource_id, tiles, root=pseudo_node, parent=parent, permitted_nodegroups=permitted_nodegroups
+                )
+                relationships += subrelationships
+                ghost_tiles |= subghost_tiles
+            if isinstance(pseudo_node, PseudoNodeList):
+                # Only hold ghost tiles that have been saved.
+                ghost_tiles = {
+                    tile for ghost in pseudo_node.free_ghost_children()
+                    if (tile := ghost.get_tile()[0]) and tile.pk and not tile._state.adding
+                }
+            else:
+                t, r = pseudo_node.get_tile()
+                if t is not None and permitted_nodegroups is not None and (t.nodegroup_id is None or str(t.nodegroup_id) not in permitted_nodegroups):
+                    # Warn if we can
+                    if pseudo_node._original_tile and hasattr(pseudo_node._original_tile, "_original_data"):
+                        if t.data == pseudo_node._original_tile._original_data:
+                            continue
+                    raise RuntimeError(f"Attempt to modify data that this user does not have permissions to: {t.nodegroup_id} in {resource_id}")
+                else:
+                    combined_tiles.append((t, r))
+        # This avoids loading a tile as a set of view models, simply to re-save it.
+        elif not isinstance(pseudo_node, PseudoNodeList) and pseudo_node._original_tile:
+            # TODO: NOTE THAT THIS DOES NOT CAPTURE RELATIONSHIPS THAT HAVE NOT BEEN ACCESSED
+            combined_tiles.append((
+                pseudo_node._original_tile,
+                []
+            ))
+
+    for tile, subrelationships in combined_tiles:
+        if tile:
+            if parent and parent.tile != tile and parent.node.nodegroup_id:
+                tile.parenttile = parent.tile
+            nodegroup_id = str(tile.nodegroup_id)
+            tiles.setdefault(nodegroup_id, [])
+            relationships += [
+                (len(tiles[nodegroup_id]), *relationship)
+                for relationship in subrelationships
+            ]
+            tiles[nodegroup_id].append(tile)
+    return relationships, ghost_tiles
+

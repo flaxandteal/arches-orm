@@ -96,4 +96,10 @@ def scan_resource_path(resource_root: Path, load_data_to_index: bool=True) -> No
             if load_data_to_index:
                 STATIC_STORE.add_to_node_tile_index(resource_json)
 
+def add_resource_instance(resource_instance: StaticResource, load_data_to_index: bool=True) -> None:
+    resource_json = resource_instance.model_dump(by_alias=True)
+    STATIC_STORE.add_to_node_tile_index(resource_json)
+    if load_data_to_index:
+        STATIC_STORE.add_to_node_tile_index(resource_json)
+
 STATIC_STORE = StaticStore()
