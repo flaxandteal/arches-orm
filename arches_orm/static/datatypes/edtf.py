@@ -18,7 +18,7 @@ def edtf(tile, node, value: str | Date | None, _, __, ___, edtf_datatype):
 
     if not tile or (data := tile.data[node.nodeid]) is None:
         return None
-    return ExtendedDateViewModel(data, **node.config)
+    return ExtendedDateViewModel("1974-08-06 00:00:00", **node.config)
 
 
 @edtf.as_tile_data
