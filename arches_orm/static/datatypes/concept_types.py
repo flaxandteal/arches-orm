@@ -53,6 +53,15 @@ def concept_value(tile, node, value: uuid.UUID | str | None | CollectionEnum | C
                 f"Tried to assign value from collection {value._collection_id} to node for collection {collection_id}"
             )
         return value
+    if not isinstance(value, uuid.UUID):
+        try:
+            value = uuid.UUID(value)
+        except ValueError:
+            if collection_id:
+                collection = retrieve_collection(collection_id)
+                return collection._member_map_[value].value
+            else:
+                raise
     return make_concept_value(value if isinstance(value, uuid.UUID) else uuid.UUID(value) if value else None, collection_id, datatype)
 
 def make_concept_value(value: uuid.UUID | None, collection_id: uuid.UUID | None, datatype) -> ConceptValueViewModel | EmptyConceptValueViewModel | None:
