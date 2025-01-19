@@ -277,6 +277,8 @@ def test_can_save_with_concept(arches_orm):
     assert resource_json["tiles"][0]["data"] == {
         "7cb692b2-7072-11ee-bb7a-0242ac140008": ["e3a6493e-5df4-4ad4-a699-ade7ccf01917"]
     }
+    permission.action = ["Reading"]
+    group.save()
 
 @context_free
 def test_can_make_consistent_uuids(arches_orm):
