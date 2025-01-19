@@ -56,7 +56,7 @@ def concept_value(tile, node, value: uuid.UUID | str | None | CollectionEnum | C
     if not isinstance(value, uuid.UUID):
         try:
             value = uuid.UUID(value)
-        except ValueError:
+        except (ValueError, TypeError):
             if collection_id:
                 collection = retrieve_collection(collection_id)
                 return collection._member_map_[value].value
