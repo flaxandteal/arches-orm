@@ -209,6 +209,9 @@ class PseudoNodeValue:
         if not self.tile:
             if not self.node:
                 raise RuntimeError("Empty tile")
+            # NB: You may see issues where the nodegroup is null because it is the root node,
+            # and a node below is not marked as a collector, so tries to fill its tile in
+            # A cardinality n node below the root should be a collector.
             self.tile = self._TileProxyModel(
                 nodegroup_id=self.node.nodegroup_id, tileid=None, data={}, sortorder=self.node.sortorder
             )

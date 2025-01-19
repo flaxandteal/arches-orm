@@ -68,6 +68,7 @@ dependencies = [
     "rdflib",
     "pydantic",
     "eval_type_backport",
+    "edtf",
 ]
 
 [tool.hatch.metadata]
