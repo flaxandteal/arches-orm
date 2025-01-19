@@ -53,7 +53,7 @@ def concept_value(tile, node, value: uuid.UUID | str | None | CollectionEnum | C
                 f"Tried to assign value from collection {value._collection_id} to node for collection {collection_id}"
             )
         return value
-    if not isinstance(value, uuid.UUID):
+    if value and not isinstance(value, uuid.UUID):
         try:
             value = uuid.UUID(value)
         except (ValueError, TypeError):
