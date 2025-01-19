@@ -175,8 +175,11 @@ def load_concept_path(concept_root: Path) -> None:
                 for predicate, object in graph.predicate_objects(subject=s):
                     if predicate == DCTERMS.identifier and hasattr(object, "value"):
                         if "id" not in attributes:
-                            concept_id = UUID(json.loads(object.value)["value"].split("/", -1)[-1])
-                            attributes["id"] = concept_id
+                            concept_id = json.loads(object.value)["value"].split("/", -1)[-1]
+                            try:
+                                attributes["id"] = UUID(concept_id)
+                            except (ValueError, TypeError):
+                                pass
                         attributes["identifier"] = object.value
                     elif predicate in (SKOS.related, SKOS.narrower):
                         related_cls: type[StaticRelationship]
