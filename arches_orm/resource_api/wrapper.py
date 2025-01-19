@@ -423,6 +423,9 @@ class ResourceAPIResourceWrapper(ResourceWrapper, proxy=True):
         return fields
 
     @classmethod
+    def build_flat(cls, **kwargs):
+
+    @classmethod
     @lru_cache
     def get_fields(cls, include_root=False):
         cls._build_nodes()

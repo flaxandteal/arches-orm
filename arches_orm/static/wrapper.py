@@ -427,8 +427,17 @@ class StaticResourceWrapper(ResourceWrapper, proxy=True):
         cls._edges_real.update(edges)
 
     @classmethod
+    @lru_cache
     def all_fields(cls):
-        root_fields = cls.get_fields()
+        pseudo_node = cls._get_root_pseudo_node()
+        return cls._get_fields(pseudo_node)
+
+    def get_fields(self):
+        return self._get_fields(self.get_root())
+
+    @classmethod
+    def _get_fields(cls, root):
+        root_fields = cls.get_model_fields(root)
         fields = {}
         def _add_children(children):
             for name, child in children.items():
@@ -441,8 +450,7 @@ class StaticResourceWrapper(ResourceWrapper, proxy=True):
         return fields
 
     @classmethod
-    @lru_cache
-    def get_fields(cls, include_root=False):
+    def get_model_fields(cls, root, include_root=False):
         cls._build_nodes()
         def _fill_fields(pseudo_node):
             typ, multiple = pseudo_node.get_type()
@@ -465,8 +473,7 @@ class StaticResourceWrapper(ResourceWrapper, proxy=True):
             return fields
 
         root_fields = {}
-        pseudo_node = cls._get_root_pseudo_node()
-        root_fields.update(_fill_fields(pseudo_node))
+        root_fields.update(_fill_fields(root))
         fields: dict[str, Any] = {}
         if not cls._remap_total or not cls._remap:
             root_fields.setdefault("children", fields)
@@ -587,6 +594,50 @@ class StaticResourceWrapper(ResourceWrapper, proxy=True):
                 )
             implied_nodegroups -= seen_nodegroups
 
+        return all_values
+
+    @classmethod
+    def values_from_dict(
+        cls,
+        wkri,
+        node_objs,
+        nodegroup_objs,
+        edges,
+        values: dict[str, Any],
+        related_prefetch=None,
+        lazy=False,
+    ):
+        """Populate fields from the ID-referenced Arches resource."""
+
+        all_values = {
+            node_objs[ng].alias: False
+            for ng, nodegroup in nodegroup_objs.items()
+        }
+
+        fields = wkri._.get_fields()
+        tiles = {}
+        for field, value in values.items():
+            node = fields[field]["node"]
+            node.value = value
+            node.get_tile()
+            tiles[node.tile.nodegroup_id] = node.tile
+        tiles = list(tiles.values())
+
+        if not lazy:
+            for ng, nodegroup in nodegroup_objs.items():
+                all_values.update(
+                    cls._ensure_nodegroup(
+                        all_values,
+                        ng,
+                        node_objs,
+                        nodegroup_objs,
+                        edges,
+                        resource=None,
+                        related_prefetch=related_prefetch,
+                        wkri=wkri,
+                        tiles=tiles
+                    )
+                )
         return all_values
 
     @classmethod
@@ -722,6 +773,33 @@ class StaticResourceWrapper(ResourceWrapper, proxy=True):
                 continue
             resources.add(resource_id)
             yield cls.from_static_resource(STATIC_STORE[resource_id], cross_record=cross_record, lazy=lazy)
+
+    @classmethod
+    def from_dict(cls, values: dict[str, Any], cross_record=None, related_prefetch=None, lazy=False):
+        """Build a well-known resource from an Arches resource."""
+
+        node_objs = cls._node_objects()
+        wkri = cls.view_model(
+            cross_record=cross_record,
+            related_prefetch=related_prefetch,
+        )
+        nodegroup_objs = cls._nodegroup_objects()
+        edges = cls._edges()
+        values = cls.values_from_dict(
+            wkri,
+            node_objs,
+            nodegroup_objs,
+            edges,
+            values,
+            related_prefetch=related_prefetch,
+            lazy=lazy,
+        )
+        wkri._values = ValueList(
+            values,
+            wkri._,
+            related_prefetch=related_prefetch
+        )
+        return wkri
 
     @classmethod
     def from_static_resource(cls, resource, cross_record=None, related_prefetch=None, lazy=False):
@@ -928,6 +1006,8 @@ class StaticResourceWrapper(ResourceWrapper, proxy=True):
         # saving (as we cannot import those via CSV on first step)
         self._pending_relationships = []
         self.id = resource_instance_info.resourceinstanceid
+        for tile in resource_tiles:
+            tile.resourceinstance_id = self.id
         self.resource = resource
 
         for tile_ix, nodegroup_id, nodeid, related in relationships:

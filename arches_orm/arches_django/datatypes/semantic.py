@@ -31,7 +31,7 @@ def get_child_values(svm, target_key: str | None = None, parent = None, child_ke
     from arches_orm.arches_django.pseudo_nodes import PseudoNodeList
 
     if not parent:
-        return {}
+        return None if target_key is not None else {}
     for key in child_keys:
         parent._._values._get(key)
     children = {}
