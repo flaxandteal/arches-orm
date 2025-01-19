@@ -47,7 +47,7 @@ def concept_value(tile, node, value: uuid.UUID | str | None | CollectionEnum | C
         collection_id = uuid.UUID(node.config.get("rdmCollection"))
     if isinstance(value, CollectionEnum):
         value = value.value
-    if isinstance(value, ConceptValueViewModel | EmptyConceptValueViewModel):
+    if isinstance(value, ConceptValueViewModel) or isinstance(value, EmptyConceptValueViewModel):
         if value._collection_id != collection_id:
             raise RuntimeError(
                 f"Tried to assign value from collection {value._collection_id} to node for collection {collection_id}"
