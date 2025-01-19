@@ -156,7 +156,10 @@ def load_concept_path(concept_root: Path) -> None:
                 for predicate, object in graph.predicate_objects(subject=s):
                     if predicate == DCTERMS.identifier and hasattr(object, "value"):
                         concept_id = json.loads(object.value)["value"].split("/", -1)[-1]
-                        attributes["id"] = UUID(concept_id)
+                        try:
+                            attributes["id"] = UUID(concept_id)
+                        except (ValueError, TypeError):
+                            pass
                     elif predicate == SKOS.prefLabel and hasattr(object, "value"):
                         value_dict = json.loads(object.value)
                         value = StaticValue(

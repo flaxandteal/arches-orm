@@ -6,7 +6,9 @@ from arches_orm.adapter import get_adapter
 
 get_adapter("static").config.update({
     "concept_paths": [
-        Path(__file__).parent.parent / "arches_django" / "_django"
+        Path(__file__).parent.parent.parent.parent / "coral-arches" / "coral" / "pkg" / "reference_data" / "concepts",
+        Path(__file__).parent.parent.parent.parent / "coral-arches" / "coral" / "pkg" / "reference_data" / "collections"
+        # Path(__file__).parent.parent / "arches_django" / "_django"
     ],
     "model_paths": [
         Path(__file__).parent / "_models"
