@@ -161,3 +161,15 @@ def test_can_use_edtf(arches_orm):
     tiles[0]["nodegroup_id"] = "a2e1623c-01ee-4ab1-a2c7-cc9f623d624f"
     reference_dict["business_data"]["resources"][0]["tiles"] = tiles
     _compare_exported_json(resource_json, reference_dict)
+
+@context_free
+def test_can_make_consistent_uuids(arches_orm):
+    from arches_orm.models import Group
+    def _cb(resource):
+        return f"{resource._._name}-{'/'.join(map(str, resource.date_of_publication))}"
+    Group.set_unique_identifier_cb(_cb)
+
+    group = Group._.from_dict({"name": "My Group", "date_of_publication": ["2024-01-01"]})
+    group.save()
+    resource_json = json.loads(group._.resource.model_dump_json())
+    assert resource_json["resourceinstance"]["resourceinstanceid"] == "d181337f-8efa-4de4-1c7c-91592010a44d"

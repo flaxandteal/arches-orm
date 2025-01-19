@@ -22,7 +22,7 @@ class StaticResourceInstanceInfo(BaseModel):
 
 StaticProvisionalEdit = Any
 class StaticTile(BaseModel):
-    data: dict[UUID, dict[str, Any] | list[Any] | None]
+    data: dict[UUID, dict[str, Any] | list[Any] | str | None]
     nodegroup_id: UUID
     resourceinstance_id: UUID
     tileid: UUID
