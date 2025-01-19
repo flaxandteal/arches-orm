@@ -29,6 +29,7 @@ dependencies = [
     "rdflib",
     "pydantic",
     "eval_type_backport",
+    "edtf",
 ]
 
 [project.optional-dependencies]

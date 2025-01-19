@@ -631,6 +631,15 @@
             "edges": [
                 {
                     "description": null,
+                    "domainnode_id": "07882b8c-b25c-11e9-a3e2-a4d18cec433a",
+                    "edgeid": "6bf90589-37bf-4cc0-966f-6aa9466870c5",
+                    "graph_id": "07883c9e-b25c-11e9-975a-a4d18cec433a",
+                    "name": null,
+                    "ontologyproperty": "http://www.cidoc-crm.org/cidoc-crm/P3_has_note",
+                    "rangenode_id": "a2e1623c-01ee-4ab1-a2c7-cc9f623d624f"
+                },
+                {
+                    "description": null,
                     "domainnode_id": "12707705-c05e-11e9-8177-a4d18cec433a",
                     "edgeid": "1270b8f5-c05e-11e9-ad47-a4d18cec433a",
                     "graph_id": "07883c9e-b25c-11e9-975a-a4d18cec433a",
@@ -856,6 +865,12 @@
                     "cardinality": "n",
                     "legacygroupid": null,
                     "nodegroupid": "12707705-c05e-11e9-8177-a4d18cec433a",
+                    "parentnodegroup_id": null
+                },
+                {
+                    "cardinality": "n",
+                    "legacygroupid": null,
+                    "nodegroupid": "a2e1623c-01ee-4ab1-a2c7-cc9f623d624f",
                     "parentnodegroup_id": null
                 },
                 {
@@ -1476,6 +1491,34 @@
                     "parentproperty": "http://www.cidoc-crm.org/cidoc-crm/P107_has_current_or_former_member",
                     "sortorder": 0,
                     "sourcebranchpublication_id": null
+                },
+                {
+                    "alias": "date_of_publication",
+                    "config": {
+                        "fuzzy_day_padding": 1,
+                        "fuzzy_month_padding": 1,
+                        "fuzzy_season_padding": 12,
+                        "fuzzy_year_padding": 1,
+                        "multiplier_if_approximate": 1,
+                        "multiplier_if_both": 1,
+                        "multiplier_if_uncertain": 1
+                    },
+                    "datatype": "edtf",
+                    "description": "Represents a single node in a graph",
+                    "exportable": true,
+                    "fieldname": "Publ_Date",
+                    "graph_id": "07883c9e-b25c-11e9-975a-a4d18cec433a",
+                    "hascustomalias": false,
+                    "is_collector": true,
+                    "isrequired": false,
+                    "issearchable": true,
+                    "istopnode": false,
+                    "name": "Date of Publication",
+                    "nodegroup_id": "a2e1623c-01ee-4ab1-a2c7-cc9f623d624f",
+                    "nodeid": "a2e1623c-01ee-4ab1-a2c7-cc9f623d624f",
+                    "ontologyclass": "http://www.cidoc-crm.org/cidoc-crm/E61_Time_Primitive",
+                    "parentproperty": "http://www.cidoc-crm.org/cidoc-crm/P82_at_some_time_within",
+                    "sortorder": 0
                 },
                 {
                     "alias": "source",
