@@ -1,3 +1,4 @@
+from __future__ import annotations
 import logging
 
 from dataclasses import dataclass
@@ -12,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class DjangoGroupViewModel(GroupViewModelMixin):
-    pk: int
+    pk: int | None = None
 
     def __bool__(self):
         # We have to do this as we do not have a concept of an empty node

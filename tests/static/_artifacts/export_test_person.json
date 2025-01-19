@@ -26,7 +26,8 @@
             "tileid": "<UUID:2>",
             "parenttile_id": null,
             "provisionaledits": null,
-            "sortorder": null
+            "resourceinstance_id": "<UUID:1>",
+            "sortorder": 0
           }
         ]
       }

@@ -210,7 +210,7 @@ class PseudoNodeValue:
             if not self.node:
                 raise RuntimeError("Empty tile")
             self.tile = self._TileProxyModel(
-                nodegroup_id=self.node.nodegroup_id, tileid=None, data={}
+                nodegroup_id=self.node.nodegroup_id, tileid=None, data={}, sortorder=self.node.sortorder
             )
             self.relationships = []
         if not self._value_loaded:
