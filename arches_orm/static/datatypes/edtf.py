@@ -8,7 +8,6 @@ from ._register import REGISTER
 
 @REGISTER("edtf")
 def edtf(tile, node, value: str | Date | None, _, __, ___, edtf_datatype):
-    print("EDTF", value, tile)
     if tile:
         tile.data.setdefault(node.nodeid, None)
         if value is not None:
