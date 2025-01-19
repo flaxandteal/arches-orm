@@ -568,13 +568,15 @@ class StaticResourceWrapper(ResourceWrapper, proxy=True):
         }
 
         fields = wkri._.get_fields()
-        tiles = {}
+        tiles = []
         for field, value in values.items():
             node = fields[field]["node"]
             node.value = value
             node.get_tile()
-            tiles[node.tile.nodegroup_id] = node.tile
-        tiles = list(tiles.values())
+            if isinstance(node, PseudoNodeList):
+                tiles += [n.tile for n in node]
+            else:
+                tiles.append(node.tile)
 
         if not lazy:
             for ng, nodegroup in nodegroup_objs.items():
