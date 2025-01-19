@@ -1,7 +1,7 @@
 from __future__ import annotations
 import logging
 from uuid import uuid4
-from typing import Any
+from typing import Any, Callable
 from collections import UserDict
 from functools import lru_cache
 from arches_orm.errors import DescriptorsNotYetSet
@@ -11,6 +11,7 @@ from arches_orm.wrapper import ResourceWrapper
 from arches_orm.pseudo_node.pseudo_nodes import PseudoNodeList, PseudoNodeValue, PseudoNodeUnavailable
 from arches_orm.pseudo_node.value_list import ValueList
 from arches_orm.view_models.resources import RelatedResourceInstanceViewModelMixin
+from arches_orm.utils import consistent_uuid as cuuid
 from .datatypes._register import get_view_model_for_datatype
 from .datatypes.resource_models import StaticNodeGroup, StaticNode, retrieve_graph
 from .datatypes.resource_instances import StaticTile, STATIC_STORE, StaticResource, StaticResourceInstanceInfo, add_resource_instance
@@ -30,6 +31,7 @@ class StaticResourceWrapper(ResourceWrapper, proxy=True):
     _nodes_real: dict = None
     _edges_real: dict = None
     _nodegroup_objects_real: dict = None
+    _unique_identifier_cb = None
 
     @classmethod
     def search(cls, text, fields=None, _total=None) -> tuple[list[int], int]:
@@ -935,7 +937,7 @@ class StaticResourceWrapper(ResourceWrapper, proxy=True):
             legacyid=None,
             name=self.to_string(),
             principaluser_id=None,
-            resourceinstanceid=self.id or uuid4(),
+            resourceinstanceid=self.id or self._make_new_resource_instance_id(),
             publication_id=None,
         )
         tiles = {}
@@ -968,7 +970,7 @@ class StaticResourceWrapper(ResourceWrapper, proxy=True):
         for tile_ix, nodegroup_id, nodeid, related in relationships:
             value = tiles[nodegroup_id][tile_ix].data[nodeid]
             if not related.id:
-                related.id = uuid4()
+                related.id = related._make_new_resource_instance_id()
             cross_resourcexid = uuid4()
             cross_value = {
                 "resourceId": str(related.id),
@@ -1025,3 +1027,13 @@ class StaticResourceWrapper(ResourceWrapper, proxy=True):
         self.id = self.resource.resourceinstance.resourceinstanceid
         return self
 
+    @classmethod
+    def set_unique_identifier_cb(cls, cb: Callable[[ResourceWrapper], str | None]):
+        cls._unique_identifier_cb = cb
+
+    def _make_new_resource_instance_id(self):
+        if self._unique_identifier_cb:
+            key = self.__class__._unique_identifier_cb(self.view_model_inst)
+            if key is not None:
+                return cuuid(f"{self.graphid}:{key}")
+        return uuid4()
