@@ -163,6 +163,19 @@ def test_can_use_edtf(arches_orm):
     _compare_exported_json(resource_json, reference_dict)
 
 @context_free
+def test_can_save_with_concept(arches_orm):
+    from arches_orm.models import Group
+    group = Group.create()
+    permission = group.permissions.append()
+    ActionEnum = permission.action.__collection__
+    permission.action = [ActionEnum.Reading]
+    group.save()
+    resource_json = json.loads(group._.resource.model_dump_json())
+    assert resource_json["tiles"][0]["data"] == {
+        "7cb692b2-7072-11ee-bb7a-0242ac140008": ["e3a6493e-5df4-4ad4-a699-ade7ccf01917"]
+    }
+
+@context_free
 def test_can_make_consistent_uuids(arches_orm):
     from arches_orm.models import Group
     def _cb(resource):

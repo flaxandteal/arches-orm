@@ -132,6 +132,8 @@ def load_concept_path(concept_root: Path) -> None:
             graph.parse(data=xml.read(), format="application/rdf+xml")
         for scheme, v, o in graph.triples((None, RDF.type, SKOS.ConceptScheme)):
             top_attributes = StaticConceptDict(children=[], values={}, source=concept_root)
+            top_attributes["id"] = UUID(str(scheme).split("/", -1)[-1])
+
             for predicate, object in graph.predicate_objects(subject=scheme):
                 if predicate == SKOS.hasTopConcept:
                     top_concepts.append(UUID(str(object).split("/", -1)[-1]))
@@ -150,6 +152,7 @@ def load_concept_path(concept_root: Path) -> None:
             _CONCEPTS[top_attributes["id"]] = static_concept
             for s, v, o in graph.triples((None, SKOS.inScheme, scheme)):
                 attributes = StaticConceptDict(children=[], values={}, source=None)
+                attributes["id"] = UUID(str(s).split("/", -1)[-1])
                 for predicate, object in graph.predicate_objects(subject=s):
                     if predicate == DCTERMS.identifier and hasattr(object, "value"):
                         concept_id = json.loads(object.value)["value"].split("/", -1)[-1]
