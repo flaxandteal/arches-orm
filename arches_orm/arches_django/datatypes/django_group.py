@@ -20,7 +20,7 @@ class DjangoGroupViewModel(Group, GroupViewModelMixin):
         # We have to do this as we do not have a concept of an empty node
         return bool(self.pk)
 
-class MissingDjangoGroupViewModel(Group, GroupViewModelMixin):
+class MissingDjangoGroupViewModel(DjangoGroupViewModel):
     ...
 
 @REGISTER("django-group")
