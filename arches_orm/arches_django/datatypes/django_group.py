@@ -21,7 +21,10 @@ class DjangoGroupViewModel(Group, GroupViewModelMixin):
         return bool(self.pk)
 
 class MissingDjangoGroupViewModel(DjangoGroupViewModel):
-    ...
+    class Meta:
+        proxy = True
+        app_label = "arches-orm"
+        db_table = Group.objects.model._meta.db_table
 
 @REGISTER("django-group")
 def django_group(tile, node, value, _, __, ___, group) -> GroupProtocol:
