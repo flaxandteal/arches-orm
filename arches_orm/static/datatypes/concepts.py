@@ -295,9 +295,16 @@ def build_collection(collection_id: UUID | str, include: list[UUID] | None=None,
             raise RuntimeError(f"Asked to remove concepts from {collection_id} that are not present")
         concepts = [c for c in concepts if c not in exclude]
     if include:
-        if set(include) & set(concepts):
-            raise RuntimeError(f"Asked to insert concepts from {collection_id} that are already present")
-        concepts += include
+        for new_concept in include:
+            existing_concept = next((c for c in concepts if c['id'] == new_concept['id']))
+            if existing_concept:
+                if new_concept["children"]:
+                    new_children = set(new_concept.get("children", []))
+                    existing_concept["children"] += new_children
+                else:
+                    raise RuntimeError(f"Asked to insert concepts from {collection_id} that are already present")
+            else:
+                concepts += new_concept
 
     return make_collection(
         collection.title.value,
