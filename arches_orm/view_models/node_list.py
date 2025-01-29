@@ -32,8 +32,8 @@ class NodeListViewModel(UserList, ViewModel):
     def remove(self, item):
         self.nodelist.remove(item)
 
-    def pop(self):
-        item = self.nodelist.pop()
+    def pop(self, i=-1):
+        item = self.nodelist.pop(i)
         return item.value
 
     def insert(self, i, item):

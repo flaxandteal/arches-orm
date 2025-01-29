@@ -1,3 +1,4 @@
+from django.core.exceptions import ImproperlyConfigured
 from arches.settings import * # noqa: F403
 from arches.settings import DATATYPE_LOCATIONS
 
@@ -28,6 +29,7 @@ WELL_KNOWN_RESOURCE_MODELS = [
             "nodegroupid": "b1f5c336-6a0e-11ee-b748-0242ac140009",
             "nodeid": "b1f5c336-6a0e-11ee-b748-0242ac140009",
         },
+        remapping={"generated_smr": "generated_smr"}
     ),
     dict(
         model_name="Activity",

@@ -1,3 +1,5 @@
+import logging
+
 class ViewModel:
     _parent_pseudo_node = None
 
@@ -5,7 +7,29 @@ class ResourceModelViewModel(type, ViewModel):
     """Wraps a resource model."""
 
     def __getattr__(self, key):
-        return getattr(self._, key)
+        if key == "__fields__":
+            return self._.all_fields()
+
+        if key in (
+                "save",
+                "create",
+                "find",
+                "all",
+                "first",
+                "where",
+                "search",
+                "delete",
+                "create_bulk",
+                "reload"
+            ):
+            return getattr(self._, key)
+        else:
+            # TODO: return getattr(self._._get_root_pseudo_node().value, key)
+            return getattr(self._, key)
+
+    def __repr__(self):
+        """Convert to representation string."""
+        return self._.to_repr_cls()
 
     def __setattr__(self, key, value):
         raise NotImplementedError()
@@ -37,7 +61,17 @@ class ResourceInstanceViewModel(ViewModel, metaclass=ResourceModelViewModel):
 
     def __str__(self):
         """Convert to string."""
-        return self._.to_string()
+        string: str
+        try:
+            string = self._.to_string()
+        except Exception as exc:
+            logging.error(str(exc))
+            string = repr(self)
+        return string
+
+    def __repr__(self):
+        """Convert to representation string."""
+        return self._.to_repr()
 
     def __getitem__(self, key):
         return self.__getattr__(key)
@@ -69,4 +103,6 @@ class ResourceInstanceViewModel(ViewModel, metaclass=ResourceModelViewModel):
         super().__setattr__("__class__", cls)
 
 class UnavailableViewModel(ViewModel):
-    ...
+    def __str__(self):
+        """Convert to string."""
+        return "(unavailable)"

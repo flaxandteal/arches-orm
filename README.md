@@ -4,6 +4,49 @@ This provides simple (server-side) access to Arches resources from Python
 as Python objects. It makes no guarantees about efficiency or type-accuracy
 but such issues raised will be addressed as far as possible.
 
+## Installation
+
+Basic installation can then happen as follows, _without_ Arches backend support:
+
+```
+pip install .
+```
+
+To run tests, make sure you have `libsqlite3-mod-spatialite`, or your distribution's equivalent
+package for enabling Spatialite in Python. Instead of using a real Arches PostgreSQL database, we spin
+a fresh test database up in memory.
+
+**WARNING:** The mock DB behaviour for Python testing is not identical to a
+real Arches database, but is adequately close for now, is fast and has no server dependency.
+
+There are several sets of optional dependencies.
+
+### GraphQL
+
+Turns Arches ORM into an API server for Arches.
+
+```
+pip install .[graphql]
+```
+
+### Arches
+
+Allows Arches ORM to directly manipulate the Arches database. Note that this is only
+necessary if you do not already have Arches installed in the current environment.
+
+```
+pip install .[arches]
+```
+
+### Test
+
+Runs tests across the various backends.
+
+```
+pip install .[tests]
+python -m pytest
+```
+
 ## Well-known Resource Models
 
 To provide a partial boundary, this package expects a settings object called
@@ -39,11 +82,7 @@ extension loading:
 
 ## Documentation
 
-Documentation is generated using [pdocs](https://github.com/timothycrosley/pdocs) but,
-as the `arches_django` subpackage expects a running Arches instance to be importable
-(a side-effect of Django), we add an initialization routine.
-
-    python docs/make_doc.py
+Documentation is available on [https://flaxandteal.github.io/arches-orm/](https://flaxandteal.github.io/arches-orm/).
 
 ## Thanks
 

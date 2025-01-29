@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 from typing import Any
 import uuid
@@ -30,6 +32,7 @@ class ResourceWrapper(ABC):
     _pending_relationships: list | None = None
     _related_prefetch: Callable | None = None
     _remap: bool = True
+    _remap_total: bool = False
     _model_remapping: dict
     _name: str | None = None
     _description: str | None = None
@@ -59,7 +62,7 @@ class ResourceWrapper(ABC):
             "_values_list",
             "resource",
             "_root_node",
-            "_context",
+            "_adapter",
             "_name",
             "_description",
             "_cross_record",
@@ -75,7 +78,9 @@ class ResourceWrapper(ABC):
                     real_key = self._model_remapping[key].replace("*", ".")
                     if "." in real_key:
                         to_get, to_set = real_key.split(".", -1)
-                    got = self._get_remap(to_get)
+                        got = self._get_remap(to_get)
+                    else:
+                        got = self.get_root()
                     if isinstance(got, UserList):
                         if len(got) == 0:
                             got = got.append()
@@ -84,10 +89,14 @@ class ResourceWrapper(ABC):
                         else:
                             raise RuntimeError("Cannot set single value when multiplicity present")
                     setattr(got, to_set, value)
-                else:
+                elif self._remap_total:
                     raise AttributeError("Field not available in remapped model")
+                else:
+                    setattr(self.get_root().value, key, value)
+            elif (root := self.get_root()):
+                setattr(root.value, key, value)
             else:
-                setattr(self.get_root().value, key, value)
+                raise RuntimeError(f"Tried to set {key} on {self}, which has no root")
 
     def _get_remap(self, real_key: str):
         if real_key is None:
@@ -126,11 +135,15 @@ class ResourceWrapper(ABC):
         """Retrieve Python values for nodes attributes."""
 
         if self._remap and self._model_remapping is not None:
-            if key not in self._model_remapping:
+            if key in self._model_remapping:
+                real_key = self._model_remapping[key]
+                return self._get_remap(real_key)
+            elif self._remap_total:
                 raise AttributeError("Field not available in remapped model")
-            real_key = self._model_remapping[key]
-            return self._get_remap(real_key)
-        val = getattr(self.get_root().value, key)
+        if (root := self.get_root()):
+            val = getattr(root.value, key)
+        else:
+            raise RuntimeError(f"Tried to get {key} on {self}, which has no root")
         return val
 
     def __init__(
@@ -250,11 +263,23 @@ class ResourceWrapper(ABC):
                     table.append([key, "", "(empty)"])
         return description + tabulate(table)
 
+    def __repr__(self):
+        return f"{self.to_repr()}._"
+
+    def to_repr(self):
+        """Convert to string."""
+        return f"<AOR:{str(self.get_adapter())} {self._model_name} {self.id}>"
+
+    @classmethod
+    def to_repr_cls(self):
+        """Convert to string."""
+        return f"<AORM:{str(self.get_adapter())} {self._model_name}>"
+
     def to_string(self):
         """Convert to string."""
         return str(self._wkrm.to_string(self))
 
-    def __init_subclass__(cls, well_known_resource_model=None, proxy=None, context=None):
+    def __init_subclass__(cls, well_known_resource_model=None, proxy=None, adapter=None):
         """Create a new well-known resource model wrapper, from an WKRM."""
         if proxy is not None:
             cls.proxy = proxy
@@ -262,13 +287,14 @@ class ResourceWrapper(ABC):
             if not well_known_resource_model:
                 raise RuntimeError("Must try to wrap a real model")
 
-            if context is None:
+            if adapter is None:
                 raise RuntimeError("Must have an adapter to create classes")
 
-            cls._context = context
+            cls._adapter = adapter
             cls._model_name = well_known_resource_model.model_name
             cls._model_class_name = well_known_resource_model.model_class_name
             cls._model_remapping = well_known_resource_model.remapping
+            cls._remap_total = well_known_resource_model.total_remap
             cls.graphid = well_known_resource_model.graphid
             cls._wkrm = well_known_resource_model
             cls._add_events()

@@ -1,7 +1,7 @@
 from arches.app.models.tile import Tile as TileProxyModel
 from collections import UserList
 
-from arches_orm.view_models import ViewModel, NodeListViewModel, UnavailableViewModel
+from arches_orm.view_models import ViewModel, NodeListViewModel, UnavailableViewModel, ResourceInstanceViewModel
 
 from .datatypes import get_view_model_for_datatype
 
@@ -21,12 +21,49 @@ class PseudoNodeList(UserList):
         self.tile = None
         self._parent_node = None
         self.parenttile_id = None
+        self._ghost_children = set()
+
+    def free_ghost_children(self):
+        ghost_children = self._ghost_children
+        self._ghost_children = set()
+        return ghost_children
 
     @property
     def value(self):
         return NodeListViewModel(self)
 
+    def index(self, x, start=0, end=-1):
+        return self._find(x, start, end)[0]
+
+    def _find(self, x, start=0, end=-1):
+        if end < 0:
+            end += len(self)
+        item = [(i, entry) for i, entry in enumerate(self) if i >= start and i <= end and (entry == x or entry.value == x)]
+        try:
+            loc, entry = item[0]
+        except KeyError:
+            raise ValueError()
+        return loc, entry
+
+    def remove(self, x):
+        entry = self._find(x)[1]
+        super().remove(entry)
+
+        if str(entry.node.nodegroup_id) == str(self.node.nodeid):
+            self._ghost_children.add(entry)
+
+    def pop(self, i=-1):
+        entry = super().pop(i)
+
+        if str(entry.node.nodegroup_id) == str(self.node.nodeid):
+            self._ghost_children.add(entry)
+
+        return entry
+
     def clear(self):
+        self._ghost_children |= {
+            entry for entry in self if str(entry.node.nodegroup_id) == str(self.node.nodeid)
+        }
         super().clear()
         if self.tile and str(self.node.nodeid) in self.tile.data:
             del self.tile.data[str(self.node.nodeid)]
@@ -55,14 +92,21 @@ class PseudoNodeList(UserList):
             for item in other
         ]
         super().__iadd__(other_pn)
+        return self
+
+    def extend(self, iterable):
+        raise NotImplementedError()
 
     def append(self, item=None):
+        return self.insert(len(self), item)
+
+    def insert(self, i, item=None):
         if not isinstance(item, PseudoNodeValue):
             value = self.make_pseudo_node()
             if item is not None:
                 value.value = item
             item = value
-        super().append(item)
+        super().insert(i, item)
         if not self.parenttile_id:
             self.parenttile_id = item.parenttile_id
         if self.parenttile_id != item.parenttile_id:
@@ -76,7 +120,7 @@ class PseudoNodeList(UserList):
         return self.make_pseudo_node().get_type()[0], True
 
     def make_pseudo_node(self):
-        return self._parent_cls._make_pseudo_node_cls(
+        return self._parent_cls._._make_pseudo_node_cls(
             self.node.alias,
             single=True,
             wkri=self._parent
@@ -91,6 +135,7 @@ class PseudoNodeValue:
     _value = None
     _datatype = None
     _multiple = False
+    _as_tile_data = None
 
     def __init__(self, node, tile=None, value=None, parent=None, child_nodes=None, parent_cls=None):
         self.node = node
@@ -142,6 +187,7 @@ class PseudoNodeValue:
                 str(self.node.nodeid)
             ] = tile_value  # TODO: ensure this works for any value
         tile = self.tile if self.node.is_collector else None
+
         return tile, relationships
 
     def clear(self):
@@ -193,7 +239,7 @@ class PseudoNodeValue:
 
     @value.setter
     def value(self, value):
-        if not isinstance(value, ViewModel):
+        if not isinstance(value, ViewModel) or isinstance(value, ResourceInstanceViewModel):
             self.get_tile()
             value, self._as_tile_data, self._datatype, self._multiple = get_view_model_for_datatype(
                 self.tile,

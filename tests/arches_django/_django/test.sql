@@ -117,6 +117,9 @@ INSERT INTO widgets(widgetid, name, component, datatype, defaultconfig)
 INSERT INTO widgets(widgetid, name, component, datatype, defaultconfig)
     VALUES ('10000000-0000-0000-0000-000000000101', 'user', 'views/components/widgets/user', 'user', '{}');
 
+INSERT INTO widgets(widgetid, name, component, datatype, defaultconfig)
+    VALUES ('10000000-0000-0000-0000-000000000102', 'django-group', 'views/components/widgets/django_group', 'django-group', '{}');
+
 INSERT INTO d_data_types(datatype, iconclass, modulename, classname, defaultconfig, configcomponent, configname, isgeometric, defaultwidget) VALUES ('string', 'fa fa-file-code-o', 'datatypes.py', 'StringDataType',  null, null, null, FALSE, '10000000-0000-0000-0000-000000000001');
 INSERT INTO d_data_types(datatype, iconclass, modulename, classname, defaultconfig, configcomponent, configname, isgeometric, defaultwidget) VALUES (
     'user',
@@ -128,6 +131,17 @@ INSERT INTO d_data_types(datatype, iconclass, modulename, classname, defaultconf
     null,
     FALSE,
     '10000000-0000-0000-0000-000000000101'
+);
+INSERT INTO d_data_types(datatype, iconclass, modulename, classname, defaultconfig, configcomponent, configname, isgeometric, defaultwidget) VALUES (
+    'django-group',
+    'fa fa-location-arrow',
+    'django_group.py',
+    'DjangoGroupDataType',
+    null,
+    null,
+    null,
+    FALSE,
+    '10000000-0000-0000-0000-000000000102'
 );
 INSERT INTO widgets(
     widgetid,
@@ -265,6 +279,8 @@ INSERT INTO edges(edgeid, graphid, domainnodeid, rangenodeid, ontologyproperty)
 
 INSERT INTO card_components(componentid, name, description, component, componentname, defaultconfig)
     VALUES ('4e40b397-d6bc-4660-a398-4a72c90dba07', 'Photo Gallery Card', 'Photo gallery card UI', 'views/components/cards/photo-gallery-card', 'photo-gallery-card', '{}');
+INSERT INTO card_components(componentid, name, description, component, componentname, defaultconfig)
+    VALUES ('84c4e9f8-6e05-4e99-9c09-fcd74466e6a5', 'Django Group Card', 'Django group reference', 'views/components/cards/django_group', 'django-group', '{}');
 INSERT INTO card_components(componentid, name, description, component, componentname, defaultconfig)
     VALUES ('f554c976-9026-463b-a11d-47528e77cf67', 'User Account Card', 'User account related to a person', 'views/components/cards/user_account', 'user-account-card', '{}');
 INSERT INTO card_components(componentid, name, description, component, componentname, defaultconfig)
