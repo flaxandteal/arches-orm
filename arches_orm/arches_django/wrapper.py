@@ -1,6 +1,6 @@
 from typing import Any
 import json
-from arches.app.models.resource import Resource
+from arches.app.models.resource import Resource, TileModel
 from django.dispatch import Signal
 from collections import UserDict
 from functools import lru_cache
@@ -8,6 +8,7 @@ from datetime import datetime
 from django.db import transaction
 from arches.app.models.models import ResourceXResource, Node, NodeGroup, Edge
 from arches.app.models.graph import Graph
+from .responses import pagination
 from arches.app.models.tile import Tile as TileProxyModel
 from arches.app.models.system_settings import settings as system_settings
 from arches.app.utils.permission_backend import get_nodegroups_by_perm
@@ -625,6 +626,9 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
             wkri=wkri,
             lazy=lazy,
         )
+
+        print(values)
+
         wkri._values = ValueList(
             values,
             wkri._,
@@ -727,17 +731,51 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
         )
 
     @classmethod
-    def all(cls, related_prefetch=None, lazy=False):
+    def all(cls, related_prefetch=None, lazy=False, **kwargs):
         """Get all resources of this type."""
 
         if not cls ._can_read_graph():
             raise WKRMPermissionDenied()
+        permittedNodegroupIds = cls._permitted_nodegroups()
 
-        resources = Resource.objects.filter(graph_id=cls.graphid).all()
-        return [
-            cls.from_resource(resource, related_prefetch=related_prefetch, lazy=lazy)
-            for resource in resources
-        ]
+        relatedGraphResources = Resource.objects.filter(graph_id=cls.graphid).iterator()
+
+        # node_dict = dict(nodes)
+
+        # nodeGroupIds = [node["nodegroupid"] for node in permitted]
+
+        print('permitted | ', permittedNodegroupIds)
+
+
+        # print('HERE : ', kwargs);
+        # premitted_node_ids = .objects.filter(published=True).values_list("id", flat=True)
+        
+        defaultFilterTileAgrs = {
+            'nodegroup_id__in': permittedNodegroupIds
+        }
+
+
+
+        count = 0
+        for relatedGraphResource in relatedGraphResources:
+            tiles = TileModel.objects.filter(**defaultFilterTileAgrs, resourceinstance_id=relatedGraphResource.resourceinstanceid).iterator()
+ 
+            for tile in tiles:
+                # {'_state': <django.db.models.base.ModelState object at 0x7f0af4541cd0>, 'tileid': UUID('973371b8-1831-4ab6-9011-4d2d46538580'), 'resourceinstance_id': UUID('4edf6456-7ca6-4b4d-ad56-9f46cdd68037'), 'parenttile_id': None, 'data': {'f50e21f0-dcc9-11ef-b806-dbab4352ed22': {'en': {'value': 'Title 9982', 'direction': 'ltr'}, 'en-US': {'value': '', 'direction': 'ltr'}}}, 'nodegroup_id': UUID('f50e21f0-dcc9-11ef-b806-dbab4352ed22'), 'sortorder': 0, 'provisionaledits': None}
+                print('tile | ', tile.data)
+                count = count + 1
+                print('count : ', count)
+
+
+
+                pseudo_node = cls._make_pseudo_node_cls(key, tile=tile, wkri=wkri)
+
+
+        return 'TEST';
+        # return [
+        #     cls.from_resource(resource, related_prefetch=related_prefetch, lazy=lazy)
+        #     for resource in resources
+        # ]
 
     @classmethod
     def find(cls, resourceinstanceid, from_prefetch=None, lazy=False):
