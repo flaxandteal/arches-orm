@@ -137,8 +137,8 @@ class PseudoNodeValue:
     def __init__(self, node, get_view_model_for_datatype, TileProxyModel: type, tile=None, value=None, parent=None, child_nodes=None, parent_cls=None):
         self.node = node
         self.tile = tile
-        if self.tile and "Model" in str(self.tile.__class__):
-            raise RuntimeError("Should only use Tiles not TileModels")
+        # if self.tile and "Model" in str(self.tile.__class__):
+        #     raise RuntimeError("Should only use Tiles not TileModels")
         if parent_cls is None:
             if parent is None:
                 raise RuntimeError("Must have a parent or parent class for a pseudo-node")
@@ -162,6 +162,9 @@ class PseudoNodeValue:
     @property
     def parenttile_id(self):
         return self.tile.parenttile_id if self.tile else None
+    
+    # def arches_default_orm(self):
+    #     return TileProxyModel(self.tile)
 
     def get_tile(self):
         self._update_value()
