@@ -1,12 +1,13 @@
 from typing import Any
 import json
-from arches.app.models.resource import Resource, TileModel
+import time
+from arches.app.models.resource import Resource
 from django.dispatch import Signal
 from collections import UserDict
 from functools import lru_cache
 from datetime import datetime
 from django.db import transaction
-from arches.app.models.models import ResourceXResource, Node, NodeGroup, Edge
+from arches.app.models.models import ResourceXResource, Node, NodeGroup, Edge, TileModel
 from arches.app.models.graph import Graph
 from .responses import pagination
 from arches.app.models.tile import Tile as TileProxyModel
@@ -98,6 +99,8 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
     _values_list: ValueList | None = None
     _values_real: list | None = None
     __datatype_factory = None
+    start_times = {}
+    count = {}
 
     """Provides functionality for translating to/from Arches types."""
 
@@ -760,13 +763,14 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
             raise WKRMPermissionDenied()
         permittedNodegroupIds = cls._permitted_nodegroups()
 
-        relatedGraphResources = Resource.objects.filter(graph_id=cls.graphid).iterator()
+        nodes = Node.objects.filter(nodeid__in=permittedNodegroupIds);
+        node_dict = {node.nodegroup_id: node for node in nodes}
 
         # node_dict = dict(nodes)
 
         # nodeGroupIds = [node["nodegroupid"] for node in permitted]
 
-        print('permitted | ', permittedNodegroupIds)
+        print('permitted | ', nodes)
 
 
         # print('HERE : ', kwargs);
@@ -780,40 +784,71 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
 
         wkris = [];
 
+        tiles = TileModel.objects.filter(**defaultFilterTileAgrs).select_related('resourceinstance', 'nodegroup').iterator()
+        # tiles = TileProxyModel.objects.filter(**defaultFilterTileAgrs).select_related('resourceinstance', 'nodegroup').iterator()
 
-        for relatedGraphResource in relatedGraphResources:
-            tiles = TileProxyModel.objects.filter(**defaultFilterTileAgrs, resourceinstance_id=relatedGraphResource.resourceinstanceid).iterator()
-            
-            wkri = cls.view_model(
-                id=relatedGraphResource.resourceinstanceid,
-                resource=relatedGraphResource,
-                cross_record=None,
-                related_prefetch=related_prefetch,
+        values = {}  
+        wkriMapping = {}
+        count = 0
+
+        for modelTile in tiles:
+            tile = TileProxyModel(
+                tileid=modelTile.tileid,  
+                data=modelTile.data,  # Assuming `data` contains the tile's structured JSON
+                resourceinstance_id=modelTile.resourceinstance_id
             )
+            count = count + 1
+            print(tile.__dict__)
+            print('count | ', count)
+            print('tile | ', tile.data)
+            # print(tile)
+            # resource = tile.resourceinstance
+            # node = node_dict.get(tile.nodegroup_id)
+     
+            # if (wkriMapping.get(resource.resourceinstanceid)):
+            #     wkri = wkriMapping[resource.resourceinstanceid]["wkri"]
+            #     pseudo_node = cls._make_pseudo_node_cls(
+            #         key=node.alias,
+            #         # node=node,
+            #         tile=tile,
+            #         wkri=wkri
+            #     )
 
-            values = {}
+            #     existingValues = wkriMapping.get(resource.resourceinstanceid)
+            #     existingValues.setdefault(node.alias, []).append(pseudo_node)
+            #     wkriMapping[resource.resourceinstanceid]["values"] = existingValues;
+            # else:
+            #     wkri = cls.view_model(
+            #         id=resource.resourceinstanceid,
+            #         resource=resource,
+            #         cross_record=None,
+            #         related_prefetch=related_prefetch,
+            #     )
 
-            for tile in tiles:
-                # {'_state': <django.db.models.base.ModelState object at 0x7f0af4541cd0>, 'tileid': UUID('973371b8-1831-4ab6-9011-4d2d46538580'), 'resourceinstance_id': UUID('4edf6456-7ca6-4b4d-ad56-9f46cdd68037'), 'parenttile_id': None, 'data': {'f50e21f0-dcc9-11ef-b806-dbab4352ed22': {'en': {'value': 'Title 9982', 'direction': 'ltr'}, 'en-US': {'value': '', 'direction': 'ltr'}}}, 'nodegroup_id': UUID('f50e21f0-dcc9-11ef-b806-dbab4352ed22'), 'sortorder': 0, 'provisionaledits': None}
-                print('tile | ', tile.data)
-                count = count + 1
-                print('count : ', count)
+            #     pseudo_node = cls._make_pseudo_node_cls(
+            #         key=node.alias,
+            #         # node=node,
+            #         tile=tile,
+            #         wkri=wkri
+            #     )
 
-                node = Node.objects.filter(nodeid=tile.nodegroup_id).first()
+            #     values.setdefault(node.alias, []).append(pseudo_node)
+            #     wkriMapping[resource.resourceinstanceid] = {
+            #         "values": values,
+            #         "wkri": wkri
+            #     }
 
-                # [{2022-04-04T00:00:00.000-05:00}], None: [{<arches_orm.view_models.semantic.SemanticViewModel object at 0x7f3e15f42ea0>}], 'title': [{Title 1275}], 'age': [{33.82882008836226}]}
-               
-                # pseudo_node = cls._make_pseudo_node_cls(key=node.alias, tile=tile, wkri=wkri)
-                # values[node.alias].append(pseudo_node);
+        # for key in wkriMapping:
+        #     wkri = wkriMapping[key]['wkri'];
+        #     values = wkriMapping[key]['values'];
 
-                # wkri._values = ValueList(
-                #     values,
-                #     wkri._,
-                #     related_prefetch=related_prefetch
-                # )
+        #     wkri._values = ValueList(
+        #         values,
+        #         wkri._,
+        #         related_prefetch=related_prefetch
+        #     )
 
-            
-                wkris.append(wkri)
+        #     wkris.append(wkri)
 
         cls.time_execution('all', False)
 
@@ -1156,6 +1191,58 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
             cls.from_resource_instance(tile.resourceinstance, cross_record=cross_record, lazy=lazy)
             for tile in tiles
         ]
+    
+    @classmethod
+    def _new_make_pseudo_node_cls(cls, key: str, tile: TileProxyModel=None, wkri=None, node: Node = None, nodegroups: NodeGroup = None):
+        node_obj = cls._node_objects_by_alias()[key]
+        nodegroups = cls._nodegroup_objects()
+
+        permitted = cls._permitted_nodegroups()
+        edges = cls._edges().get(str(node_obj.nodeid))
+        value = None
+        # if (
+        #     node_obj.nodegroup_id
+        #     and node_obj.is_collector
+        #     and nodegroups[str(node_obj.nodegroup_id)].cardinality == "n"
+        #     and not single
+        # ):
+        #     value = PseudoNodeList(
+        #         node_obj,
+        #         parent=wkri,
+        #         parent_cls=cls.view_model,
+        #     )
+        # if value is None or tile:
+        #     child_nodes = {}
+        #     if edges is not None:
+        #         child_nodes.update(
+        #             {
+        #                 n.alias: (n, not n.is_collector)
+        #                 for n in cls._node_objects().values()
+        #                 if str(n.nodeid) in edges
+        #             }
+        #         )
+        #     if node_obj.nodegroup_id is not None and str(node_obj.nodegroup_id) not in permitted:
+        #         node_value = PseudoNodeUnavailable(
+        #             node=node_obj,
+        #             parent=wkri,
+        #             parent_cls=cls.view_model,
+        #         )
+        #     else:
+        #         node_value = PseudoNodeValue(
+        #             tile=tile,
+        #             node=node_obj,
+        #             value=None,
+        #             parent=wkri,
+        #             parent_cls=cls.view_model,
+        #             child_nodes=child_nodes,
+        #         )
+        #     # If we have a tile in a list, add it
+        #     if value is not None:
+        #         value.append(node_value)
+        #     else:
+        #         value = node_value
+
+        return value
 
     @classmethod
     def _make_pseudo_node_cls(cls, key, single=False, tile=None, wkri=None):
