@@ -729,10 +729,32 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
                 "resourceinstanceid", flat=True
             )
         )
+    
+    def time_execution(key: str, start: bool):
+        if start:
+            ArchesDjangoResourceWrapper.start_times[key] = time.perf_counter()
+            return None
+        else:
+            if key in ArchesDjangoResourceWrapper.start_times:
+                start_time = ArchesDjangoResourceWrapper.start_times[key]
+                end_time = time.perf_counter()
+                execution_time_ms = (end_time - start_time) * 1000
+                if key in ArchesDjangoResourceWrapper.count:
+                    ArchesDjangoResourceWrapper.count[key] = ArchesDjangoResourceWrapper.count[key] + 1
+                else:
+                    ArchesDjangoResourceWrapper.count[key] = 0
 
+                print(f"Task '{key}' executed in {execution_time_ms:.10f} ms")
+                print(f"Task '{key}' count {ArchesDjangoResourceWrapper.count[key]}")
+
+                del ArchesDjangoResourceWrapper.start_times[key]  # Remove the start time after finishing the task
+                return execution_time_ms
+            
     @classmethod
     def all(cls, related_prefetch=None, lazy=False, **kwargs):
         """Get all resources of this type."""
+
+        cls.time_execution('all', True)
 
         if not cls ._can_read_graph():
             raise WKRMPermissionDenied()
@@ -793,6 +815,7 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
             
                 wkris.append(wkri)
 
+        cls.time_execution('all', False)
 
         return wkris;
         # return [
