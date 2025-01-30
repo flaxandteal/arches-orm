@@ -1,6 +1,7 @@
 from typing import Any
 import json
 import time
+from django.core.paginator import Paginator
 from arches.app.models.resource import Resource
 from django.dispatch import Signal
 from collections import UserDict
@@ -630,8 +631,6 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
             lazy=lazy,
         )
 
-        print(values)
-
         wkri._values = ValueList(
             values,
             wkri._,
@@ -756,100 +755,96 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
     @classmethod
     def all(cls, related_prefetch=None, lazy=False, **kwargs):
         """Get all resources of this type."""
-
         cls.time_execution('all', True)
 
         if not cls ._can_read_graph():
             raise WKRMPermissionDenied()
-        permittedNodegroupIds = cls._permitted_nodegroups()
-
-        nodes = Node.objects.filter(nodeid__in=permittedNodegroupIds);
-        node_dict = {node.nodegroup_id: node for node in nodes}
-
-        # node_dict = dict(nodes)
-
-        # nodeGroupIds = [node["nodegroupid"] for node in permitted]
-
-        print('permitted | ', nodes)
-
-
-        # print('HERE : ', kwargs);
-        # premitted_node_ids = .objects.filter(published=True).values_list("id", flat=True)
         
+        tiles = []
+        permittedNodegroupIds = cls._permitted_nodegroups()
         defaultFilterTileAgrs = {
             'nodegroup_id__in': permittedNodegroupIds
         }
+        limit = kwargs.get('limit', 30)
+        page = kwargs.get('page', 1)
 
-        count = 0
+        def get_tiles():
+             # ! TODO: Remember that this needs to be resources for pagination, not tiles!
+            if (page is not None):
+                tiles = TileModel.objects.filter(**defaultFilterTileAgrs).select_related('resourceinstance', 'nodegroup')
+                paginator = Paginator(tiles, limit)
+                page_obj = paginator.get_page(page)
+                tiles = page_obj.object_list
 
-        wkris = [];
+            else: 
+                tiles = TileModel.objects.filter(**defaultFilterTileAgrs).select_related('resourceinstance', 'nodegroup').iterator()
 
-        tiles = TileModel.objects.filter(**defaultFilterTileAgrs).select_related('resourceinstance', 'nodegroup').iterator()
-        # tiles = TileProxyModel.objects.filter(**defaultFilterTileAgrs).select_related('resourceinstance', 'nodegroup').iterator()
 
-        values = {}  
+        # tiles = TileModel.objects.filter(**defaultFilterTileAgrs).select_related('resourceinstance', 'nodegroup').iterator()
+
         wkriMapping = {}
         count = 0
+        nodes = Node.objects.filter(nodeid__in=permittedNodegroupIds);
+        node_dict = {node.nodegroup_id: node for node in nodes}
+        def set_tile_values_and_create_wkris():
+            for tile in tiles:
+                # tile = TileProxyModel(
+                #     tileid=modelTile.tileid,  
+                #     data=modelTile.data,  # Assuming `data` contains the tile's structured JSON
+                #     resourceinstance_id=modelTile.resourceinstance_id
+                # )
+                resource = tile.resourceinstance
+                node = node_dict.get(tile.nodegroup_id)
+    
+                # * We check if the resource from the tile has already created the wkri
+                if (wkriMapping.get(resource.resourceinstanceid)):
+                    wkri = wkriMapping[resource.resourceinstanceid]["wkri"]
 
-        for modelTile in tiles:
-            tile = TileProxyModel(
-                tileid=modelTile.tileid,  
-                data=modelTile.data,  # Assuming `data` contains the tile's structured JSON
-                resourceinstance_id=modelTile.resourceinstance_id
-            )
-            count = count + 1
-            print(tile.__dict__)
-            print('count | ', count)
-            print('tile | ', tile.data)
-            # print(tile)
-            # resource = tile.resourceinstance
-            # node = node_dict.get(tile.nodegroup_id)
-     
-            # if (wkriMapping.get(resource.resourceinstanceid)):
-            #     wkri = wkriMapping[resource.resourceinstanceid]["wkri"]
-            #     pseudo_node = cls._make_pseudo_node_cls(
-            #         key=node.alias,
-            #         # node=node,
-            #         tile=tile,
-            #         wkri=wkri
-            #     )
+                # * If not then we create the wkri for the resource and the values oject 
+                else:
+                    wkri = cls.view_model(
+                        id=resource.resourceinstanceid,
+                        resource=resource,
+                        cross_record=None,
+                        related_prefetch=related_prefetch,
+                    )
 
-            #     existingValues = wkriMapping.get(resource.resourceinstanceid)
-            #     existingValues.setdefault(node.alias, []).append(pseudo_node)
-            #     wkriMapping[resource.resourceinstanceid]["values"] = existingValues;
-            # else:
-            #     wkri = cls.view_model(
-            #         id=resource.resourceinstanceid,
-            #         resource=resource,
-            #         cross_record=None,
-            #         related_prefetch=related_prefetch,
-            #     )
+                    wkriMapping[resource.resourceinstanceid] = {
+                        "values": {},
+                        "wkri": wkri
+                    }
+                    
+                pseudo_node = cls._make_pseudo_node_cls(
+                    key=node.alias,
+                    # node=node,
+                    tile=tile,
+                    wkri=wkri
+                )
 
-            #     pseudo_node = cls._make_pseudo_node_cls(
-            #         key=node.alias,
-            #         # node=node,
-            #         tile=tile,
-            #         wkri=wkri
-            #     )
+                wkriMapping[resource.resourceinstanceid]["values"][node.alias] = [pseudo_node]
 
-            #     values.setdefault(node.alias, []).append(pseudo_node)
-            #     wkriMapping[resource.resourceinstanceid] = {
-            #         "values": values,
-            #         "wkri": wkri
-            #     }
 
-        # for key in wkriMapping:
-        #     wkri = wkriMapping[key]['wkri'];
-        #     values = wkriMapping[key]['values'];
+        wkris = [];
+        def set_wkri_value_to_tile_values():
+            for key in wkriMapping:
+                wkri = wkriMapping[key]['wkri'];
+                values = wkriMapping[key]['values'];
 
-        #     wkri._values = ValueList(
-        #         values,
-        #         wkri._,
-        #         related_prefetch=related_prefetch
-        #     )
+                print('wkriMapping[key] ! ', wkriMapping[key])
+                print('VALUES set_wkri_value_to_tile_values! ', values)
 
-        #     wkris.append(wkri)
 
+                wkri._values = ValueList(
+                    values,
+                    wkri._,
+                    related_prefetch=related_prefetch
+                )
+
+                wkris.append(wkri)
+                
+        get_tiles()
+        set_tile_values_and_create_wkris()
+        set_wkri_value_to_tile_values()
         cls.time_execution('all', False)
 
         return wkris;
@@ -1101,6 +1096,7 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
                 raise RuntimeError(f"Tried to load node twice: {key}")
             all_values.setdefault(key, [])
             pseudo_node = cls._make_pseudo_node_cls(key, tile=tile, wkri=wkri)
+   
             # We shouldn't have to take care of this case, as it should already
             # be included below.
             # if tile.parenttile_id:
@@ -1248,7 +1244,6 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
     def _make_pseudo_node_cls(cls, key, single=False, tile=None, wkri=None):
         node_obj = cls._node_objects_by_alias()[key]
         nodegroups = cls._nodegroup_objects()
-
         permitted = cls._permitted_nodegroups()
         edges = cls._edges().get(str(node_obj.nodeid))
         value = None
