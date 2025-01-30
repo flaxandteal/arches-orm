@@ -754,20 +754,25 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
             'nodegroup_id__in': permittedNodegroupIds
         }
 
-
-
         count = 0
         for relatedGraphResource in relatedGraphResources:
             tiles = TileModel.objects.filter(**defaultFilterTileAgrs, resourceinstance_id=relatedGraphResource.resourceinstanceid).iterator()
- 
+            
+            wkri = cls.view_model(
+                id=relatedGraphResource.resourceinstanceid,
+                resource=relatedGraphResource,
+                cross_record=None,
+                related_prefetch=related_prefetch,
+            )
+
             for tile in tiles:
                 # {'_state': <django.db.models.base.ModelState object at 0x7f0af4541cd0>, 'tileid': UUID('973371b8-1831-4ab6-9011-4d2d46538580'), 'resourceinstance_id': UUID('4edf6456-7ca6-4b4d-ad56-9f46cdd68037'), 'parenttile_id': None, 'data': {'f50e21f0-dcc9-11ef-b806-dbab4352ed22': {'en': {'value': 'Title 9982', 'direction': 'ltr'}, 'en-US': {'value': '', 'direction': 'ltr'}}}, 'nodegroup_id': UUID('f50e21f0-dcc9-11ef-b806-dbab4352ed22'), 'sortorder': 0, 'provisionaledits': None}
                 print('tile | ', tile.data)
                 count = count + 1
                 print('count : ', count)
 
-
-
+                # [{2022-04-04T00:00:00.000-05:00}], None: [{<arches_orm.view_models.semantic.SemanticViewModel object at 0x7f3e15f42ea0>}], 'title': [{Title 1275}], 'age': [{33.82882008836226}]}
+               
                 pseudo_node = cls._make_pseudo_node_cls(key, tile=tile, wkri=wkri)
 
 
