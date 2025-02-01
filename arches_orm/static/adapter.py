@@ -6,7 +6,7 @@ from enum import Enum
 from uuid import UUID
 from typing import IO
 from rdflib.term import Node
-from arches_orm.adapter import Adapter
+from arches_orm.adapter import PseudoNodeAdapterMixin, Adapter
 from arches_orm.view_models.concepts import ConceptValueViewModel
 from .datatypes.concepts import (
     load_collection_path,
@@ -32,7 +32,7 @@ LOAD_ALL_NODES = True
 
 WKRM_DEFINITIONS = []
 
-class StaticAdapter(Adapter):
+class StaticAdapter(Adapter, PseudoNodeAdapterMixin):
 
     key = "static"
     _collections_loaded = False
@@ -75,6 +75,7 @@ class StaticAdapter(Adapter):
         return retrieve_collection(collection_id)
 
     def load_from_id(self, resource_id, from_prefetch=None):
+        # TODO: fix to use from_static_resource
         static_resource = (
             from_prefetch(resource_id)
             if from_prefetch is not None

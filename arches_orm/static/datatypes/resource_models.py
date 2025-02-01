@@ -35,7 +35,7 @@ class StaticNodeGroup(BaseModel):
     cardinality: Literal["1", "n", None]
 
 class StaticNode(BaseModel):
-    alias: str
+    alias: None | str
     config: dict[str, Any]
     datatype: str
     description: str | None
@@ -51,7 +51,7 @@ class StaticNode(BaseModel):
     nodegroup_id: UUID | None
     nodeid: UUID
     parentproperty: str
-    sortorder: int
+    sortorder: None | int
     ontologyclass: str | None = None
     sourcebranchpublication_id: None | UUID = None
 
@@ -86,18 +86,18 @@ class StaticCardsXNodesXWidgets(BaseModel):
     id: UUID
     label: StaticTranslatableString
     node_id: UUID
-    sortorder: int
+    sortorder: None | int
     visible: bool
     widget_id: UUID
 
 class StaticEdge(BaseModel):
-    description: None
     domainnode_id: UUID
     edgeid: UUID
     graph_id: UUID
     name: None | str
     rangenode_id: UUID
     ontologyproperty: None | str =  None
+    description: None = None
 
 class StaticFunctionsXGraphs(BaseModel):
     config: dict[str, Any]
@@ -135,7 +135,7 @@ class StaticGraph(BaseModel):
     author: str
     cards: list[StaticCard]
     cards_x_nodes_x_widgets: list[StaticCardsXNodesXWidgets]
-    color: str
+    color: None | str
     config: dict[str, Any]
     deploymentdate: None | str
     deploymentfile: None | str

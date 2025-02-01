@@ -119,6 +119,20 @@ class Adapter(ABC):
             finally:
                 self._context.reset(tok)
 
+class PseudoNodeAdapterMixin:
+    def from_pseudo_node_wrapper(self, wrapper, from_prefetch=None):
+        from .pseudo_node.value_list import ValueList
+        # TODO: this should probably be merged into the Adapter structure
+        from .wkrm import get_resource_models_for_adapter
+        resource_models = get_resource_models_for_adapter(self.key)["by-graph-id"]
+        # Standardize
+        graphid = UUID(wrapper._.graphid) if not isinstance(wrapper._.graphid, UUID) else wrapper._.graphid
+        if graphid not in resource_models:
+            raise RuntimeError(f"Adapter {self.key} does not have graph {graphid}")
+        wkri = resource_models[graphid]()
+        wkri._._values = ValueList(values=wrapper._._values._values, wrapper=wkri._, related_prefetch=from_prefetch)
+        return wkri
+
 
 class AdapterManager:
     default_adapter = None
