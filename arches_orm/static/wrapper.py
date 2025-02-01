@@ -270,7 +270,7 @@ class StaticResourceWrapper(ResourceWrapper, proxy=True):
     @classmethod
     def _context_get(cls, key, default=None, required=False):
         try:
-            context = cls._context.get()
+            context = cls._adapter._context.get()
         except LookupError:
             logger.error("Need to set a context before using the ORM, or mark adapter context-free.")
             raise
@@ -787,9 +787,9 @@ class StaticResourceWrapper(ResourceWrapper, proxy=True):
 
         return value
 
-    def __init_subclass__(cls, well_known_resource_model=None, proxy=None, context=None):
+    def __init_subclass__(cls, well_known_resource_model=None, proxy=None, adapter=None):
         super().__init_subclass__(
-            well_known_resource_model=well_known_resource_model, proxy=proxy, context=context
+            well_known_resource_model=well_known_resource_model, proxy=proxy, adapter=adapter
         )
         if proxy is not None:
             cls.proxy = proxy

@@ -62,8 +62,8 @@ class PseudoNodeList(UserList):
             entry for entry in self if entry.node.nodegroup_id == self.node.nodeid
         }
         super().clear()
-        if self.tile and self.node.nodeid in self.tile.data:
-            del self.tile.data[self.node.nodeid]
+        if self.tile and str(self.node.nodeid) in self.tile.data:
+            del self.tile.data[str(self.node.nodeid)]
 
     @value.setter
     def value(self, iterable):
@@ -180,10 +180,10 @@ class PseudoNodeValue:
             ]
             tile_value = tile_value[0]
         if tile_value is None:
-            self.tile.data.pop(self.node.nodeid, None)
+            self.tile.data.pop(str(self.node.nodeid), None)
         else:
             self.tile.data[
-                self.node.nodeid
+                str(self.node.nodeid)
             ] = tile_value  # TODO: ensure this works for any value
         tile = self.tile if self.node.is_collector else None
 
@@ -191,8 +191,8 @@ class PseudoNodeValue:
 
     def clear(self):
         self._value = None
-        if self.tile and self.tile.data and self.node.nodeid in self.tile.data:
-            del self.tile.data[self.node.nodeid]
+        if self.tile and self.tile.data and str(self.node.nodeid) in self.tile.data:
+            del self.tile.data[str(self.node.nodeid)]
 
     @property
     def accessed(self) -> bool:
@@ -212,9 +212,9 @@ class PseudoNodeValue:
             if (
                 self._value is None
                 and self.tile.data is not None
-                and self.node.nodeid in self.tile.data
+                and str(self.node.nodeid) in self.tile.data
             ):
-                data = self.tile.data[self.node.nodeid]
+                data = self.tile.data[str(self.node.nodeid)]
             else:
                 data = self._value
 
