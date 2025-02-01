@@ -15,13 +15,13 @@ class StaticResourceInstanceInfo(BaseModel):
     graph_publication_id: UUID | None
     legacyid: None | UUID
     name: str
-    principaluser_id: UUID | None
     resourceinstanceid: UUID
     publication_id: UUID | None
+    principaluser_id: int | None = None
 
 StaticProvisionalEdit = Any
 class StaticTile(BaseModel):
-    data: dict[UUID, dict[str, Any] | list[Any] | None]
+    data: dict[UUID, dict[str, Any] | list[Any] | None | int | str]
     nodegroup_id: UUID
     resourceinstance_id: UUID
     tileid: UUID
