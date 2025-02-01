@@ -134,7 +134,7 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
     def _update_tiles(
         self, tiles, all_values=None, nodegroup_id=None, root=None, parent=None, permitted_nodegroups: None | list[str]=None
     ):
-        return update_tiles(self.id, tiles, all_values=all_values, nodegroup_id=nodegroup_id, root=root, person=person, permitted_nodegroups=permitted_nodegroups)
+        return update_tiles(self.id, tiles, all_values=all_values, nodegroup_id=nodegroup_id, root=root, parent=parent, permitted_nodegroups=permitted_nodegroups)
 
     def to_resource(
         self,
