@@ -45,14 +45,8 @@ def django_group(tile, node, value, _, __, ___, group) -> GroupProtocol:
             except DjangoGroupViewModel.DoesNotExist:
                 logger.warning("Django Group is missing for pk value %s", str(value))
     if not group:
-<<<<<<< HEAD
         group = MissingDjangoGroupViewModel()
         group.pk = pk
-||||||| 264f5d2
-        group = DjangoGroupViewModel()
-=======
-        group = MissingDjangoGroupViewModel()
->>>>>>> release/0.1
     return group
 
 
