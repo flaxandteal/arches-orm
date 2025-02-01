@@ -7,6 +7,7 @@ from typing import Any, Generator, Callable, Literal
 from inspect import isgenerator, isgeneratorfunction
 from functools import partial, wraps
 from contextlib import contextmanager
+from collections import UserList
 from contextvars import ContextVar
 from abc import ABC, abstractmethod
 
@@ -125,13 +126,29 @@ class PseudoNodeAdapterMixin:
         from .pseudo_node.value_list import ValueList
         # TODO: this should probably be merged into the Adapter structure
         from .wkrm import get_resource_models_for_adapter
+        wrapper._.to_resource(strict=True, _no_save=True, _do_index=False)
         resource_models = get_resource_models_for_adapter(self.key)["by-graph-id"]
         # Standardize
         graphid = UUID(wrapper._.graphid) if not isinstance(wrapper._.graphid, UUID) else wrapper._.graphid
         if graphid not in resource_models:
             raise RuntimeError(f"Adapter {self.key} does not have graph {graphid}")
         wkri = resource_models[graphid]()
-        wkri._._values = ValueList(values=wrapper._._values._values, wrapper=wkri._, related_prefetch=from_prefetch)
+        values = dict(wrapper._._values._values)
+        wkri.id = wrapper.id
+        for vals in values.values():
+            if isinstance(vals, UserList) or isinstance(vals, list):
+                for val in vals:
+                    if isinstance(val, UserList) or isinstance(val, list):
+                        for v in val:
+                            v.tile = None
+                            v._TileProxyModel = wkri._.TileProxyModel
+                    else:
+                        val.tile = None
+                        val._TileProxyModel = wkri._.TileProxyModel
+            else:
+                vals._TileProxyModel = wkri._.TileProxyModel
+                vals.tile = None
+        wkri._._values = ValueList(values=values, wrapper=wkri._, related_prefetch=from_prefetch)
         return wkri
 
 

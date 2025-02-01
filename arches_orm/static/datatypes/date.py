@@ -14,13 +14,12 @@ def date(tile, node, value: str | datetime | None, _, __, ___, date_datatype):
             if isinstance(value, datetime):
                 value = value.astimezone()
                 value = value.isoformat(timespec="milliseconds")
-            tile.data[str(node.nodeid)] = date_datatype.transform_value_for_tile(str(value))
+            tile.data[str(node.nodeid)] = str(value)
 
     if not tile or (data := tile.data[str(node.nodeid)]) is None:
         return None
 
-    value = date_datatype.transform_value_for_tile(data)
-    return DateTimeViewModel.parse(value)
+    return DateTimeViewModel.parse(data)
 
 
 @date.as_tile_data
