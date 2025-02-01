@@ -28,7 +28,7 @@ def make_pseudo_node(svm, key, parent_cls, tile, child_nodes, parent):
     return child
 
 def get_child_values(svm, target_key: str | None = None, parent = None, child_keys = None, child_nodes = None, tile = None, node = None):
-    from arches_orm.arches_django.pseudo_nodes import PseudoNodeList
+    from arches_orm.pseudo_node.pseudo_nodes import PseudoNodeList
 
     if not parent:
         return None if target_key is not None else {}

@@ -1,6 +1,6 @@
 import logging
 from typing import Callable
-from .adapter import get_adapter
+from .adapter import get_adapter, ADAPTER_MANAGER
 from .view_models.resources import ResourceInstanceViewModel
 
 
@@ -34,10 +34,13 @@ class WKRM:
         self.total_remap = False
         self.nodes = kwargs
 
+WELL_KNOWN_RESOURCE_MODELS_BY_ADAPTER = {}
+for key, adapter in ADAPTER_MANAGER.adapters.items():
+    WELL_KNOWN_RESOURCE_MODELS_BY_ADAPTER[key] = [
+        WKRM(**model) for model in adapter.get_wkrm_definitions()
+    ]
 
-WELL_KNOWN_RESOURCE_MODELS = [
-    WKRM(**model) for model in get_adapter().get_wkrm_definitions()
-]
+WELL_KNOWN_RESOURCE_MODELS = WELL_KNOWN_RESOURCE_MODELS_BY_ADAPTER[get_adapter().key]
 
 
 def _make_wkrm(wkrm_definition, adapter):
@@ -72,7 +75,11 @@ def get_resource_models_for_adapter(adapter_name: str | None = None):
     if str(adapter) not in resource_models:
         resource_models[str(adapter)] = {}
         resource_models[str(adapter)]["by-class"] = {}
-        for wkrm in WELL_KNOWN_RESOURCE_MODELS:
+        if str(adapter) not in WELL_KNOWN_RESOURCE_MODELS_BY_ADAPTER:
+            WELL_KNOWN_RESOURCE_MODELS_BY_ADAPTER[str(adapter)] = [
+                WKRM(**model) for model in adapter.get_wkrm_definitions()
+            ]
+        for wkrm in WELL_KNOWN_RESOURCE_MODELS_BY_ADAPTER[str(adapter)]:
             try:
                 resource_models[str(adapter)]["by-class"][wkrm.model_class_name] = _make_wkrm(wkrm, adapter)
             except Exception as exc:

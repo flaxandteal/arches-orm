@@ -22,5 +22,9 @@ get_adapter("static").config.update({
 @pytest.fixture(scope="function")
 def arches_orm():
     import arches_orm
+
+    from arches_orm.models import reload
     ADAPTER_MANAGER.set_default_adapter("static")
+    reload()
+
     yield arches_orm

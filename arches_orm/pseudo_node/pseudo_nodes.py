@@ -175,7 +175,7 @@ class PseudoNodeValue:
             relationships = [
                 relationship
                 if isinstance(relationship, tuple)
-                else ((self.tile.nodegroup_id, self.node.nodeid), relationship)
+                else (self.tile.nodegroup_id, self.node.nodeid, relationship)
                 for relationship in tile_value[1]
             ]
             tile_value = tile_value[0]

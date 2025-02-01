@@ -239,7 +239,7 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
             if tile:
                 if parent and parent.tile != tile and parent.node.nodegroup_id:
                     tile.parenttile = parent.tile
-                nodegroup_id = str(tile.nodegroup_id)
+                nodegroup_id = tile.nodegroup_id
                 tiles.setdefault(nodegroup_id, [])
                 relationships += [
                     (len(tiles[nodegroup_id]), *relationship)
@@ -326,7 +326,7 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
             crosses.setdefault(str(cross.tileid), [])
             crosses[str(cross.tileid)].append(cross)
         for tile_ix, nodegroup_id, nodeid, related in relationships:
-            value = tiles[nodegroup_id][tile_ix].data[nodeid]
+            value = tiles[nodegroup_id][tile_ix].data[str(nodeid)]
             tileid = str(tiles[nodegroup_id][tile_ix].tileid)
             if not related.id:
                 if save_related_if_missing:
