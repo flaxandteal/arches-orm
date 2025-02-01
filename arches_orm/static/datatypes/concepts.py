@@ -97,7 +97,7 @@ def load_collection_path(concept_root: Path) -> None:
         with concept_root.open() as xml:
             graph.parse(data=xml.read(), format="application/rdf+xml")
         for collection, v, o in graph.triples((None, RDF.type, SKOS.Collection)):
-            collection_id = UUID(str(collection).split("/", -1)[-1])
+            collection_id = UUID(str(collection).split("/", -1)[-1].strip())
             top_attributes = StaticCollectionDict(id=collection_id, concepts=[])
             for predicate, object in graph.predicate_objects(subject=collection):
                 if predicate == SKOS.member:

@@ -384,7 +384,7 @@ def update_tiles(
         if tile:
             if parent and parent.tile != tile and parent.node.nodegroup_id:
                 tile.parenttile = parent.tile
-            nodegroup_id = str(tile.nodegroup_id)
+            nodegroup_id = tile.nodegroup_id
             tiles.setdefault(nodegroup_id, [])
             relationships += [
                 (len(tiles[nodegroup_id]), *relationship)

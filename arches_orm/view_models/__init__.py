@@ -8,3 +8,4 @@ from .user import *  # noqa
 from .group import *  # noqa
 from .geojson_feature_collection import *  # noqa
 from .edtf import *  # noqa
+from .datetime import *  # noqa

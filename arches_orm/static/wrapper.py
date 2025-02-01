@@ -1,6 +1,6 @@
 from __future__ import annotations
 import logging
-from uuid import uuid4
+from uuid import uuid4, UUID
 from typing import Any, Callable
 from collections import UserDict
 from functools import lru_cache
@@ -32,6 +32,7 @@ class StaticResourceWrapper(ResourceWrapper, proxy=True):
     _edges_real: dict = None
     _nodegroup_objects_real: dict = None
     _unique_identifier_cb = None
+    TileProxyModel = StaticTile.model_construct
 
     @classmethod
     def search(cls, text, fields=None, _total=None) -> tuple[list[int], int]:
@@ -187,6 +188,8 @@ class StaticResourceWrapper(ResourceWrapper, proxy=True):
                     }
                 else:
                     t, r = pseudo_node.get_tile()
+                    if t is not None and t.nodegroup_id and not isinstance(t.nodegroup_id, UUID):
+                        t.nodegroup_id = UUID(t.nodegroup_id)
                     if t is not None and permitted_nodegroups is not None and (t.nodegroup_id is None or t.nodegroup_id not in permitted_nodegroups):
                         # Warn if we can
                         if pseudo_node._original_tile and hasattr(pseudo_node._original_tile, "_original_data"):
@@ -362,12 +365,17 @@ class StaticResourceWrapper(ResourceWrapper, proxy=True):
         if not LOAD_ALL_NODES:
             nodes = {key: node for key, node in nodes.items() if key in cls._wkrm.nodes}
 
-        needed_nodegroups = [node.nodegroup_id for node in nodes.values()]
-        nodegroups = {
-            nodegroup.nodegroupid: nodegroup
-            for nodegroup in graph.nodegroups
-            if nodegroup.nodegroupid in needed_nodegroups
-        }
+            needed_nodegroups = [node.nodegroup_id for node in nodes.values()]
+            nodegroups = {
+                nodegroup.nodegroupid: nodegroup
+                for nodegroup in graph.nodegroups
+                if nodegroup.nodegroupid in needed_nodegroups
+            }
+        else:
+            nodegroups = {
+                nodegroup.nodegroupid: nodegroup
+                for nodegroup in graph.nodegroups
+            }
         edge_pairs = [
             (edge.domainnode_id, edge.rangenode_id)
             for edge in graph.edges
@@ -446,6 +454,7 @@ class StaticResourceWrapper(ResourceWrapper, proxy=True):
 
     @classmethod
     def _permitted_nodegroups(cls):
+        print(list(cls._nodegroup_objects()), "PERM")
         return list(cls._nodegroup_objects())
 
     @classmethod
@@ -825,7 +834,7 @@ class StaticResourceWrapper(ResourceWrapper, proxy=True):
             else:
                 node_value = PseudoNodeValue(
                     tile=tile,
-                    TileProxyModel=StaticTile.model_construct,
+                    TileProxyModel=cls.TileProxyModel,
                     get_view_model_for_datatype=get_view_model_for_datatype,
                     node=node_obj,
                     value=None,
@@ -968,7 +977,10 @@ class StaticResourceWrapper(ResourceWrapper, proxy=True):
         self.resource = resource
 
         for tile_ix, nodegroup_id, nodeid, related in relationships:
-            value = tiles[nodegroup_id][tile_ix].data[nodeid]
+            value = tiles[nodegroup_id][tile_ix].data.get(str(nodeid))
+            if not value:
+                logging.warn("Missing tile values for relationship")
+                continue
             if not related.id:
                 related.id = related._make_new_resource_instance_id()
             cross_resourcexid = uuid4()

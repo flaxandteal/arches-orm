@@ -49,6 +49,7 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
     _values_list: ValueList | None = None
     _values_real: list | None = None
     __datatype_factory = None
+    TileProxyModel = TileProxyModel
 
     """Provides functionality for translating to/from Arches types."""
 
@@ -785,7 +786,7 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
         else:
             kwargs["nodegroup_id__in"] = permitted
 
-        tiles = TileProxyModel.objects.filter(**kwargs)
+        tiles = cls.TileProxyModel.objects.filter(**kwargs)
         return tiles
 
     @classmethod
@@ -1000,7 +1001,7 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
             else:
                 node_value = PseudoNodeValue(
                     tile=tile,
-                    TileProxyModel=TileProxyModel,
+                    TileProxyModel=cls.TileProxyModel,
                     get_view_model_for_datatype=get_view_model_for_datatype,
                     node=node_obj,
                     value=None,

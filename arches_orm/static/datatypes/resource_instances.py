@@ -22,10 +22,11 @@ class StaticResourceInstanceInfo(BaseModel):
 
 StaticProvisionalEdit = Any
 class StaticTile(BaseModel):
-    data: dict[UUID, dict[str, Any] | list[Any] | None | int | str]
+    data: dict[str | UUID, dict[str, Any] | list[Any] | None | int | str]
     nodegroup_id: UUID
     resourceinstance_id: UUID
     tileid: UUID
+    parenttile: StaticTile | None = None
     parenttile_id: UUID | None = None
     provisionaledits: None | list[StaticProvisionalEdit] = None
     sortorder: int | None = None
