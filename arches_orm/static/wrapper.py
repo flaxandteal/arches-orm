@@ -696,6 +696,8 @@ class StaticResourceWrapper(ResourceWrapper, proxy=True):
                 tile_nodes = dict(tile.data.items())
                 tile_nodes.setdefault(tile.nodegroup_id, {})
                 for nodeid, node_value in tile_nodes.items():
+                    if isinstance(nodeid, str):
+                        nodeid = UUID(nodeid)
                     if nodeid == nodegroup_id:
                         continue
                     node = node_objs[nodeid]
