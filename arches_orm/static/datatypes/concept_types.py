@@ -80,6 +80,7 @@ def make_concept_value(value: uuid.UUID | None, collection_id: uuid.UUID | None,
     return ConceptValueViewModel(
         value,
         concept_value_cb,
+        retrieve_concept,
         collection_id,
         partial(retrieve_collection),
         partial(retrieve_children)
