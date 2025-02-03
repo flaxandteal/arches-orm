@@ -266,6 +266,23 @@ def test_can_use_edtf(arches_orm):
     _compare_exported_json(resource_json, reference_dict)
 
 @context_free
+def test_can_use_edtf_interval(arches_orm):
+    from arches_orm.models import Group
+    group = Group._.from_dict({"date_of_publication": ["2024-2025"]})
+    group.save()
+    resource_json = group._.resource.model_dump_json()
+    with (Path(__file__).parent / "_artifacts" / "export_test_group.json").open() as f:
+        reference_dict = json.load(f)
+    reference_dict["business_data"]["resources"][0]["resourceinstance"]["name"] = "Undefined"
+    tiles = reference_dict["business_data"]["resources"][0]["tiles"][:1]
+    tiles[0]["data"] = {
+        "a2e1623c-01ee-4ab1-a2c7-cc9f623d624f": "2024/2025"
+    }
+    tiles[0]["nodegroup_id"] = "a2e1623c-01ee-4ab1-a2c7-cc9f623d624f"
+    reference_dict["business_data"]["resources"][0]["tiles"] = tiles
+    _compare_exported_json(resource_json, reference_dict)
+
+@context_free
 def test_can_save_with_concept(arches_orm):
     from arches_orm.models import Group
     group = Group.create()
