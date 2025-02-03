@@ -73,10 +73,16 @@ FACTORIES: dict[DataTypeNames, type[StaticDataType]] = {
     DataTypeNames.STRING: StaticStringDataType
 }
 
+CASTING: dict[str, DataTypeNames] = {
+}
+
 class StaticDataTypeFactory:
     @lru_cache
     def get_instance(self, datatype: str) -> StaticDataType:
-        datatype_name = DataTypeNames(datatype)
+        if datatype in CASTING:
+            datatype_name = CASTING[datatype]
+        else:
+            datatype_name = DataTypeNames(datatype)
         return (FACTORIES.get(datatype_name) or StaticDataType)(datatype_name)
 
 REGISTER = ViewModelRegister.create_with_factory(StaticDataTypeFactory())
