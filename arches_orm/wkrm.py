@@ -72,7 +72,15 @@ def get_resource_models_for_adapter(adapter_name: str | None = None):
     if str(adapter) not in resource_models:
         resource_models[str(adapter)] = {}
         resource_models[str(adapter)]["by-class"] = {}
-        for wkrm in WELL_KNOWN_RESOURCE_MODELS:
+        if str(adapter) not in WELL_KNOWN_RESOURCE_MODELS_BY_ADAPTER:
+            WELL_KNOWN_RESOURCE_MODELS_BY_ADAPTER[str(adapter)] = [
+                WKRM(**model) for model in adapter.get_wkrm_definitions()
+            ]
+        print('wkrm | get_resource_models_for_adapter', WELL_KNOWN_RESOURCE_MODELS)
+
+        for wkrm in WELL_KNOWN_RESOURCE_MODELS_BY_ADAPTER[str(adapter)]:
+
+
             try:
                 resource_models[str(adapter)]["by-class"][wkrm.model_class_name] = _make_wkrm(wkrm, adapter)
             except Exception as exc:
