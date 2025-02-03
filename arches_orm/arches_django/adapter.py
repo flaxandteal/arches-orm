@@ -88,6 +88,7 @@ class ArchesDjangoAdapter(Adapter, PseudoNodeAdapterMixin):
 
     def get_wkrm_definitions(self):
         from django.conf import settings
+        print('SETTINGS: ', settings)
         return settings.WELL_KNOWN_RESOURCE_MODELS
 
     def make_concept(self, concept_id: str | uuid.UUID, values: dict[uuid.UUID, tuple[str, str, Node]], children: list[uuid.UUID] | None) -> ConceptValueViewModel:
