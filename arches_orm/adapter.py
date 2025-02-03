@@ -220,6 +220,11 @@ def admin(adapter_key: str | None=None):
     with get_adapter(adapter_key).context(None, _override=True) as cvar:
         yield cvar
 
+@contextmanager
+def context_block(ctx: dict | None, adapter_key: str | None=None):
+    with get_adapter(adapter_key).context(ctx, _override=True) as cvar:
+        yield cvar
+
 def admin_everywhere(key=None):
     get_adapter(key=key).set_context_free()
     logger.warning(

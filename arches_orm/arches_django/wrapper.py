@@ -387,7 +387,7 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
         user_graphs = context["user_graphs"]
 
         # If set to False, rather than unset, then no.
-        if (user_graph := user_graphs.get(str(cls))) is None:
+        if (user_graph := user_graphs.get(str(cls))) is None and user is not None:
             user_graph = bool(user_can_read_graph(user, str(cls.graphid)))
             user_graphs[str(cls)] = (
                 {}

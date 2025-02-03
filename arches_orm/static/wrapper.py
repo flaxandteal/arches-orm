@@ -454,7 +454,6 @@ class StaticResourceWrapper(ResourceWrapper, proxy=True):
 
     @classmethod
     def _permitted_nodegroups(cls):
-        print(list(cls._nodegroup_objects()), "PERM")
         return list(cls._nodegroup_objects())
 
     @classmethod
