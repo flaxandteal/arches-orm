@@ -16,7 +16,7 @@ def edtf(tile, node, value: str | Date | None, _, __, ___, edtf_datatype):
             else:
                 tile.data[str(node.nodeid)] = str(value)
 
-    if not tile or (data := tile.data[str(node.nodeid)]) is None:
+    if not tile or (data := tile.data[str(node.nodeid)]) is None or not data:
         return None
     return make_edtf(data, **node.config)
 
