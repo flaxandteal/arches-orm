@@ -46,7 +46,7 @@ class ExtendedIntervalViewModel(Interval, ViewModel):
             return _make_edtf(value, **config)
         return _add_view_model_class(value, Interval)
 
-class ExtendedUncertainOrApproximateViewModel(Interval, ViewModel):
+class ExtendedUncertainOrApproximateViewModel(UncertainOrApproximate, ViewModel):
     def __new__(cls, value: str | Interval, **config):
         if isinstance(value, str):
             return _make_edtf(value, **config)
