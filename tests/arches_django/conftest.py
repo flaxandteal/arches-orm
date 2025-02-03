@@ -6,7 +6,7 @@ from unittest.mock import Mock
 import uuid
 from django.db.models import fields
 from django.db.transaction import atomic, rollback, savepoint, savepoint_commit, savepoint_rollback
-
+import sqlite3
 
 # Workaround for Sqlite being given string UUIDs
 def _get_db_prep_value(self, value, connection, prepared=False):
@@ -48,7 +48,7 @@ os.environ.update({
     "INSTALL_DEFAULT_CONCEPTS": "True",
     "PGUSERNAME": "postgres",
     "PGPASSWORD": "postgres",
-    "PGDBNAME": "arches",
+    "PGDBNAME": "arches2",
     "PGHOST": "sut_db",
     "PGPORT": "5432",
     "ESHOST": "sut_es",
@@ -98,12 +98,15 @@ def arches_orm_(search_engine, django_db_blocker, test_sql):
     tile.Tile._getFunctionClassInstances = lambda _: []
     I18n_String_orig = i18n.I18n_String.as_sql
 
+    # * SQLite does not support JSONB functions like jsonb_set, which are used in PostgreSQL.
+    # * The fixture modifies methods in the arches ORM to replace these with SQLite-compatible versions.
     def I18n_String_sql(s, c, c_):
         sql, params = I18n_String_orig(s, c, c_)
         return sql.replace("jsonb_set", "json_set"), params
 
     i18n.I18n_String.as_sql = I18n_String_sql
     I18n_JSON_orig = i18n.I18n_JSON.as_sql
+
 
     def I18n_JSON_sql(s, c, c_):
         sql, params = I18n_JSON_orig(s, c, c_)
