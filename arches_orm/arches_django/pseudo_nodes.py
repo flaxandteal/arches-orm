@@ -1,7 +1,9 @@
 from arches.app.models.tile import Tile as TileProxyModel
 from collections import UserList
+import inspect
 
 from arches_orm.view_models import ViewModel, NodeListViewModel, UnavailableViewModel, ResourceInstanceViewModel
+from arches.app.models.models import TileModel
 
 from .datatypes import get_view_model_for_datatype
 
@@ -136,12 +138,11 @@ class PseudoNodeValue:
     _datatype = None
     _multiple = False
     _as_tile_data = None
+    _convert_tile_model_to_tile_orm = False
 
-    def __init__(self, node, tile=None, value=None, parent=None, child_nodes=None, parent_cls=None):
+    def __init__(self, node, tile: TileProxyModel | TileModel = None, value=None, parent=None, child_nodes=None, parent_cls=None):
         self.node = node
-        self.tile = tile
-        # if self.tile and "Model" in str(self.tile.__class__):
-        #     raise RuntimeError("Should only use Tiles not TileModels")
+        self._tile = tile
         if parent_cls is None:
             if parent is None:
                 raise RuntimeError("Must have a parent or parent class for a pseudo-node")
@@ -164,8 +165,20 @@ class PseudoNodeValue:
     def parenttile_id(self):
         return self.tile.parenttile_id if self.tile else None
     
-    # def arches_default_orm(self):
-    #     return TileProxyModel(self.tile)
+    @property
+    def tile(self):
+        if (self._convert_tile_model_to_tile_orm and isinstance(self._tile, TileModel)):
+                self._tile = TileProxyModel(
+                    tileid=self._tile.tileid,  
+                    data=self._tile.data,
+                    resourceinstance_id=self._tile.resourceinstance_id
+                )
+
+        return self._tile
+
+    @tile.setter
+    def tile(self, value):
+        self._tile = value
 
     def get_tile(self):
         self._update_value()

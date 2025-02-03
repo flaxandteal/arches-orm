@@ -1,7 +1,8 @@
 from typing import Any
 import json
 import time
-from django.core.paginator import Paginator
+from typing import Iterator, Dict, List
+from django.core.paginator import Paginator, Page
 from arches.app.models.resource import Resource
 from django.dispatch import Signal
 from collections import UserDict
@@ -754,39 +755,59 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
             
     @classmethod
     def all(cls, related_prefetch=None, lazy=False, **kwargs):
-        """Get all resources of this type."""
+        """
+        This fetchs all the records from the datatable, 
+
+        Args:
+            related_prefetch (_type_, optional): _description_. Defaults to None.
+            lazy (bool, optional): _description_. Defaults to False.
+
+        Raises:
+            WKRMPermissionDenied: _description_
+
+        Returns:
+            _type_: _description_
+        """
         cls.time_execution('all', True)
 
         if not cls ._can_read_graph():
             raise WKRMPermissionDenied()
         
-        tiles = []
-        permittedNodegroupIds = cls._permitted_nodegroups()
-        defaultFilterTileAgrs = {
-            'nodegroup_id__in': permittedNodegroupIds
-        }
-        limit = kwargs.get('limit', 30)
-        page = kwargs.get('page', 1)
+        permittedNodegroupIds: List[str | None] = cls._permitted_nodegroups()
 
-        def get_tiles():
-             # ! TODO: Remember that this needs to be resources for pagination, not tiles!
+        def get_tiles() -> Iterator[TileModel]:
+            """
+            This method gets an Iterator[TileModel] which are the only tiles permitted towards the user. This method also handles the pagination on the tiles
+            however remember that tiles are children of resources so we paginate the resources
+
+            @return: This returns an iteratoring of permitted tiles towards the user
+            """
+            defaultFilterTileAgrs: Dict[str, any] = {
+                'nodegroup_id__in': permittedNodegroupIds
+            }        
+            
+            tiles: Iterator[TileModel] = []
+            limit: int | None = kwargs.get('limit', 30)
+            page: int | None = kwargs.get('page', 1)
+
             if (page is not None):
-                tiles = TileModel.objects.filter(**defaultFilterTileAgrs).select_related('resourceinstance', 'nodegroup')
-                paginator = Paginator(tiles, limit)
-                page_obj = paginator.get_page(page)
-                tiles = page_obj.object_list
+                resource_ids: List[int] = list(Resource.objects.filter(graph_id=cls.graphid).values_list("resourceinstanceid", flat=True))
+                paginator: Paginator = Paginator(resource_ids, limit)
+                page_obj: Page = paginator.get_page(page)
+
+                resource_ids = page_obj.object_list
+                tiles = TileModel.objects.filter(**defaultFilterTileAgrs, resourceinstance__in=resource_ids).select_related('resourceinstance', 'nodegroup').iterator()    
 
             else: 
-                tiles = TileModel.objects.filter(**defaultFilterTileAgrs).select_related('resourceinstance', 'nodegroup').iterator()
+                tiles = TileModel.objects.filter(**defaultFilterTileAgrs).select_related('resourceinstance', 'nodegroup').iterator()  
 
+            return tiles;
 
-        # tiles = TileModel.objects.filter(**defaultFilterTileAgrs).select_related('resourceinstance', 'nodegroup').iterator()
+        def set_tile_values_and_create_wkris(tiles: Iterator[TileModel]):
+            nodes = Node.objects.filter(nodeid__in=permittedNodegroupIds).iterator();
+            node_dict = {node.nodegroup_id: node for node in nodes}
+            wkriMapping = {}
 
-        wkriMapping = {}
-        count = 0
-        nodes = Node.objects.filter(nodeid__in=permittedNodegroupIds);
-        node_dict = {node.nodegroup_id: node for node in nodes}
-        def set_tile_values_and_create_wkris():
             for tile in tiles:
                 # tile = TileProxyModel(
                 #     tileid=modelTile.tileid,  
@@ -821,19 +842,21 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
                     wkri=wkri
                 )
 
+                print(pseudo_node)
+
+                pseudo_node._convert_tile_resource = True;
                 wkriMapping[resource.resourceinstanceid]["values"][node.alias] = [pseudo_node]
 
+            return wkriMapping
 
-        wkris = [];
-        def set_wkri_value_to_tile_values():
+
+
+        def set_wkri_value_to_tile_values(wkriMapping):
+            wkris = [];
+        
             for key in wkriMapping:
                 wkri = wkriMapping[key]['wkri'];
                 values = wkriMapping[key]['values'];
-
-                print('wkriMapping[key] ! ', wkriMapping[key])
-                print('VALUES set_wkri_value_to_tile_values! ', values)
-
-
                 wkri._values = ValueList(
                     values,
                     wkri._,
@@ -841,10 +864,13 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
                 )
 
                 wkris.append(wkri)
+
+            return wkris
                 
-        get_tiles()
-        set_tile_values_and_create_wkris()
-        set_wkri_value_to_tile_values()
+        tiles = get_tiles()
+        wkriMapping = set_tile_values_and_create_wkris(tiles)
+        wkris = set_wkri_value_to_tile_values(wkriMapping)
+
         cls.time_execution('all', False)
 
         return wkris;
