@@ -50,4 +50,4 @@ class ExtendedUncertainOrApproximateViewModel(UncertainOrApproximate, ViewModel)
     def __new__(cls, value: str | Interval, **config):
         if isinstance(value, str):
             return _make_edtf(value, **config)
-        return _add_view_model_class(value, Interval)
+        return _add_view_model_class(value, UncertainOrApproximate)
