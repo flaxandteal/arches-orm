@@ -373,9 +373,18 @@ class StaticResourceWrapper(ResourceWrapper, proxy=True):
             }
         else:
             nodegroups = {
+                node.nodegroup_id: {
+                    "cardinality": "n",
+                    "legacygroupid": None,
+                    "nodegroupid": node.nodegroup_id,
+                    "parentnodegroup_id": None,
+                }
+                for node in nodes.values() if node.nodegroup_id
+            }
+            nodegroups.update({
                 nodegroup.nodegroupid: nodegroup
                 for nodegroup in graph.nodegroups
-            }
+            })
         edge_pairs = [
             (edge.domainnode_id, edge.rangenode_id)
             for edge in graph.edges
