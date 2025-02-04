@@ -115,6 +115,8 @@ def arches_orm_(search_engine, django_db_blocker, test_sql):
     i18n.I18n_JSON.as_sql = I18n_JSON_sql
 
     from arches.app.datatypes.datatypes import ResourceInstanceDataType
+
+    # Disabling Post Tile Save Function
     # No functions in Sqlite
     ResourceInstanceDataType.post_tile_save = lambda *args, **kwargs: ()
     from arches.app.models.concept import Concept
@@ -168,6 +170,11 @@ def arches_orm_(search_engine, django_db_blocker, test_sql):
     from arches.app.utils.data_management.resource_graphs.importer import (
         import_graph as ResourceGraphImporter,
     )
+    from arches.app.utils.data_management.resources.importer import (
+        import_one_resource,
+    )
+    from arches.app.models.models import PublishedGraph
+    import uuid
 
     with django_db_blocker.unblock():
         skos = SKOSReader()
@@ -175,10 +182,93 @@ def arches_orm_(search_engine, django_db_blocker, test_sql):
             rdf = skos.read_file(str(Path(__file__).parent / "_django" / rdf_file))
             skos.save_concepts_from_skos(rdf, "overwrite", "keep", prevent_indexing=True)
 
-        for model in ("Activity.json", "Person.json"):
-            with (Path(__file__).parent / "_django" / model).open("r") as f:
-                archesfile = JSONDeserializer().deserialize(f)
-                ResourceGraphImporter(archesfile["graph"], True)
+        # ! Method doesn't use RDF files, need to update this, however runnnig into too many problems so will make a ticket on this
+        # ! https://huly.galviadigital.com/workbench/galviadigital/tracker/EMR-48
+        def _seed_database(seed_type: str = 'default'):
+            """
+            Handles the seeding of the database and uses the data inside seed/${seed_type}/...
+
+            @param seed_type: The seeder type so default or maybe only a certain user
+            """
+            directory = Path(__file__).parent / "seed" / seed_type
+
+            # def _handle_rdf_seed(parent_folder:    str):
+            #     for file in (directory / parent_folder).iterdir():
+            #         print(directory / parent_folder / file.name)
+            #         rdf = skos.read_file(directory / parent_folder / file.name)
+            #         skos.save_concepts_from_skos(rdf, "overwrite", "keep", prevent_indexing=True)
+
+            # _handle_rdf_seed('rdf')
+
+            def _handle_models(parent_folder):
+                """
+                Method handles the seeding of models from a JSON
+
+                @param parent_folder: This is the parent_folder of where the graph.json should be located
+                """
+                if not (directory / parent_folder.name / 'graph.json').exists():
+                    return;
+            
+                with (directory / parent_folder.name / 'graph.json').open("r") as f:
+                    archesfile = JSONDeserializer().deserialize(f)
+
+                    print(parent_folder.name)
+
+                    # ! This has to be defined or errors are given
+                    # archesfile["graph"]["cards_x_nodes_x_widgets"] = []
+                    ResourceGraphImporter(archesfile["graph"], True)
+
+                    _handle_business_data(parent_folder)
+
+            def _handle_business_data(parent_folder, **updates):
+                import json
+                from arches.app.utils.data_management.resources.importer import BusinessDataImporter
+
+                if not (directory / parent_folder.name / 'business-data.json').exists():
+                    return;
+            
+
+                # Instantiate the BusinessDataImporter
+                business_data_importer = BusinessDataImporter(
+                    file=directory / parent_folder.name / 'business-data.json',
+                )
+
+                # Now call the import method with any necessary arguments
+                business_data_importer.import_business_data(
+                    file_format="json",  # Specify the format of your data file
+                    overwrite="overwrite",  # Can be "append" or "overwrite"
+                    bulk=False,  # For bulk importing, set this to True
+                    create_concepts=True,  # Set whether to create new concepts
+                    create_collections=True,  # Set whether to create new collections
+                    use_multiprocessing=False,  # Enable multiprocessing if needed
+                    prevent_indexing=False  # Prevent indexing if required
+                )
+            
+                # with (directory / parent_folder.name / 'business-data.json').open("r") as f:
+                #     archesfile = JSONDeserializer().deserialize(f)
+
+                #     for resource in archesfile['business_data']['resources']:
+                #         if ('graph_publication_id' in updates):
+                #             resource['resourceinstance']['graph_publication_id'] = updates['graph_publication_id']
+
+                #         if ('publication_id' in updates):
+                #             resource['resourceinstance']['publication_id'] = updates['publication_id']
+
+                #         import_one_resource(json.dumps(resource))
+
+                 
+                    
+
+            for parent_folder in directory.iterdir():
+                if (parent_folder.name == 'rdf'):
+                    # _handle_rdf_seed(parent_folder)
+                    continue
+
+                else:
+                    _handle_models(parent_folder)
+
+
+        
         from arches_orm.adapter import ADAPTER_MANAGER
         ADAPTER_MANAGER.set_default_adapter("arches-django")
 
@@ -191,8 +281,37 @@ def arches_orm_(search_engine, django_db_blocker, test_sql):
         from arches_orm.adapter import get_adapter
         get_adapter("arches-django").config["save_crosses"] = True
         import arches_orm.models
+        def printTables():
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
+                tables = cursor.fetchall()
+
+            print(tables)  # This will show all tables in the database
+        printTables()
+        
+        _seed_database()
+        
+        # Assuming this file is in arches/app/models/migrations/7125_geometry_index_table.py
+
+    # # Create a custom function that simulates the refresh_geojson_geometries behavior
+    #     def refresh_geojson_geometries_fake(*args):
+    #         print("refresh_geojson_geometries was called")
+    #         return True
+
+    #     # Connect to your SQLite database
+    #     with connection.cursor() as cursor:
+    #         # Register the fake function with SQLite
+    #         connection.create_function("refresh_geojson_geometries", 0, refresh_geojson_geometries_fake)
+
+    #         # Now, you can execute the function within a query context via the cursor
+    #         cursor.execute("SELECT refresh_geojson_geometries();")
+    #         result = cursor.fetchone()
+    #         print(result)
+
 
         yield arches_orm
+
+
 
 @pytest.fixture(scope="function")
 def arches_orm(django_db_serialized_rollback, arches_orm_, search_engine):

@@ -1,0 +1,302 @@
+{
+    "graph": [
+        {
+            "author": " ",
+            "cards": [
+                {
+                    "active": true,
+                    "cardid": "419f92c3-9e12-498b-a4e3-95fce95c4a41",
+                    "component_id": "f05e4d3a-53c1-11e8-b0ea-784f435179ea",
+                    "config": null,
+                    "constraints": [],
+                    "cssclass": null,
+                    "description": null,
+                    "graph_id": "916bfb89-f68f-4154-8a54-84bd6f0d3ed3",
+                    "helpenabled": false,
+                    "helptext": {
+                        "en": ""
+                    },
+                    "helptitle": {
+                        "en": ""
+                    },
+                    "instructions": {
+                        "en": ""
+                    },
+                    "is_editable": false,
+                    "name": {
+                        "en": "Top sports"
+                    },
+                    "nodegroup_id": "0b4074aa-e2eb-11ef-b088-0df5e9e7bf0f",
+                    "sortorder": null,
+                    "visible": true
+                },
+                {
+                    "active": true,
+                    "cardid": "d5d1088e-6a5e-4297-89d4-d4c5f21605fe",
+                    "component_id": "f05e4d3a-53c1-11e8-b0ea-784f435179ea",
+                    "config": null,
+                    "constraints": [],
+                    "cssclass": null,
+                    "description": null,
+                    "graph_id": "916bfb89-f68f-4154-8a54-84bd6f0d3ed3",
+                    "helpenabled": false,
+                    "helptext": {
+                        "en": ""
+                    },
+                    "helptitle": {
+                        "en": ""
+                    },
+                    "instructions": {
+                        "en": ""
+                    },
+                    "is_editable": false,
+                    "name": {
+                        "en": "Top Hobbies"
+                    },
+                    "nodegroup_id": "32d86859-e2eb-11ef-9962-4d5012bb6944",
+                    "sortorder": null,
+                    "visible": true
+                }
+            ],
+            "cards_x_nodes_x_widgets": [
+            ],
+            "color": null,
+            "config": {},
+            "deploymentdate": null,
+            "deploymentfile": null,
+            "description": {
+                "en": ""
+            },
+            "edges": [
+                {
+                    "description": null,
+                    "domainnode_id": "01e5a55d-e2eb-11ef-90cc-0df5e9e7bf0f",
+                    "edgeid": "53949038-75ef-4a42-b2c7-fd698e164771",
+                    "graph_id": "916bfb89-f68f-4154-8a54-84bd6f0d3ed3",
+                    "name": null,
+                    "ontologyproperty": null,
+                    "rangenode_id": "0b4074aa-e2eb-11ef-b088-0df5e9e7bf0f"
+                },
+                {
+                    "description": null,
+                    "domainnode_id": "01e5a55d-e2eb-11ef-90cc-0df5e9e7bf0f",
+                    "edgeid": "5cd9042b-8b0b-4b16-aae3-d897719374e8",
+                    "graph_id": "916bfb89-f68f-4154-8a54-84bd6f0d3ed3",
+                    "name": null,
+                    "ontologyproperty": null,
+                    "rangenode_id": "32d86859-e2eb-11ef-9962-4d5012bb6944"
+                }
+            ],
+            "functions_x_graphs": [],
+            "graphid": "916bfb89-f68f-4154-8a54-84bd6f0d3ed3",
+            "iconclass": "",
+            "is_editable": false,
+            "isresource": true,
+            "jsonldcontext": null,
+            "name": {
+                "en": "Hobbies"
+            },
+            "nodegroups": [
+                {
+                    "cardinality": "1",
+                    "legacygroupid": null,
+                    "nodegroupid": "0b4074aa-e2eb-11ef-b088-0df5e9e7bf0f",
+                    "parentnodegroup_id": null
+                },
+                {
+                    "cardinality": "1",
+                    "legacygroupid": null,
+                    "nodegroupid": "32d86859-e2eb-11ef-9962-4d5012bb6944",
+                    "parentnodegroup_id": null
+                }
+            ],
+            "nodes": [
+                {
+                    "alias": null,
+                    "config": {
+                        "en": ""
+                    },
+                    "datatype": "semantic",
+                    "description": "",
+                    "exportable": false,
+                    "fieldname": null,
+                    "graph_id": "916bfb89-f68f-4154-8a54-84bd6f0d3ed3",
+                    "hascustomalias": false,
+                    "is_collector": false,
+                    "isrequired": false,
+                    "issearchable": true,
+                    "istopnode": true,
+                    "name": "Hobbies",
+                    "nodegroup_id": null,
+                    "nodeid": "01e5a55d-e2eb-11ef-90cc-0df5e9e7bf0f",
+                    "ontologyclass": null,
+                    "parentproperty": "",
+                    "sortorder": 0,
+                    "sourcebranchpublication_id": null
+                },
+                {
+                    "alias": "top_sports",
+                    "config": {
+                        "i18n_config": {
+                            "fn": "arches.app.datatypes.datatypes.DomainDataType"
+                        },
+                        "options": [
+                            {
+                                "id": "ac292fa4-2886-45f2-a139-48ad0fb66472",
+                                "selected": false,
+                                "text": {
+                                    "en": "tennis"
+                                }
+                            },
+                            {
+                                "id": "ae8cb57b-6124-4288-88c6-af12d5e615ae",
+                                "selected": false,
+                                "text": {
+                                    "en": "racing"
+                                }
+                            },
+                            {
+                                "id": "94c7bc68-ee1c-4beb-9b29-8941b126170b",
+                                "selected": false,
+                                "text": {
+                                    "en": "golf"
+                                }
+                            },
+                            {
+                                "id": "dd2b12e2-e297-4e65-a6a0-bde9cfffb521",
+                                "selected": false,
+                                "text": {
+                                    "en": "basketball"
+                                }
+                            },
+                            {
+                                "id": "e77f0e1b-46fb-4938-b469-0e722fc45bfe",
+                                "selected": false,
+                                "text": {
+                                    "en": "football"
+                                }
+                            }
+                        ]
+                    },
+                    "datatype": "domain-value",
+                    "description": null,
+                    "exportable": false,
+                    "fieldname": null,
+                    "graph_id": "916bfb89-f68f-4154-8a54-84bd6f0d3ed3",
+                    "hascustomalias": false,
+                    "is_collector": true,
+                    "isrequired": false,
+                    "issearchable": true,
+                    "istopnode": false,
+                    "name": "Top sports",
+                    "nodegroup_id": "0b4074aa-e2eb-11ef-b088-0df5e9e7bf0f",
+                    "nodeid": "0b4074aa-e2eb-11ef-b088-0df5e9e7bf0f",
+                    "ontologyclass": null,
+                    "parentproperty": null,
+                    "sortorder": 0,
+                    "sourcebranchpublication_id": null
+                },
+                {
+                    "alias": "top_hobbies",
+                    "config": {
+                        "i18n_config": {
+                            "fn": "arches.app.datatypes.datatypes.DomainDataType"
+                        },
+                        "options": [
+                            {
+                                "id": "3d2e07d3-c880-4e8d-bfe1-3e566e4c50d7",
+                                "selected": false,
+                                "text": {
+                                    "en": "TV"
+                                }
+                            },
+                            {
+                                "id": "000bd9a7-b110-4fe2-a010-ea0e6e6b6263",
+                                "selected": false,
+                                "text": {
+                                    "en": "Running"
+                                }
+                            },
+                            {
+                                "id": "e19b5899-99b4-4205-a999-5e03c46403cb",
+                                "selected": false,
+                                "text": {
+                                    "en": "Socialling"
+                                }
+                            },
+                            {
+                                "id": "16d75975-811c-4b6d-8e5f-4b043fadc038",
+                                "selected": false,
+                                "text": {
+                                    "en": "Sport"
+                                }
+                            },
+                            {
+                                "id": "c722d30c-3946-4e94-aaa0-0254ecda5278",
+                                "selected": false,
+                                "text": {
+                                    "en": "Gaming"
+                                }
+                            }
+                        ]
+                    },
+                    "datatype": "domain-value-list",
+                    "description": null,
+                    "exportable": false,
+                    "fieldname": null,
+                    "graph_id": "916bfb89-f68f-4154-8a54-84bd6f0d3ed3",
+                    "hascustomalias": false,
+                    "is_collector": true,
+                    "isrequired": false,
+                    "issearchable": true,
+                    "istopnode": false,
+                    "name": "Top Hobbies",
+                    "nodegroup_id": "32d86859-e2eb-11ef-9962-4d5012bb6944",
+                    "nodeid": "32d86859-e2eb-11ef-9962-4d5012bb6944",
+                    "ontologyclass": null,
+                    "parentproperty": null,
+                    "sortorder": 0,
+                    "sourcebranchpublication_id": null
+                }
+            ],
+            "ontology_id": null,
+            "publication": {
+                "graph_id": "916bfb89-f68f-4154-8a54-84bd6f0d3ed3",
+                "notes": null,
+                "publicationid": "5ad3dea9-e2eb-11ef-b88e-4d5012bb6944",
+                "published_time": "2025-02-04T05:29:54.080",
+                "user_id": 1
+            },
+            "relatable_resource_model_ids": [],
+            "resource_2_resource_constraints": [],
+            "root": {
+                "alias": null,
+                "config": {
+                    "en": ""
+                },
+                "datatype": "semantic",
+                "description": "",
+                "exportable": false,
+                "fieldname": null,
+                "graph_id": "916bfb89-f68f-4154-8a54-84bd6f0d3ed3",
+                "hascustomalias": false,
+                "is_collector": false,
+                "isrequired": false,
+                "issearchable": true,
+                "istopnode": true,
+                "name": "Hobbies",
+                "nodegroup_id": null,
+                "nodeid": "01e5a55d-e2eb-11ef-90cc-0df5e9e7bf0f",
+                "ontologyclass": null,
+                "sortorder": 0,
+                "sourcebranchpublication_id": null
+            },
+            "slug": null,
+            "subtitle": {
+                "en": ""
+            },
+            "template_id": "50000000-0000-0000-0000-000000000001",
+            "version": ""
+        }
+    ]
+}
