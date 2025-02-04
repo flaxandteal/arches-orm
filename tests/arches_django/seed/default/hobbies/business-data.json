@@ -1,0 +1,141 @@
+{
+    "business_data": {
+        "resources": [
+            {
+                "resourceinstance": {
+                    "descriptors": {
+                        "en": {
+                            "description": "Undefined",
+                            "map_popup": "Undefined",
+                            "name": "<Hello>"
+                        }
+                    },
+                    "graph_id": "916bfb89-f68f-4154-8a54-84bd6f0d3ed3",
+                    "graph_publication_id": "5ad3dea9-e2eb-11ef-b88e-4d5012bb6944",
+                    "legacyid": null,
+                    "name": "<Hobbies>",
+                    "principaluser_id": 1,
+                    "resourceinstanceid": "850ab51c-4b44-4176-9420-227553c3247b",
+                    "publication_id": "5ad3dea9-e2eb-11ef-b88e-4d5012bb6944"
+                },
+                "tiles": [
+                    {
+                        "data": {
+                            "32d86859-e2eb-11ef-9962-4d5012bb6944": [
+                                "000bd9a7-b110-4fe2-a010-ea0e6e6b6263",
+                                "16d75975-811c-4b6d-8e5f-4b043fadc038"
+                            ]
+                        },
+                        "nodegroup_id": "32d86859-e2eb-11ef-9962-4d5012bb6944",
+                        "parenttile_id": null,
+                        "provisionaledits": null,
+                        "resourceinstance_id": "850ab51c-4b44-4176-9420-227553c3247b",
+                        "sortorder": 0,
+                        "tileid": "8c9a9a1e-4651-4545-b00c-a9beda48efae"
+                    },
+                    {
+                        "data": {
+                            "0b4074aa-e2eb-11ef-b088-0df5e9e7bf0f": ["94c7bc68-ee1c-4beb-9b29-8941b126170b"]
+                        },
+                        "nodegroup_id": "0b4074aa-e2eb-11ef-b088-0df5e9e7bf0f",
+                        "parenttile_id": null,
+                        "provisionaledits": null,
+                        "resourceinstance_id": "850ab51c-4b44-4176-9420-227553c3247b",
+                        "sortorder": 0,
+                        "tileid": "98a24e62-7d1e-4760-99fa-59f2382ed0d3"
+                    }
+                ]
+            },
+            {
+                "resourceinstance": {
+                    "descriptors": {
+                        "en": {
+                            "description": "Undefined",
+                            "map_popup": "Undefined",
+                            "name": "<Hello>"
+                        }
+                    },
+                    "graph_id": "916bfb89-f68f-4154-8a54-84bd6f0d3ed3",
+                    "graph_publication_id": "5ad3dea9-e2eb-11ef-b88e-4d5012bb6944",
+                    "legacyid": null,
+                    "name": "<Hobbies>",
+                    "principaluser_id": 1,
+                    "resourceinstanceid": "ad0e0c60-37e7-44b8-b356-649b05facdd7",
+                    "publication_id": "5ad3dea9-e2eb-11ef-b88e-4d5012bb6944"
+                },
+                "tiles": [
+                    {
+                        "data": {
+                            "32d86859-e2eb-11ef-9962-4d5012bb6944": [
+                                "000bd9a7-b110-4fe2-a010-ea0e6e6b6263",
+                                "16d75975-811c-4b6d-8e5f-4b043fadc038"
+                            ]
+                        },
+                        "nodegroup_id": "32d86859-e2eb-11ef-9962-4d5012bb6944",
+                        "parenttile_id": null,
+                        "provisionaledits": null,
+                        "resourceinstance_id": "ad0e0c60-37e7-44b8-b356-649b05facdd7",
+                        "sortorder": 0,
+                        "tileid": "4c373eae-ab6b-414c-b55b-453300d7d673"
+                    },
+                    {
+                        "data": {
+                            "0b4074aa-e2eb-11ef-b088-0df5e9e7bf0f": ["94c7bc68-ee1c-4beb-9b29-8941b126170b"]
+                        },
+                        "nodegroup_id": "0b4074aa-e2eb-11ef-b088-0df5e9e7bf0f",
+                        "parenttile_id": null,
+                        "provisionaledits": null,
+                        "resourceinstance_id": "ad0e0c60-37e7-44b8-b356-649b05facdd7",
+                        "sortorder": 0,
+                        "tileid": "8a47a65c-a059-4fa6-9d83-e7496ea273ae"
+                    }
+                ]
+            },
+            {
+                "resourceinstance": {
+                    "descriptors": {
+                        "en": {
+                            "description": "Undefined",
+                            "map_popup": "Undefined",
+                            "name": "<Hello>"
+                        }
+                    },
+                    "graph_id": "916bfb89-f68f-4154-8a54-84bd6f0d3ed3",
+                    "graph_publication_id": "5ad3dea9-e2eb-11ef-b88e-4d5012bb6944",
+                    "legacyid": null,
+                    "name": "<Hobbies>",
+                    "principaluser_id": 1,
+                    "resourceinstanceid": "eb2a55cc-9a0d-4965-b670-ac076b019035",
+                    "publication_id": "5ad3dea9-e2eb-11ef-b88e-4d5012bb6944"
+                },
+                "tiles": [
+                    {
+                        "data": {
+                            "32d86859-e2eb-11ef-9962-4d5012bb6944": [
+                                "000bd9a7-b110-4fe2-a010-ea0e6e6b6263",
+                                "16d75975-811c-4b6d-8e5f-4b043fadc038"
+                            ]
+                        },
+                        "nodegroup_id": "32d86859-e2eb-11ef-9962-4d5012bb6944",
+                        "parenttile_id": null,
+                        "provisionaledits": null,
+                        "resourceinstance_id": "eb2a55cc-9a0d-4965-b670-ac076b019035",
+                        "sortorder": 0,
+                        "tileid": "b03d50c4-5ba2-4b5c-bbba-922f390d1490"
+                    },
+                    {
+                        "data": {
+                            "0b4074aa-e2eb-11ef-b088-0df5e9e7bf0f": ["94c7bc68-ee1c-4beb-9b29-8941b126170b"]
+                        },
+                        "nodegroup_id": "0b4074aa-e2eb-11ef-b088-0df5e9e7bf0f",
+                        "parenttile_id": null,
+                        "provisionaledits": null,
+                        "resourceinstance_id": "eb2a55cc-9a0d-4965-b670-ac076b019035",
+                        "sortorder": 0,
+                        "tileid": "172c1a41-41c9-4add-b8a9-5d9401a9cf6f"
+                    }
+                ]
+            }
+        ]
+    }
+}
