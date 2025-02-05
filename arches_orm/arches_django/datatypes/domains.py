@@ -8,7 +8,6 @@ from arches_orm.view_models import (
     DomainValueViewModel, 
     DomainOptions
 )
-from arches_orm.collection import make_collection, CollectionEnum
 from ._register import REGISTER
 
 def make_domain_value(value: uuid.UUID | None, domain_options: DomainOptions | None, datatype: str):
@@ -45,15 +44,6 @@ def dv_as_tile_data(domain_value):
 
 @REGISTER("domain-value-list")
 def domain_value_list(tile, node, value: List[uuid.UUID] | None, _, __, ___, datatype):
-    # print('TILE |  ', tile)
-    # print('node |  ', node)
-    # print('value |  ', value)
-    # print('_ |  ', _)
-    # print('__ |  ', __)
-    # print('__ |  ', __)
-    # print('___ |  ', ___)
-    # print('datatype |  ', datatype)
-
     # * We check if the value is set, if not we reterieve the value from a tile
     if value is None or not value:
         value = tile.data.get(str(node.nodeid), []) or []
@@ -65,7 +55,5 @@ def domain_value_list(tile, node, value: List[uuid.UUID] | None, _, __, ___, dat
 
 @domain_value_list.as_tile_data
 def dl_as_tile_data(domain_value_list):
-    print('dvl_as_tile_data | ', domain_value_list)
     data = [dv_as_tile_data(domain_value) for domain_value in domain_value_list]  # Should be a list, not a set
-    print('dvl_as_tile_data  data | ', data)
     return data

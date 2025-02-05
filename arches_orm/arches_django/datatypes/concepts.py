@@ -4,6 +4,11 @@ from enum import Enum
 from functools import partial
 
 from django.db.utils import OperationalError
+from arches_orm.view_models.domains import (
+    DomainValueViewModel, 
+    DomainOptions
+)
+
 from arches.app.models.concept import Concept
 from arches.app.models.models import Value
 
@@ -141,3 +146,45 @@ def make_concept_value(value: uuid.UUID | None, collection_id: uuid.UUID | None,
 @concept_value.as_tile_data
 def cv_as_tile_data(concept_value):
     return None if isinstance(concept_value, EmptyConceptValueViewModel) else str(concept_value._concept_value_id)
+
+def make_domain_value(value: uuid.UUID | None, options: DomainOptions | None, datatype: str):
+    return DomainValueViewModel(
+        value,
+        options,
+        datatype
+    )
+
+
+
+@REGISTER("domain-value")
+def domain_value(tile, node, value: uuid.UUID | None, _, __, ___, datatype):
+    if value is None:
+        value = tile.data.get(str(node.nodeid), []) or []
+
+    domain_options = None
+
+    if node and node.config:
+        domain_options = node.config.get("options")
+
+    return DomainValueViewModel(value, domain_options, datatype)
+
+@REGISTER("domain-value-list")
+
+def domain_value_list(tile, node, value: uuid.UUID | None, _, __, ___, datatype):
+    print('TILE |  ', tile)
+    print('node |  ', node)
+    print('value |  ', value)
+    print('_ |  ', _)
+    print('__ |  ', __)
+    print('__ |  ', __)
+    print('___ |  ', ___)
+    print('datatype |  ', datatype)
+
+
+@domain_value.as_tile_data
+def dv_as_tile_data(domain_value):
+    return domain_value.value
+
+@domain_value_list.as_tile_data
+def dv_as_tile_data(domain_value):
+    return domain_value.value
