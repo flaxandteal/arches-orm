@@ -2,8 +2,8 @@ import uuid
 import logging
 from enum import Enum
 from functools import partial
-
 from django.db.utils import OperationalError
+from typing import List
 from arches.app.models.concept import Concept
 from arches.app.models.models import Value
 

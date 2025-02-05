@@ -230,16 +230,16 @@ class DomainValueViewModel(str, DomainValue, ViewModel):
         return self._lang
     
     """ SETTERS """
-    @property.setter
-    def lang(self, lang: str):
-        """_summary_
-        Method sets the lang, therefore the value changes the lang
+    # @property.setter
+    # def lang(self, lang: str):
+    #     """_summary_
+    #     Method sets the lang, therefore the value changes the lang
 
-        Args:
-            lang (str): This is the language code for example 'en', 'es', 'us'...
-        """
+    #     Args:
+    #         lang (str): This is the language code for example 'en', 'es', 'us'...
+    #     """
 
-        self._lang = lang;
+    #     self._lang = lang;
 
 
 class DomainListValueViewModel(UserList[DomainValueViewModel], ViewModel):
