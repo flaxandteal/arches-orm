@@ -3,7 +3,7 @@ from typing import List
 
 from arches_orm.view_models import (
 
-    EmptyConceptValueViewModel,
+    EmptyDomainValueViewModel,
     DomainListValueViewModel,
     DomainValueViewModel, 
     DomainOptions
@@ -13,13 +13,11 @@ from ._register import REGISTER
 
 def make_domain_value(value: uuid.UUID | None, domain_options: DomainOptions | None, datatype: str):
 
-    if value is None or isinstance(value, EmptyConceptValueViewModel):
+    if value is None or isinstance(value, EmptyDomainValueViewModel):
         if domain_options:
-            # return EmptyConceptValueViewModel(
-            #     value,
-
-            #     partial(retrieve_collection, datatype=datatype)
-            # )
+            return EmptyDomainValueViewModel(
+                value
+            )
             return None
         return None
 
@@ -60,13 +58,8 @@ def domain_value_list(tile, node, value: List[uuid.UUID] | None, _, __, ___, dat
     if value is None or not value:
         value = tile.data.get(str(node.nodeid), []) or []
 
-    domain_options: DomainOptions | None = None
-
-    def make_domain_value(value):
+    def make_domain_value(value: uuid.UUID):
         return REGISTER.make(tile, node, value=value, datatype="domain-value")[0]
-
-    if node and node.config:
-        domain_options = node.config.get("options")
 
     return DomainListValueViewModel(value, make_domain_value)
 

@@ -14,46 +14,40 @@ from ._base import (
 from typing import TypedDict, Dict, List
 from uuid import UUID
 
-# Define the structure of the 'text' field
+""" TYPING """
 class DomainOptionText(TypedDict):
-    en: str  # You can add more languages if needed, e.g., "fr": str, "es": str, etc.
+    en: str
 
-# Define the structure of each option
 class DomainOption(TypedDict):
     id: UUID
     text: DomainOptionText
     selected: bool
 
-# Define a type alias for a list of options
 DomainOptions = List[DomainOption]
 
-# class ValueProtocol(Protocol):
-#     """Minimal representation of an Arches concept."""
+""" VIEW MODELS """
 
-#     value: str
-#     language: str
+class EmptyDomainValueViewModel(ViewModel):
+    def __bool__(self) -> bool:
+        return False
 
-# class EmptyDomainValueViewModel(CollectionChild, ViewModel):
-#     def __bool__(self) -> bool:
-#         return False
+    def __hash__(self) -> int:
+        return hash(None)
 
-#     def __hash__(self) -> int:
-#         return hash(None)
-
-#     def __eq__(self, other: Any) -> bool:
-#         return other is None or isinstance(other, EmptyDomainValueViewModel)
+    def __eq__(self, other: Any) -> bool:
+        return other is None or isinstance(other, EmptyDomainValueViewModel)
 
 class DomainValueViewModel(ViewModel):
     """
     This class is an ORM to handle a node which is a domain-value datatype. 
     """
 
-    _value_uuid = None;
-    _key_by_domain_options = None;
-    _selected_domain_option = None;
-    _lang = None;
-    _domain_options = None;
-    _datatype = None;
+    _value_uuid: uuid.UUID = None;
+    _key_by_domain_options: Dict[uuid.UUID, DomainOptions] = None;
+    _selected_domain_option: DomainOption = None;
+    _lang: str = None;
+    _domain_options: DomainOptions = None;
+    _datatype: str = None;
 
     def __init__(self, value_uuid: uuid.UUID, domain_options: DomainOptions, datatype: str, lang: str = 'en'):
         """
@@ -134,32 +128,26 @@ class DomainValueViewModel(ViewModel):
             str | None: The domain option text string based on the lang, however if the lang doesn't exisit, then return None
         """
 
-        if (self.lang not in self.domain['text']):
+        if (self._lang not in self.domain['text']):
             return None;
 
-        return self.domain['text'][self.lang]
+        return self.domain['text'][self._lang]
 
-    @property
-    def lang(self) -> str:
+
+    """ SETTER """
+    def lang(self, lang: str) -> str:
         """_summary_
-        Method returns the lang returns the current language
-        
+        Method sets the lang and returns the value with the updated lang. Wanted this similar to the string model view
+
+        Args:
+            lang (str): This is the language code
+
         Returns:
-            str: Returns the current language
+            str: This is the updated value with the updated lang
         """
-        return self._lang
-    
-    """ SETTERS """
-    # @property.setter
-    # def lang(self, lang: str):
-    #     """_summary_
-    #     Method sets the lang, therefore the value changes the lang
 
-    #     Args:
-    #         lang (str): This is the language code for example 'en', 'es', 'us'...
-    #     """
-
-    #     self._lang = lang;
+        self._lang  = lang;
+        return self.value;
 
 
 class DomainListValueViewModel(UserList[DomainValueViewModel], ViewModel):

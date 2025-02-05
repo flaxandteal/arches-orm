@@ -18,7 +18,7 @@ class RegisterFunction(Callable):
         return as_tile_data_fn
 
     def transform_value_for_tile(self, value):
-        print(f"ERROR: transform_value_for_tile called for {self.fn.__name__}, but as_tile_data_fn is not set!")
+        print('transform_value_for_tile', value)
         return self.as_tile_data_fn(value)
 
 
@@ -89,7 +89,6 @@ class ViewModelRegister(UserDict):
 
         if datatype_name in self:
             registration = self[datatype_name]
-            print(f"REGISTER function found for datatype: {datatype_name}")  # Debugging
             record = registration(tile, node, value, parent, parent_cls, child_nodes, datatype)
             return record, registration.transform_value_for_tile, datatype_name, datatype.collects_multiple_values()
         else:
@@ -100,7 +99,6 @@ class ViewModelRegister(UserDict):
             else:
                 transformed = None
             
-            print(f"Transformed Value for {datatype_name}: {transformed}")  # Debugging
             return transformed, lambda value: datatype.transform_value_for_tile(
                 value, **(node.config or {})
             ), datatype_name, datatype.collects_multiple_values()
