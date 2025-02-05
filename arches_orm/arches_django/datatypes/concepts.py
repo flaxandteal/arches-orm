@@ -162,6 +162,10 @@ def domain_value(tile, node, value: uuid.UUID | None, _, __, ___, datatype) -> D
 
     return make_domain_value(value, domain_options, datatype)
 
+@domain_value.as_tile_data
+def dv_as_tile_data(domain_value):
+    return domain_value.value
+
 @REGISTER("domain-value-list")
 def domain_value_list(tile, node, value: List[uuid.UUID] | None, _, __, ___, datatype):
     # print('TILE |  ', tile)
@@ -185,19 +189,11 @@ def domain_value_list(tile, node, value: List[uuid.UUID] | None, _, __, ___, dat
     if node and node.config:
         domain_options = node.config.get("options")
 
-    DomainListValueViewModel(value, make_domain_value)
-
-@domain_value.as_tile_data
-def dv_as_tile_data(domain_value):
-    return domain_value.value
+    return DomainListValueViewModel(value, make_domain_value)
 
 @domain_value_list.as_tile_data
-def dvl_as_tile_data(domain_value_list):
+def dl_as_tile_data(domain_value_list):
     print('dvl_as_tile_data | ', domain_value_list)
-
-    data = [dv_as_tile_data(domain_value) for domain_value in domain_value_list]
-
+    data = [dv_as_tile_data(domain_value) for domain_value in domain_value_list]  # Should be a list, not a set
     print('dvl_as_tile_data  data | ', data)
-
-
     return data
