@@ -16,17 +16,15 @@ from uuid import UUID
 
 DEFAULT_LANGUAGE = "en"
 
-# Define the structure of the 'text' field
+""" TYPING """
 class DomainOptionText(TypedDict):
-    en: str  # You can add more languages if needed, e.g., "fr": str, "es": str, etc.
+    en: str
 
-# Define the structure of each option
 class DomainOption(TypedDict):
     id: UUID
     text: DomainOptionText
     selected: bool
 
-# Define a type alias for a list of options
 DomainOptions = List[DomainOption]
 
 class DomainEnum(Enum):
@@ -92,12 +90,12 @@ class DomainValueViewModel(str, DomainValue, ViewModel):
     This class is an ORM to handle a node which is a domain-value datatype. 
     """
 
-    _value_uuid = None;
-    _key_by_domain_options = None;
-    _selected_domain_option = None;
-    _lang = None;
-    _domain_options = None;
-    _datatype = None;
+    _value_uuid: uuid.UUID = None;
+    _key_by_domain_options: Dict[uuid.UUID, DomainOptions] = None;
+    _selected_domain_option: DomainOption = None;
+    _lang: str = None;
+    _domain_options: DomainOptions = None;
+    _datatype: str = None;
 
     def __init__(self, value_uuid: uuid.UUID, domain_options: DomainOptions, datatype: str, lang: str = 'en'):
         """
@@ -219,27 +217,21 @@ class DomainValueViewModel(str, DomainValue, ViewModel):
 
         return self.domain['text'].get(lang or DEFAULT_LANGUAGE)
 
-    @property
-    def lang(self) -> str:
+
+    """ SETTER """
+    def lang(self, lang: str) -> str:
         """_summary_
-        Method returns the lang returns the current language
-        
+        Method sets the lang and returns the value with the updated lang. Wanted this similar to the string model view
+
+        Args:
+            lang (str): This is the language code
+
         Returns:
-            str: Returns the current language
+            str: This is the updated value with the updated lang
         """
-        return self._lang
-    
-    """ SETTERS """
-    # @property.setter
-    # def lang(self, lang: str):
-    #     """_summary_
-    #     Method sets the lang, therefore the value changes the lang
 
-    #     Args:
-    #         lang (str): This is the language code for example 'en', 'es', 'us'...
-    #     """
-
-    #     self._lang = lang;
+        self._lang  = lang;
+        return self.value;
 
 
 class DomainListValueViewModel(UserList[DomainValueViewModel], ViewModel):
