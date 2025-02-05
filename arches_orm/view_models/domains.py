@@ -43,7 +43,7 @@ DomainOptions = List[DomainOption]
 #     def __eq__(self, other: Any) -> bool:
 #         return other is None or isinstance(other, EmptyDomainValueViewModel)
 
-class DomainValueViewModel:
+class DomainValueViewModel(ViewModel):
     """
     This class is an ORM to handle a node which is a domain-value datatype. 
     """
@@ -150,36 +150,36 @@ class DomainValueViewModel:
         return self._lang
     
     """ SETTERS """
-    @property.setter
-    def lang(self, lang: str):
-        """_summary_
-        Method sets the lang, therefore the value changes the lang
+    # @property.setter
+    # def lang(self, lang: str):
+    #     """_summary_
+    #     Method sets the lang, therefore the value changes the lang
 
-        Args:
-            lang (str): This is the language code for example 'en', 'es', 'us'...
-        """
+    #     Args:
+    #         lang (str): This is the language code for example 'en', 'es', 'us'...
+    #     """
 
-        self._lang = lang;
+    #     self._lang = lang;
 
 
-class DomainListValueViewModel():
+class DomainListValueViewModel(UserList[DomainValueViewModel], ViewModel):
     def __init__(
         self,
-        domain_option_ids: Iterable[str | uuid.UUID],
-        make_cb: Callable[[uuid.UUID], DomainValueViewModel]
+        domain_value_list_ids: Iterable[str | uuid.UUID],
+        make_domain_value: Callable[[uuid.UUID], DomainValueViewModel]
     ):
         UserList.__init__(self)
-        self._make_cb = make_cb
+        self._make_domain_value = make_domain_value
         self._serialize_entries = {}
-        for concept_value_id in domain_option_ids:
-            self.append(concept_value_id)
+        for domain_value_id in domain_value_list_ids:
+            self.append(domain_value_id)
 
     def append(self, value):
         if not isinstance(value, DomainValueViewModel):
-            value = self._make_cb(value)
+            value = self._make_domain_value(value)
         super().append(value)
 
     def remove(self, value):
         if not isinstance(value, DomainValueViewModel):
-            value = self._make_cb(value)
+            value = self._make_domain_value(value)
         super().remove(value)
