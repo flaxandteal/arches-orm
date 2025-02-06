@@ -12,15 +12,8 @@ INSTALLED_APPS = (
 FILENAME_GENERATOR = "arches.app.utils.storage_filename_generator.generate_filename"
 DATABASES = {
     "default": {
-        "ENGINE": "django.contrib.gis.db.backends.postgis",
-        "NAME": "arches2",  # You still need to specify a name
-        "USER": "postgres",  # Provide user credentials
-        "PASSWORD": "postgres",
-        "HOST": "localhost",  # Or your PostgreSQL host
-        "PORT": "5432",  # Default PostgreSQL port
-        "OPTIONS": {
-            "options": "-c search_path=pg_temp,public"  # Use temporary schema
-        }
+        "ENGINE": "django.contrib.gis.db.backends.spatialite",
+        "NAME": ":memory:",
     }
 }
 
