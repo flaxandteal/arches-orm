@@ -97,9 +97,9 @@ def cl_as_tile_data(concept_list):
 @REGISTER("concept")
 def concept_value(tile, node, value: uuid.UUID | str | None | CollectionEnum | ConceptValueViewModel | EmptyConceptValueViewModel, __, ___, ____, datatype) -> ConceptValueViewModel | EmptyConceptValueViewModel | None:
     
-    print('concept_value | value | ', value)
-    print('concept_value | node | ', node)
-    print('concept_value | tile | ', tile)
+    # print('concept_value | value | ', value)
+    # print('concept_value | node | ', node)
+    # print('concept_value | tile | ', tile)
 
     if value is None:
         value = tile.data.get(str(node.nodeid), None)

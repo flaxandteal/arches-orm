@@ -218,7 +218,7 @@ def arches_orm_(search_engine, django_db_blocker, test_sql):
                     # archesfile["graph"]["cards_x_nodes_x_widgets"] = []
                     ResourceGraphImporter(archesfile["graph"], True)
 
-                    _handle_business_data(parent_folder)
+                    # _handle_business_data(parent_folder)
 
             def _handle_business_data(parent_folder, **updates):
                 import json
