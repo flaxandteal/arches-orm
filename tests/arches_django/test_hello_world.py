@@ -6,6 +6,7 @@ from arches_orm.utils import string_to_enum
 from arches_orm.errors import DescriptorsNotYetSet
 from django.db import connection
 
+
 JSON_PERSON = """
 {
     "Name": [
@@ -66,7 +67,19 @@ def printTables():
 
     print(tables)  # This will show all tables in the database
 
+def arches_import_method():
+    from arches.app.utils.data_management.resources.importer import BusinessDataImporter
+    from django.test.utils import captured_stdout
+    
+    with captured_stdout():
+        BusinessDataImporter(
+            "tests/arches_django/seed/default/cars/business-data.json"
+        ).import_business_data()
+
 @context_free
 def test_can_save_with_name(arches_orm):
     Hobbies = arches_orm.models.Hobbies
     print(len(Hobbies.all()))
+
+    # arches_import_method()
+

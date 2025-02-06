@@ -228,33 +228,33 @@ def arches_orm_(search_engine, django_db_blocker, test_sql):
                     return;
             
 
-                # Instantiate the BusinessDataImporter
-                business_data_importer = BusinessDataImporter(
-                    file=directory / parent_folder.name / 'business-data.json',
-                )
+                # # Instantiate the BusinessDataImporter
+                # business_data_importer = BusinessDataImporter(
+                #     file=directory / parent_folder.name / 'business-data.json',
+                # )
 
-                # Now call the import method with any necessary arguments
-                business_data_importer.import_business_data(
-                    file_format="json",  # Specify the format of your data file
-                    overwrite="overwrite",  # Can be "append" or "overwrite"
-                    bulk=False,  # For bulk importing, set this to True
-                    create_concepts=True,  # Set whether to create new concepts
-                    create_collections=True,  # Set whether to create new collections
-                    use_multiprocessing=False,  # Enable multiprocessing if needed
-                    prevent_indexing=False  # Prevent indexing if required
-                )
+                # # Now call the import method with any necessary arguments
+                # business_data_importer.import_business_data(
+                #     file_format="json",  # Specify the format of your data file
+                #     overwrite="overwrite",  # Can be "append" or "overwrite"
+                #     bulk=False,  # For bulk importing, set this to True
+                #     create_concepts=True,  # Set whether to create new concepts
+                #     create_collections=True,  # Set whether to create new collections
+                #     use_multiprocessing=False,  # Enable multiprocessing if needed
+                #     prevent_indexing=False  # Prevent indexing if required
+                # )
             
-                # with (directory / parent_folder.name / 'business-data.json').open("r") as f:
-                #     archesfile = JSONDeserializer().deserialize(f)
+                with (directory / parent_folder.name / 'business-data.json').open("r") as f:
+                    archesfile = JSONDeserializer().deserialize(f)
 
-                #     for resource in archesfile['business_data']['resources']:
-                #         if ('graph_publication_id' in updates):
-                #             resource['resourceinstance']['graph_publication_id'] = updates['graph_publication_id']
+                    for resource in archesfile['business_data']['resources']:
+                        if ('graph_publication_id' in updates):
+                            resource['resourceinstance']['graph_publication_id'] = updates['graph_publication_id']
 
-                #         if ('publication_id' in updates):
-                #             resource['resourceinstance']['publication_id'] = updates['publication_id']
+                        if ('publication_id' in updates):
+                            resource['resourceinstance']['publication_id'] = updates['publication_id']
 
-                #         import_one_resource(json.dumps(resource))
+                        import_one_resource(json.dumps(resource))
 
                  
                     
