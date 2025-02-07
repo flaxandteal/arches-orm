@@ -1,5 +1,5 @@
 from django.db import connection
-from typing import List
+from typing import List, Dict
 from arches_orm.view_models import SemanticViewModel, NodeListViewModel, StringViewModel
 from pathlib import Path
 from arches.app.utils.betterJSONSerializer import JSONDeserializer
@@ -63,7 +63,7 @@ def create_tile_from_model(model, excludes: List[str] | None = None, includes: L
             # * DATATYPE SETTERS
             if (isinstance(datatype, StringViewModel)):
                 setattr(model, key, _handle_value_string_view_model());
-        
+                
         return model
 
     model = recursive(model, excludes, includes)
@@ -71,7 +71,17 @@ def create_tile_from_model(model, excludes: List[str] | None = None, includes: L
     return model
     
 
-def get_nodes_by_key(seed_set: str, key: str):
+def get_nodes_by_key(seed_set: str, key: str) -> Dict[str, any]:
+    """
+    This method gets all the nodes and does this by key for example alias or nodeid
+
+    Args:
+        seed_set (str): The seed set type within the seed folder
+        key (str): The key by key
+
+    Returns:
+        _type_: The
+    """
     with (Path(__file__).parent / "seed/default" / seed_set / 'graph.json').open("r") as f:
         archesfile = JSONDeserializer().deserialize(f)
         nodes = archesfile["graph"][0]['nodes']
@@ -79,6 +89,7 @@ def get_nodes_by_key(seed_set: str, key: str):
         return {node[key]: node for node in nodes}
     
 def _handle_value_string_view_model(length=10):
+    return 'TEST'
     import random
     import string
 
