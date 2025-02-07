@@ -788,7 +788,7 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
 
             defaultFilterTileAgrs: Dict[str, any] = {
                 'nodegroup_id__in': permittedNodegroupIds
-            }        
+            }
             
             tiles: Iterator[TileModel] = []
             limit: int | None = kwargs.get('limit', 30)
@@ -1190,11 +1190,17 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
         return found[0]
 
     @classmethod
-    def where(cls, cross_record=None, lazy=False, case_i=False, **kwargs):
+    def where(cls, *args, cross_record=None, lazy=False, case_i=False):
         """Do a filtered query returning a list of well-known resources."""
 
         if not cls ._can_read_graph():
             raise WKRMPermissionDenied()
+        
+        from arches_orm.arches_django.query_builder.query_builder import QueryBuilder
+
+        query_builder_instance = QueryBuilder(parent_wrapper_instance=cls, )
+
+        return query_builder_instance.filters.where(*args)
 
         # TODO: replace with proper query
         unknown_keys = set(kwargs) - set(cls._node_objects_by_alias())

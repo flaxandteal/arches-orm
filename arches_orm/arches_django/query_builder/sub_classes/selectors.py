@@ -1,0 +1,2 @@
+class QueryBuilderSelectors:
+    print('HEY')
