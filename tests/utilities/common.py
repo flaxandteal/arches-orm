@@ -11,7 +11,7 @@ def printTables():
 
     print(tables)
 
-def create_tile_from_nodes(model, excludes: List[str] | None = None, includes: List[str] | None = None):
+def create_tile_from_model(model, excludes: List[str] | None = None, includes: List[str] | None = None):
     """
     This method creates the nodes towards tiles
 
@@ -62,13 +62,14 @@ def create_tile_from_nodes(model, excludes: List[str] | None = None, includes: L
 
             # * DATATYPE SETTERS
             if (isinstance(datatype, StringViewModel)):
-                setattr(model, key, random_string());
+                setattr(model, key, _handle_value_string_view_model());
         
         return model
 
     model = recursive(model, excludes, includes)
 
     return model
+    
 
 def get_nodes_by_key(seed_set: str, key: str):
     with (Path(__file__).parent / "seed/default" / seed_set / 'graph.json').open("r") as f:
@@ -77,7 +78,7 @@ def get_nodes_by_key(seed_set: str, key: str):
 
         return {node[key]: node for node in nodes}
     
-def random_string(length=10):
+def _handle_value_string_view_model(length=10):
     import random
     import string
 
