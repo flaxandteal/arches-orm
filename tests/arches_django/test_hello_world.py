@@ -10,6 +10,7 @@ from arches.app.utils.betterJSONSerializer import JSONDeserializer
 from pathlib import Path
 from typing import List
 from arches_orm.view_models import SemanticViewModel, NodeListViewModel, StringViewModel
+from tests.utilities.common import create_tile_from_nodes
 
 def arches_import_method():
     from arches.app.utils.data_management.resources.importer import BusinessDataImporter
@@ -28,79 +29,52 @@ def test_can_save_with_name(arches_orm):
     # ! We can use the alias and the alis within the graph id to create a mapping system
     Person = arches_orm.models.Person
 
-    includes = [
-        "name",
-        "full_name"
-    ]
+    # death
+    # external_cross_references
+    # contact_details
+    # django_group
+    # audit_metadata
+    # name
+    # descriptions
+    # location_data
+    # images
+    # system_reference_numbers
+    # user_account
+    # associated_actors
+    # currency
+    # associated_monuments_areas_and_artefacts
+    # resource_model_type
+    # birth
+    # favourite_activity
+    # associated_activities
+    # nismr_numbering_type
 
-    for _ in range(50):  # Loops from 0 to 2
-        person = create_tile_from_nodes(Person.create(), includes=includes)
-        person.save()
+    # avoid_keys = ['death']
 
-    assert(len(Person.all(page=None)) == 50)
+    includes = ['name', 'full_name']
 
-def create_tile_from_nodes(model, includes: List[str] | None = None, excludes: List[str] | None = None):
-    """
-    Method creates a single resource with automatic tile definations
+    person = create_tile_from_nodes(Person.create(), includes=includes)
+    person.save()
 
-    Args:
-        model (any): This is returned from create() method on a wkrm
-        includes (List[str] | None, optional): This is the list of node alias which are whitelisted only to create tile data from
-        excludes (List[str] | None, optional): This is the list of node alias which are blacklisted only to create tile data from
+    print(Person.all()[0].name[0].full_name)
 
-    Returns:
-        any: Returns the method got from created() but the tile values are updated 
-    """
+    # ash = person.dwa.append()
+    # ash.full_name = "Ash"
+    # print(type(ash.full_name).__name__)
+    # external_cross_references - Semnatic
 
-    processed_recursive_keys: List[str] = [];
+    # (['death', 'external_cross_references', 'contact_details', 'django_group', 'audit_metadata', 'name', 'descriptions', 'location_data', 'images',
 
-    def recursive(datatype, includes: List[str] | None = None, excludes: List[str] | None = None):
+    # person.save()
 
-        print('DATATYPE: ', type(datatype).__name__)
+    # print(Person.all()[0].dwadwa)
 
-        for key in datatype._child_keys:
-            """ BASE CASES """
-            if (includes and len(includes) > 1 and key not in includes): 
-                continue;
-            
-            if (excludes and len(excludes) > 1 and key in excludes): 
-                continue;
-            
-            if (key in processed_recursive_keys):
-                return;
-            
-            processed_recursive_keys.append(key)
+    # nodes_by_node_alias = get_nodes_by_node_alias('person')
 
-            """ CHECK FOR RECURSIVE FLOW"""
-            if (isinstance(datatype[key], NodeListViewModel)):
-                semmanticNode = datatype[key].append()
 
-                if (isinstance(semmanticNode, SemanticViewModel)):
-                    recursive(semmanticNode, includes)
+    # print(Person.all()[0])
 
-            elif (isinstance(datatype[key], SemanticViewModel)):
-                recursive(datatype[key], includes)
+    # assert_datatype_semmantic(Person.all()[0].external_cross_references)
 
-            """ SET DATATYPE VALUES """
-            if (isinstance(datatype[key], StringViewModel)):
-                setattr(datatype, key, random_string())
+    # arches_import_method()
 
-        return datatype
-    
-    model = recursive(model, includes, excludes)
-
-    return model
-
-def random_string():
-    import random
-    import string
-
-    length = random.randint(5, 10)  # Random length between 1 and 10
-    return ''.join(random.choices(string.ascii_letters, k=length))
-
-def get_nodes_key_by(seed_set: str, key: str):
-    with (Path(__file__).parent / "seed/default" / seed_set / 'graph.json').open("r") as f:
-        archesfile = JSONDeserializer().deserialize(f)
-        nodes = archesfile["graph"][0]['nodes']
-
-        return {node['nodeid']: node for node in nodes}
