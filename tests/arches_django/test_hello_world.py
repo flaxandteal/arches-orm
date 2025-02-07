@@ -8,7 +8,6 @@ from django.db import connection
 from tests.utilities.asserts.datatypes import assert_datatype_semmantic
 from arches.app.utils.betterJSONSerializer import JSONDeserializer
 from pathlib import Path
-from typing import List
 from arches_orm.view_models import SemanticViewModel, NodeListViewModel, StringViewModel
 from tests.utilities.common import create_tile_from_model
 from sub_tests import all_check_default
@@ -22,7 +21,15 @@ def arches_import_method():
             "tests/arches_django/seed/default/cars/business-data.json"
         ).import_business_data()
 
+
 @context_free
 def test_all_query_context_free(arches_orm):
+    Person = arches_orm.models.Person;
     all_check_default(arches_orm)
+    Person.where('name__en=30')
+
+
+# @context_free
+# def test_all_query_context_free(arches_orm):
+#     all_check_default(arches_orm)
 
