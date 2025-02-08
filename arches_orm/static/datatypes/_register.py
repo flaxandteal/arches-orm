@@ -38,7 +38,7 @@ class StaticDataType:
 
 # TODO: move to .string
 class StaticStringDataType(StaticDataType):
-    def transform_value_for_tile(self, value: Any) -> Any:
+    def transform_value_for_tile(self, value: Any, *args, **kwargs) -> Any:
         if isinstance(value, StringViewModel):
             value = value._value
         elif isinstance(value, str):
