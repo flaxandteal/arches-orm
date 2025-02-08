@@ -19,8 +19,8 @@ jobs:
         python-version: '3.x'
     - name: Install dependencies
       run: |
-        python -m pip install -e .\[graphql,arches,test\]
-        pip install build
+        python -m pip install .\[graphql,test\]
+        python -m pip install .\[arches\]
     - name: Build package
       run: |
         python -m build
