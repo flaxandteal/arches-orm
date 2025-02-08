@@ -584,9 +584,10 @@ class StaticResourceWrapper(ResourceWrapper, proxy=True):
             for ng, nodegroup in nodegroup_objs.items()
         }
 
+        fields = wkri._.get_fields()
         tiles = []
         for field, value in values.items():
-            node = cls._node_objects_by_alias()[field]
+            node = fields[field]["node"]
             node.value = value
             node.get_tile()
             if isinstance(node, PseudoNodeList):
