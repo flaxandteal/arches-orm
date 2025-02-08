@@ -346,8 +346,8 @@ def export_collection(collection: CollectionEnum, source_file: Path | str | IO, 
         "id": str(cuuid(f"{identifier}/value")),
         "value": collection.__original_name__,
     }), lang=DEFAULT_LANGUAGE)))
-    for key in collection.__members__:
-        concept = collection[key].value.concept
+    for member in collection.__top_members__:
+        concept = member.concept
         child_identifier = ARCHES[str(concept.id)]
         cgraph.add((identifier, SKOS.member, child_identifier))
         cgraph.add((child_identifier, RDF.type, SKOS.Concept))

@@ -15,6 +15,7 @@ from .adapter import Adapter
 class CollectionEnum(Enum):
     __original_name__: str = None
     __identifier__: str = None
+    __top_members__: list[ConceptValueViewModel] = None
 
 def make_collection(name: str, collection: list[ConceptValueViewModel], identifier: str | None) -> type[CollectionEnum]:
     values = dict()
@@ -27,6 +28,7 @@ def make_collection(name: str, collection: list[ConceptValueViewModel], identifi
     new_collection = CollectionEnum(string_to_enum(name), values) # type: ignore
     setattr(new_collection, "__original_name__", name)
     setattr(new_collection, "__identifier__", identifier)
+    setattr(new_collection, "__top_members__", collection)
     return new_collection
 
 class ReferenceDataManager:
