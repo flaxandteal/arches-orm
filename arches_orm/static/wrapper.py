@@ -579,17 +579,14 @@ class StaticResourceWrapper(ResourceWrapper, proxy=True):
         related_prefetch=None,
         lazy=False,
     ):
-        """Populate fields from the ID-referenced Arches resource."""
-
         all_values = {
             node_objs[ng].alias: False
             for ng, nodegroup in nodegroup_objs.items()
         }
 
-        fields = wkri._.get_fields()
         tiles = []
         for field, value in values.items():
-            node = fields[field]["node"]
+            node = cls._node_objects_by_alias()[field]
             node.value = value
             node.get_tile()
             if isinstance(node, PseudoNodeList):
