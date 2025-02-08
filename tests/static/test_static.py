@@ -115,6 +115,7 @@ def test_can_knit_a_new_collection():
     StatusEnum.BacklogDashSkeleton.value.concept.children.append(concept_1.concept)
 
     StatusEnum = rdm.derive_collection("7849cd3c-3f0d-454d-aaea-db9164629641")
+    StatusEnum.__original_name__ = "Test Record Status"
     assert len(StatusEnum.__members__) == 4
     assert StatusEnum.Done
 
