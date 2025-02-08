@@ -110,19 +110,25 @@ def test_can_derive_a_new_collection():
 
 def test_can_knit_a_new_collection():
     rdm = get_adapter().get_rdm()
-    StatusEnum = rdm.get_collection("7849cd3c-3f0d-454d-aaea-db9164629641")
     concept_1 = rdm.make_simple_concept("My Status", "Done")
-    StatusEnum.BacklogDashSkeleton.value.concept.children.append(concept_1.concept)
+    concept_2 = rdm.make_simple_concept("My Status", "Doing")
+    my_status = rdm.make_simple_concept("My Status", children=[concept_1, concept_2], scheme=True)
+    rdm.concept_to_collection(my_status)
 
+    stream = BytesIO()
+    rdm.save_concept(my_status, stream)
+
+    StatusEnum = rdm.get_collection("7849cd3c-3f0d-454d-aaea-db9164629641")
+    StatusEnum.BacklogDashSkeleton.value.concept.children.append(concept_1.concept)
     StatusEnum = rdm.derive_collection("7849cd3c-3f0d-454d-aaea-db9164629641")
-    StatusEnum.__original_name__ = "Test Record Status"
     assert len(StatusEnum.__members__) == 4
     assert StatusEnum.Done
 
     stream = BytesIO()
+    StatusEnum.__identifier__ = None
+    StatusEnum.__original_name__ = "Test Record Status #2"
     rdm.export_collection(StatusEnum, stream)
     assert f"http://arches:8000/{concept_1.conceptid}" in bytes(stream.getbuffer()).decode("utf-8")
-    print(bytes(stream.getbuffer()).decode("utf-8"))
 
 @context_free
 def test_can_replace_collection(arches_orm):
