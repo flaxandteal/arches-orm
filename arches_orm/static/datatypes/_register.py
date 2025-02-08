@@ -27,7 +27,7 @@ class StaticDataType:
             data = tile.data
         return data[node.nodeid]
 
-    def transform_value_for_tile(self, value: Any) -> Any:
+    def transform_value_for_tile(self, value: Any, *args, **kwargs) -> Any:
         return value
 
     def get_value(self, value: Any) -> Any:
