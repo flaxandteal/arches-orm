@@ -72,7 +72,6 @@ def get_resource_models_for_adapter(adapter_name: str | None = None):
     if str(adapter) not in resource_models:
         resource_models[str(adapter)] = {}
         resource_models[str(adapter)]["by-class"] = {}
-        print('wkrm | get_resource_models_for_adapter', WELL_KNOWN_RESOURCE_MODELS)
 
         for wkrm in WELL_KNOWN_RESOURCE_MODELS:
 

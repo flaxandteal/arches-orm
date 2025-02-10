@@ -25,4 +25,3 @@ def arches_import_method():
 @context_free
 def test_all_query_context_free(arches_orm):
     all_check_default(arches_orm)
-
