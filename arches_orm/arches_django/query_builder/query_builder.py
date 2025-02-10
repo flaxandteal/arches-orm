@@ -1,9 +1,10 @@
-from typing import Iterator, Dict, List, TypedDict, Any
+from typing import Iterator, Dict, List, TypedDict, Any, Callable, Optional
 from arches.app.models.models import TileModel
 from django.core.paginator import Paginator, Page
 from arches.app.models.resource import Resource
 from arches.app.models.models import ResourceXResource, Node, NodeGroup, Edge, TileModel
 from functools import lru_cache
+from arches_orm.arches_django.wrapper import ValueList
 
 from .sub_classes.filters import QueryBuilderFilters
 from .sub_classes.selectors import QueryBuilderSelectors
@@ -26,51 +27,74 @@ class QueryBuilder:
     _edges_domain_to_range = None;
     _edges_range_to_domain = None;
 
+    _filters = {};
+    _annotations = {};
 
     def __init__(self, parent_wrapper_instance):
         self._parent_wrapper_instance = parent_wrapper_instance;
         self._instance = self;
-    
+
+        self._instance_selectors = QueryBuilderSelectors(self._instance)
+        self._instance_filters  = QueryBuilderFilters(self._instance)
+
+        # self._globally_expose_query_builder_additional_methods(self._instance_filters)
+        # self._globally_expose_query_builder_additional_methods(self._instance_selectors)
+
+    def _globally_expose_query_builder_additional_methods(instance):
+        for method_name in dir(instance):
+            if not method_name.startswith("_") and callable(getattr(instance, method_name)):
+                setattr(instance, method_name, getattr(instance, method_name))
+                
     @property
     def filters(self):
         if self._instance_filters is None:
             self._instance_filters = QueryBuilderFilters(self._instance)
         return self._instance_filters
     
+    @property
     def selectors(self):
         if self._instance_selectors is None:
-            self._instance_filters = QueryBuilderSelectors(self._instance)
-        return self._instance_filters
+            self._instance_selectors = QueryBuilderSelectors(self._instance)
+        return self._instance_selectors
     
-    def create_wkri_with_datatype_values(self, *args, permittedNodegroupIds, related_prefetch):
-        def get_tiles() -> Iterator[TileModel]:
-                """
-                This method gets an Iterator[TileModel] which are the only tiles permitted towards the user. This method also handles the pagination on the tiles
-                however remember that tiles are children of resources so we paginate the resources
+    def create_wkri_with_datatype_values(
+            self, 
+            related_prefetch = None,
+            lazy = False, 
+            callable_get_tiles: Optional[Callable[[], Iterator[TileModel]]] = None
+        ):
 
-                @return: This returns an iteratoring of permitted tiles towards the user
-                """
+        permittedNodegroupIds: List[str | None] = self._parent_wrapper_instance._permitted_nodegroups()
 
-                defaultFilterTileAgrs: Dict[str, any] = {
-                    'nodegroup_id__in': permittedNodegroupIds
-                }
-                
-                tiles: Iterator[TileModel] = []
-                limit: int | None = args.get('limit', 30)
-                page: int | None = args.get('page', 1)
+        defaultFilterTileAgrs: Dict[str, any] = {
+            'nodegroup_id__in': permittedNodegroupIds
+        }
 
-                if (page is not None):
-                    resource_ids: List[str] = list(Resource.objects.filter(graph_id=self._parent_wrapper_instance.graphid).values_list("resourceinstanceid", flat=True))
-                    paginator: Paginator = Paginator(resource_ids, limit)
-                    page_obj: Page = paginator.get_page(page)
+        def fallback_get_tiles(**defaultFilterTileAgrs) -> Iterator[TileModel]:
+            """
+            This method gets an Iterator[TileModel] which are the only tiles permitted towards the user. This method also handles the pagination on the tiles
+            however remember that tiles are children of resources so we paginate the resources
 
-                    resource_ids: List[str] = page_obj.object_list
-                    tiles = TileModel.objects.filter(**defaultFilterTileAgrs, resourceinstance__in=resource_ids).select_related('resourceinstance', 'nodegroup').iterator()    
+            @return: This returns an iteratoring of permitted tiles towards the user
+            """
 
-                else: 
-                    tiles = TileModel.objects.filter(**defaultFilterTileAgrs).select_related('resourceinstance', 'nodegroup').iterator()  
+    
+            tiles: Iterator[TileModel] = []
+            # limit: int | None = args.get('limit', 30)
+            # page: int | None = args.get('page', 1)
 
-                return tiles;
+            # if (page is not None):
+            #     resource_ids: List[str] = list(Resource.objects.filter(graph_id=self._parent_wrapper_instance.graphid).values_list("resourceinstanceid", flat=True))
+            #     paginator: Paginator = Paginator(resource_ids, limit)
+            #     page_obj: Page = paginator.get_page(page)
+
+            #     resource_ids: List[str] = page_obj.object_list
+            #     tiles = TileModel.objects.filter(**defaultFilterTileAgrs, resourceinstance__in=resource_ids).select_related('resourceinstance', 'nodegroup').iterator()    
+
+            # else: 
+            tiles = TileModel.objects.filter(**defaultFilterTileAgrs).select_related('resourceinstance', 'nodegroup').iterator()  
+
+            return tiles;
 
         def set_tile_values_and_create_wkris(tiles: Iterator[TileModel]) -> Dict[str, WKRIEntry]:
             """
@@ -143,7 +167,7 @@ class QueryBuilder:
                 values: dict[str, any] = wkriMapping[key]['values'];
 
                 # * Convert the values into a ValueList instance and attach this onto the wkri instance
-                wkri._values = self._parent_wrapper_instance.ValueList(
+                wkri._values = ValueList(
                     values,
                     wkri._,
                     related_prefetch=related_prefetch
@@ -154,8 +178,8 @@ class QueryBuilder:
 
             return wkris
 
-        # * Calls our inner methods here     
-        tiles = get_tiles()
+        # * Calls our inner methods heree
+        tiles = callable_get_tiles(**defaultFilterTileAgrs) if callable_get_tiles else fallback_get_tiles(**defaultFilterTileAgrs)
         wkriMapping = set_tile_values_and_create_wkris(tiles)
         wkris = set_wkri_value_to_tile_values(wkriMapping)
 
