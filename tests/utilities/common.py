@@ -89,7 +89,8 @@ def get_nodes_by_key(seed_set: str, key: str) -> Dict[str, any]:
         return {node[key]: node for node in nodes}
     
 def _handle_value_string_view_model(length=10):
-    return 'TEST'
+    import random
+    return random.choice(['UP', 'DOWN'])
     import random
     import string
 
