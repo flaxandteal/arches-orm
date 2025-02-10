@@ -26,7 +26,10 @@ def arches_import_method():
 def test_all_query_context_free(arches_orm):
     Person = arches_orm.models.Person;
     all_check_default(arches_orm)
-    Person.where('name__en=30')
+    results = Person.where('full_name=UP')
+
+    for result in results:
+        print('HERE IS THE VALUE : ',  result.name[0].full_name)
 
 
 # @context_free
