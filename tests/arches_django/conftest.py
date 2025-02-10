@@ -212,8 +212,6 @@ def arches_orm_(search_engine, django_db_blocker, test_sql):
                 with (directory / parent_folder.name / 'graph.json').open("r") as f:
                     archesfile = JSONDeserializer().deserialize(f)
 
-                    print(parent_folder.name)
-
                     # ! This has to be defined or errors are given
                     # archesfile["graph"]["cards_x_nodes_x_widgets"] = []
                     ResourceGraphImporter(archesfile["graph"], True)
@@ -280,15 +278,9 @@ def arches_orm_(search_engine, django_db_blocker, test_sql):
         import arches_orm.arches_django
         from arches_orm.adapter import get_adapter
         get_adapter("arches-django").config["save_crosses"] = True
-        import arches_orm.models
-        def printTables():
-            with connection.cursor() as cursor:
-                cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
-                tables = cursor.fetchall()
-
-            print(tables)  # This will show all tables in the database
-        printTables()
         
+        import arches_orm.models
+
         _seed_database()
         
         # Assuming this file is in arches/app/models/migrations/7125_geometry_index_table.py
