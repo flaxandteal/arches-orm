@@ -10,7 +10,9 @@ from arches.app.utils.betterJSONSerializer import JSONDeserializer
 from pathlib import Path
 from arches_orm.view_models import SemanticViewModel, NodeListViewModel, StringViewModel
 from tests.utilities.common import create_tile_from_model
-from sub_tests import all_check_default
+from sub_tests.queries.read.all import all_check_default
+from sub_tests.queries.read.where import sub_test_where_number_check
+from sub_tests.queries.read.order_by import sub_test_order_by_ascend
 
 def arches_import_method():
     from arches.app.utils.data_management.resources.importer import BusinessDataImporter
@@ -22,14 +24,23 @@ def arches_import_method():
         ).import_business_data()
 
 
-@context_free
-def test_all_query_context_free(arches_orm):
-    Person = arches_orm.models.Person;
-    all_check_default(arches_orm)
-    results = Person.where('full_name=UP')
+# @context_free
+# def test_all_query_context_free(arches_orm):
+#     Person = arches_orm.models.Person;
+#     all_check_default(arches_orm)
+#     results = Person.where('full_name=UP')
 
-    for result in results:
-        print('HERE IS THE VALUE : ',  result.name[0].full_name)
+#     for result in results:
+#         print('HERE IS THE VALUE : ',  result.name[0].full_name)
+
+# @context_free
+# def test_where_quries_context_free(arches_orm):
+#     sub_test_where_number_check(arches_orm)
+
+
+@context_free
+def test_order_by_context_free(arches_orm):
+    sub_test_order_by_ascend(arches_orm)
 
 
 # @context_free

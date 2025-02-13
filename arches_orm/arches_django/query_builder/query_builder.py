@@ -10,7 +10,14 @@ from .sub_classes.filters import QueryBuilderFilters
 from .sub_classes.selectors import QueryBuilderSelectors
 from .sub_classes.modifiers import QueryBuilderModifier
 
+from .expressions import expression_string_datatype, expression_number_datatype
+from .utilities import annotation_key
 from collections import defaultdict
+from typing import TypedDict
+
+class AnnotationProperties(TypedDict):
+    name: str
+    values: List[int]
 
 class WKRIEntry(TypedDict):
     values: Dict[str, Any]
@@ -47,16 +54,40 @@ class QueryBuilder:
     #         if not method_name.startswith("_") and callable(getattr(instance, method_name)):
     #             setattr(instance, method_name, getattr(instance, method_name))
 
+    def set_annotation(
+        self,
+        node_alias: str, 
+        node: Node, 
+        properties: AnnotationProperties | None = None
+    ):
+        """
+        Method adds a annoitation to the _annotations variable, if its not already contained. This gets the expressions by using the methods inside
+        expressions.py for each datatype class. Then this _annotations variable is used within the selectors
+
+        Args:
+            key (str): The node alias
+            node (Node): The node
+            properties (AnnotationProperties | None, optional): Future properties towards the experessions
+        """
+        if (node_alias in self._annotations):
+            return;
+
+        if (node.datatype == 'string'):
+            self._annotations[annotation_key(node_alias)] = expression_string_datatype(node.nodeid)
+
+        elif (node.datatype == 'number'):
+            self._annotations[annotation_key(node_alias)] = expression_number_datatype(node.nodeid)
+
     def __getattr__(self, name):
+        print('INSIDE GET __getattr__ : ', name)
         if not self._current_build_stage and hasattr(self._instance_filters, name):
-            self._current_build_stage = 'filters'
             return getattr(self._instance_filters, name)
 
-        elif (self._current_build_stage == 'filters' or self._current_build_stage == None) and hasattr(self._instance_modifiers, name):
+        elif not self._current_build_stage and hasattr(self._instance_modifiers, name):
             self._current_build_stage = 'modifiers'
             return getattr(self._instance_modifiers, name)
 
-        elif (self._current_build_stage == 'modifiers' or self._current_build_stage == 'filters') and hasattr(self._instance_selectors, name):
+        elif (self._current_build_stage == 'modifiers' or not self._current_build_stage) and hasattr(self._instance_selectors, name):
             self._current_build_stage = 'selectors'
             return getattr(self._instance_selectors, name)
 

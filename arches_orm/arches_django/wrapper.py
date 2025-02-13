@@ -104,10 +104,38 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
     _values_list: ValueList | None = None
     _values_real: list | None = None
     __datatype_factory = None
+    _instance_query_builder = None
     start_times = {}
     count = {}
 
     """Provides functionality for translating to/from Arches types."""
+
+    def __getattr__(self, name):
+        if hasattr(self._instance_query_builder, name):
+            return getattr(self._instance_query_builder, name)
+        
+        print('FAILED!')
+
+    @property
+    def query_builder_instance(cls):
+        if not cls._instance_query_builder:
+            from arches_orm.arches_django.query_builder.query_builder import QueryBuilder
+            cls._instance_query_builder = QueryBuilder(parent_wrapper_instance=cls);
+        
+        return cls._instance_query_builder
+    
+    @classmethod
+    def order_by(cls, *args):
+        from arches_orm.arches_django.query_builder.query_builder import QueryBuilder
+        query_builder_instance = QueryBuilder(parent_wrapper_instance=cls)
+        return query_builder_instance.order_by(*args)
+
+    @classmethod
+    def where(cls, *args):
+        from arches_orm.arches_django.query_builder.query_builder import QueryBuilder
+        query_builder_instance = QueryBuilder(parent_wrapper_instance=cls)
+        return query_builder_instance.where(*args)
+
 
     def _can_delete_resource(self, resource=None):
         if (user := self._context_get("user")):
@@ -1189,53 +1217,51 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
             raise RuntimeError(f"No results for search of {', '.join(kwargs.keys())}")
         return found[0]
 
-    @classmethod
-    def where(cls, *args, cross_record=None, lazy=False, case_i=False):
-        """Do a filtered query returning a list of well-known resources."""
+    # @classmethod
+    # def where(cls, *args, cross_record=None, lazy=False, case_i=False):
+    #     """Do a filtered query returning a list of well-known resources."""
 
-        if not cls ._can_read_graph():
-            raise WKRMPermissionDenied()
+    #     if not cls ._can_read_graph():
+    #         raise WKRMPermissionDenied()
         
-        from arches_orm.arches_django.query_builder.query_builder import QueryBuilder
+    #     query_builder_instance = QueryBuilder(parent_wrapper_instance=cls, )
 
-        query_builder_instance = QueryBuilder(parent_wrapper_instance=cls, )
+    #     return query_builder_instance.where(*args).get()
 
-        return query_builder_instance.where(*args).get()
+    #     # TODO: replace with proper query
+    #     unknown_keys = set(kwargs) - set(cls._node_objects_by_alias())
+    #     if unknown_keys:
+    #         raise KeyError(f"Unknown key(s) {unknown_keys}")
 
-        # TODO: replace with proper query
-        unknown_keys = set(kwargs) - set(cls._node_objects_by_alias())
-        if unknown_keys:
-            raise KeyError(f"Unknown key(s) {unknown_keys}")
+    #     if len(kwargs) != 1:
+    #         raise NotImplementedError("Need exactly one filter")
 
-        if len(kwargs) != 1:
-            raise NotImplementedError("Need exactly one filter")
+    #     key = list(kwargs)[0]
+    #     value = kwargs[key]
 
-        key = list(kwargs)[0]
-        value = kwargs[key]
+    #     node = cls._node_objects_by_alias().get(key)
+    #     if not node:
+    #         raise RuntimeError(
+    #             f"This key {key} is not known on this model {cls.__name__}"
+    #         )
 
-        node = cls._node_objects_by_alias().get(key)
-        if not node:
-            raise RuntimeError(
-                f"This key {key} is not known on this model {cls.__name__}"
-            )
+    #     # TODO: fix properly with Sqlite JSON
+    #     contains_value: str | dict[str, Any] = {str(node.nodeid): value}
+    #     if case_i:
+    #         contains_key = "data__icontains"
+    #         contains_value = json.dumps(contains_value)
+    #     else:
+    #         contains_key = "data__contains"
 
-        # TODO: fix properly with Sqlite JSON
-        contains_value: str | dict[str, Any] = {str(node.nodeid): value}
-        if case_i:
-            contains_key = "data__icontains"
-            contains_value = json.dumps(contains_value)
-        else:
-            contains_key = "data__contains"
-
-        filter_args = {
-            "nodegroup_id": str(node.nodegroup_id),
-            contains_key: contains_value
-        }
-        tiles = cls._get_allowed_tiles(**filter_args)
-        return [
-            cls.from_resource_instance(tile.resourceinstance, cross_record=cross_record, lazy=lazy)
-            for tile in tiles
-        ]
+    #     filter_args = {
+    #         "nodegroup_id": str(node.nodegroup_id),
+    #         contains_key: contains_value
+    #     }
+    #     tiles = cls._get_allowed_tiles(**filter_args)
+    #     return [
+    #         cls.from_resource_instance(tile.resourceinstance, cross_record=cross_record, lazy=lazy)
+    #         for tile in tiles
+    #     ]
     
     @classmethod
     def _new_make_pseudo_node_cls(cls, key: str, tile: TileProxyModel=None, wkri=None, node: Node = None, nodegroups: NodeGroup = None):

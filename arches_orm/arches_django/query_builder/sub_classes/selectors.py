@@ -25,6 +25,9 @@ class QueryBuilderSelectors:
         filters = self._instance_query_builder._filters;
         order_by = self._instance_query_builder._order_by;
 
+
+        print('DATA : ', self.queryset_tiles.values('data'))
+
         def callable_get_tiles(**defaultFilterTileAgrs):
             if (annotations): 
                 self.queryset_tiles = self.queryset_tiles.annotate(**annotations)
@@ -32,7 +35,7 @@ class QueryBuilderSelectors:
             self.queryset_tiles = self.queryset_tiles.filter(**filters, **defaultFilterTileAgrs)
 
             if (order_by):
-                self.queryset_tiles = self.queryset_tiles.order_by("category", "-price")  
+                self.queryset_tiles = self.queryset_tiles.order_by(*order_by)  
 
             return self.queryset_tiles.select_related('resourceinstance', 'nodegroup').iterator()
 
