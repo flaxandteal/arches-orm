@@ -21,6 +21,7 @@ def invalidate_collection(concept_id):
 def retrieve_children(concept_id: uuid.UUID, language: str | None, datatype) -> list[ConceptValueViewModel]:
     # RMV TEST
     concept = Concept().get(id=concept_id, include=["label"])
+
     return [
         make_concept_value(concept.get_preflabel().valueid, collection_id=None, datatype=datatype)
         for child in concept.children
@@ -49,11 +50,13 @@ def retrieve_collection(collection_id: uuid.UUID, datatype=None) -> type[Enum]:
         str(collection_id)
     )
     _COLLECTIONS[str(collection_id)] = made_collection
+
     return made_collection
 
 
 @REGISTER("concept-list")
 def concept_list(tile, node, value: list[uuid.UUID | str] | None, _, __, ___, datatype):
+
     if value is None:
         value = tile.data.get(str(node.nodeid), []) or []
 
@@ -71,6 +74,7 @@ def concept_list(tile, node, value: list[uuid.UUID | str] | None, _, __, ___, da
 
 @concept_list.as_tile_data
 def cl_as_tile_data(concept_list):
+
     return [cv_as_tile_data(x) for x in concept_list]
 
 

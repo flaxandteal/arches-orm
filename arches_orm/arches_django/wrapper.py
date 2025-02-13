@@ -1,13 +1,17 @@
-from typing import Any
+from typing import Any, TypedDict
 import json
+import time
+from typing import Iterator, Dict, List
+from django.core.paginator import Paginator, Page
 from arches.app.models.resource import Resource
 from django.dispatch import Signal
 from collections import UserDict
 from functools import lru_cache
 from datetime import datetime
 from django.db import transaction
-from arches.app.models.models import ResourceXResource, Node, NodeGroup, Edge
+from arches.app.models.models import ResourceXResource, Node, NodeGroup, Edge, TileModel
 from arches.app.models.graph import Graph
+from .responses import pagination
 from arches.app.models.tile import Tile as TileProxyModel
 from arches.app.models.system_settings import settings as system_settings
 from arches.app.utils.permission_backend import get_nodegroups_by_perm
@@ -36,6 +40,9 @@ logger = logging.getLogger(__name__)
 LOAD_FULL_NODE_OBJECTS = True
 LOAD_ALL_NODES = True
 
+class WKRIEntry(TypedDict):
+    values: Dict[str, Any]
+    wkri: type 
 
 def get_permitted_nodegroups(user):
     # To separate read and write, we need to know which tile nodes
@@ -97,6 +104,8 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
     _values_list: ValueList | None = None
     _values_real: list | None = None
     __datatype_factory = None
+    start_times = {}
+    count = {}
 
     """Provides functionality for translating to/from Arches types."""
 
@@ -625,6 +634,7 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
             wkri=wkri,
             lazy=lazy,
         )
+
         wkri._values = ValueList(
             values,
             wkri._,
@@ -725,19 +735,166 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
                 "resourceinstanceid", flat=True
             )
         )
+    
+    def time_execution(key: str, start: bool):
+        if start:
+            ArchesDjangoResourceWrapper.start_times[key] = time.perf_counter()
+            return None
+        else:
+            if key in ArchesDjangoResourceWrapper.start_times:
+                start_time = ArchesDjangoResourceWrapper.start_times[key]
+                end_time = time.perf_counter()
+                execution_time_ms = (end_time - start_time) * 1000
+                if key in ArchesDjangoResourceWrapper.count:
+                    ArchesDjangoResourceWrapper.count[key] = ArchesDjangoResourceWrapper.count[key] + 1
+                else:
+                    ArchesDjangoResourceWrapper.count[key] = 0
 
+                print(f"Task '{key}' executed in {execution_time_ms:.10f} ms")
+                print(f"Task '{key}' count {ArchesDjangoResourceWrapper.count[key]}")
+
+                del ArchesDjangoResourceWrapper.start_times[key]  # Remove the start time after finishing the task
+                return execution_time_ms
+            
     @classmethod
-    def all(cls, related_prefetch=None, lazy=False):
-        """Get all resources of this type."""
+    def all(cls, related_prefetch=None, lazy=False, **kwargs) -> List[type]:
+        """
+        This fetchs all the records from the datatable, 
+
+        Args:
+            related_prefetch (_type_, optional): _description_. Defaults to None.
+            lazy (bool, optional): _description_. Defaults to False.
+
+        Raises:
+            WKRMPermissionDenied: _description_
+
+        Returns:
+            _type_: _description_
+        """
+        cls.time_execution('all', True)
 
         if not cls ._can_read_graph():
             raise WKRMPermissionDenied()
+        
+        permittedNodegroupIds: List[str | None] = cls._permitted_nodegroups()
 
-        resources = Resource.objects.filter(graph_id=cls.graphid).all()
-        return [
-            cls.from_resource(resource, related_prefetch=related_prefetch, lazy=lazy)
-            for resource in resources
-        ]
+        def get_tiles() -> Iterator[TileModel]:
+            """
+            This method gets an Iterator[TileModel] which are the only tiles permitted towards the user. This method also handles the pagination on the tiles
+            however remember that tiles are children of resources so we paginate the resources
+
+            @return: This returns an iteratoring of permitted tiles towards the user
+            """
+
+            defaultFilterTileAgrs: Dict[str, any] = {
+                'nodegroup_id__in': permittedNodegroupIds
+            }        
+            
+            tiles: Iterator[TileModel] = []
+            limit: int | None = kwargs.get('limit', 30)
+            page: int | None = kwargs.get('page', 1)
+
+            if (page is not None):
+                resource_ids: List[str] = list(Resource.objects.filter(graph_id=cls.graphid).values_list("resourceinstanceid", flat=True))
+                paginator: Paginator = Paginator(resource_ids, limit)
+                page_obj: Page = paginator.get_page(page)
+
+                resource_ids: List[str] = page_obj.object_list
+                tiles = TileModel.objects.filter(**defaultFilterTileAgrs, resourceinstance__in=resource_ids).select_related('resourceinstance', 'nodegroup').iterator()    
+
+            else: 
+                tiles = TileModel.objects.filter(**defaultFilterTileAgrs).select_related('resourceinstance', 'nodegroup').iterator()  
+
+            return tiles;
+
+        def set_tile_values_and_create_wkris(tiles: Iterator[TileModel]) -> Dict[str, WKRIEntry]:
+            """
+            This method takes in the tiles which want convert towards Dict[str, WKRIEntry], to allow the mapping of resources and tile data, the creation of
+            instances for wkris and the converations towards tile data to datatype classes.
+
+            @param tiles: An iterator of TileModel instances representing resource tiles.
+            @return: This returns an iteratoring of permitted tiles towards the user.
+            """
+            nodes: Iterator[Node] = Node.objects.filter(nodeid__in=permittedNodegroupIds).iterator();
+            node_dict: Dict[str, Node] = {node.nodegroup_id: node for node in nodes}
+            wkriMapping: Dict[str, WKRIEntry] = {}
+
+            # * Loop all tiles so (n*tiles)
+            for tile in tiles:
+                # * We get the resource instance from the tile and the node instance from the tiles node gorup
+                resource = tile.resourceinstance
+                node = node_dict.get(tile.nodegroup_id)
+    
+                # * We check if the resource from the tile has already created the wkri
+                if (wkriMapping.get(resource.resourceinstanceid)):
+                    wkri = wkriMapping[resource.resourceinstanceid]["wkri"]
+
+                # * If not then we create the wkri for the resource and the values oject
+                else:
+                    wkri = cls.view_model(
+                        id=resource.resourceinstanceid,
+                        resource=resource,
+                        cross_record=None,
+                        related_prefetch=related_prefetch,
+                    )
+
+                    wkriMapping[resource.resourceinstanceid] = {
+                        "values": {},
+                        "wkri": wkri
+                    }
+                    
+                # * Next we convert our value into a datatype class
+                pseudo_node = cls._make_pseudo_node_cls(
+                    key=node.alias,
+                    # node=node,
+                    tile=tile,
+                    wkri=wkri
+                )
+
+                # ? Here we state that the tile can be converted from a resource to a Tile Datatype Class as again this slows the process
+                pseudo_node._convert_tile_resource = True;
+
+                # * We hook up the tile datatype class into values with our key as the node alias
+                wkriMapping[resource.resourceinstanceid]["values"][node.alias] = [pseudo_node]
+
+            return wkriMapping
+
+
+        def set_wkri_value_to_tile_values(wkriMapping: Dict[str, WKRIEntry]) -> List[type]:
+            """
+            This method handles the converation of all the values for the tile datatype class into a ValueList class which then this ValueList class
+            is stored within the wkri instance and finally the method returns all the wkri instances.
+
+            @param wkriMapping: The mapping of wkri towards values
+            @return: This returns all the wkri instances within a list
+            """
+
+            wkris: List[type] = [];
+
+            # * Loop wkri mapping created from the method above (n*resources)
+            for key in wkriMapping:
+                # * Extract the wkri instance and values from the mapping
+                wkri: type = wkriMapping[key]['wkri'];
+                values: dict[str, any] = wkriMapping[key]['values'];
+
+                # * Convert the values into a ValueList instance and attach this onto the wkri instance
+                wkri._values = ValueList(
+                    values,
+                    wkri._,
+                    related_prefetch=related_prefetch
+                )
+
+                # * Append the wkri instance on a list
+                wkris.append(wkri)
+
+            return wkris
+
+        # * Calls our inner methods here     
+        tiles = get_tiles()
+        wkriMapping = set_tile_values_and_create_wkris(tiles)
+        wkris = set_wkri_value_to_tile_values(wkriMapping)
+
+        return wkris;
 
     @classmethod
     def find(cls, resourceinstanceid, from_prefetch=None, lazy=False):
@@ -982,6 +1139,7 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
                 raise RuntimeError(f"Tried to load node twice: {key}")
             all_values.setdefault(key, [])
             pseudo_node = cls._make_pseudo_node_cls(key, tile=tile, wkri=wkri)
+   
             # We shouldn't have to take care of this case, as it should already
             # be included below.
             # if tile.parenttile_id:
@@ -1077,7 +1235,6 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
     def _make_pseudo_node_cls(cls, key, single=False, tile=None, wkri=None):
         node_obj = cls._node_objects_by_alias()[key]
         nodegroups = cls._nodegroup_objects()
-
         permitted = cls._permitted_nodegroups()
         edges = cls._edges().get(str(node_obj.nodeid))
         value = None
