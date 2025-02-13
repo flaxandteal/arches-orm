@@ -1,8 +1,7 @@
 import re
-from ..utilities import transform_query
+from ..utilities import transform_query, annotation_key
 from django.db.models import Func, F, ExpressionWrapper, IntegerField, CharField
 from arches.app.models.models import ResourceXResource, Node, NodeGroup, Edge, TileModel
-from .annotations import annotation_string_datatype
 import uuid
 
 class QueryBuilderFilters:
@@ -26,17 +25,16 @@ class QueryBuilderFilters:
 
         for index in range(len(args)):
             query = transform_query(args[index])
-            node = nodes.get(query['key'])
-            query_key = uuid.uuid4();
+            node_alias = query['key'];
+            node = nodes.get(node_alias)
 
-            if (node.datatype == 'string'):
-                query_key = f'where_{query_key}'
-                self._instance_query_builder._annotations[query_key] = annotation_string_datatype(node.nodeid)
-            else:
-                continue;
+            self._instance_query_builder.set_annotation(
+                node_alias, 
+                node
+            )
 
             if (query['operator'] == '='):
-                self._instance_query_builder._filters[query_key] = query['value']
+                self._instance_query_builder._filters[annotation_key(node_alias)] = query['value']
     
         return self._instance_query_builder
 
