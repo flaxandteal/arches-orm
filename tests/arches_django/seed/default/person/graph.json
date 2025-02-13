@@ -158,6 +158,34 @@
                 },
                 {
                     "active": true,
+                    "cardid": "eb6303e0-4d7d-4715-b2b8-b876ca72e0ab",
+                    "component_id": "f05e4d3a-53c1-11e8-b0ea-784f435179ea",
+                    "config": null,
+                    "constraints": [
+                    ],
+                    "cssclass": null,
+                    "description": "",
+                    "graph_id": "22477f01-1a44-11e9-b0a9-000d3ab1e588",
+                    "helpenabled": true,
+                    "helptext": {
+                        "en": "<p>&nbsp;</p>\n\n<p>&nbsp;</p>\n\n<p>&nbsp;</p>\n\n<p>The following guidelines are based on the National Council of Archives <em>Rules for the Construction of Personal, Place and Corporate Names.&nbsp;</em></p>\n\n<p><strong>Full Name</strong></p>\n\n<p>Use to record a concatenated form of the name. This can be useful for display or migration purposes but should not be used as a repalcement for the structured name data.</p>\n\n<p><strong>Title</strong></p>\n\n<p>In English only the titles Lord, Lady, Sir, Dame and Hon (Honourable) may precede the forename. However common practice allows for other titles, such as Mr, Mrs etc, to be used. Select the most appropriate.</p>\n\n<p><strong>Forename</strong></p>\n\n<p>A forename is the component of the name which a person is given in addition to his/her surname. All forenames, including middle names where known,&nbsp;should be listed to assist disambiguation between individuals.</p>\n\n<p><strong>Initials</strong></p>\n\n<p>These should only be used where the full name is not known&nbsp;or the individual is more usually known by their initials, eg. T.S. Eliot.&nbsp;</p>\n\n<p><strong>Surname</strong></p>\n\n<p>The component of a name which a person usually shares with other members of their family<strong>.</strong></p>\n\n<p><strong>Epithet</strong></p>\n\n<p>This is a word or phrase describing a person&#39;s status, position, occupation, nationality, place of birth etc. An epithet should be included as a qualifier where any confusion between persons may arise.</p>\n\n<p>&nbsp;</p>\n\n<p>&nbsp;</p>\n"
+                    },
+                    "helptitle": {
+                        "en": "Name Details"
+                    },
+                    "instructions": {
+                        "en": null
+                    },
+                    "is_editable": true,
+                    "name": {
+                        "en": "Names"
+                    },
+                    "nodegroup_id": "9718d23f-950e-11ea-b421-f875a44e0e11",
+                    "sortorder": 0,
+                    "visible": true
+                },
+                {
+                    "active": true,
                     "cardid": "25b3afc9-186c-11eb-bbd2-f875a44e0e11",
                     "component_id": "f05e4d3a-53c1-11e8-b0ea-784f435179ea",
                     "config": null,

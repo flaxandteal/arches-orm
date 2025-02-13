@@ -3,6 +3,7 @@ from typing import List, Dict
 from arches_orm.view_models import SemanticViewModel, NodeListViewModel, StringViewModel
 from pathlib import Path
 from arches.app.utils.betterJSONSerializer import JSONDeserializer
+import random
 
 def printTables():
     with connection.cursor() as cursor:
@@ -11,7 +12,12 @@ def printTables():
 
     print(tables)
 
-def create_tile_from_model(model, excludes: List[str] | None = None, includes: List[str] | None = None):
+def create_tile_from_model(
+        model,
+        custom_seed_values: Dict[str, any] | None = None,
+        excludes: List[str] | None = None, 
+        includes: List[str] | None = None
+    ):
     """
     This method creates the nodes towards tiles
 
@@ -24,8 +30,9 @@ def create_tile_from_model(model, excludes: List[str] | None = None, includes: L
         any: Returns the model with datatypes updated
     """
     processed_recursive_keys = [];
+    nodes = get_nodes_by_key('person', 'alias');
 
-    def recursive(model, excludes: List[str] | None = None, includes: List[str] | None = None):
+    def recursive(model):
         """
         This method handles the setting of values towards the model's datatypes and the recursiveness if the model's datatype has more inner datatypes
 
@@ -38,6 +45,7 @@ def create_tile_from_model(model, excludes: List[str] | None = None, includes: L
             any: Returns the model with datatypes updated
         """
 
+        nonlocal includes, excludes;
 
         for key in model._child_keys:
             # * BASE CASES
@@ -53,20 +61,42 @@ def create_tile_from_model(model, excludes: List[str] | None = None, includes: L
             processed_recursive_keys.append(key)
             datatype = getattr(model, key, "Attribute not found")
 
-            # * RECURSIVE CHECKER
-            if (isinstance(datatype, NodeListViewModel)):
-                datatype = datatype.append()
+            def recursive_handling():
+                nonlocal datatype
 
-            if (isinstance(datatype, SemanticViewModel)):
-                recursive(datatype, excludes, includes)
+                if (isinstance(datatype, NodeListViewModel)):
+                    datatype = datatype.append()
 
-            # * DATATYPE SETTERS
-            if (isinstance(datatype, StringViewModel)):
-                setattr(model, key, _handle_value_string_view_model());
+                if (isinstance(datatype, SemanticViewModel)):
+                    recursive(datatype)
+
+            def datatype_seeders():
+                nonlocal datatype, model, key, nodes, custom_seed_values
+
+                if (custom_seed_values and key in custom_seed_values):
+                    if (callable(custom_seed_values[key])):
+                        setattr(model, key, custom_seed_values[key]())
+                    else:
+                        setattr(model, key, custom_seed_values[key])
+
+                    return;
+            
+                datatype_type = nodes[key]['datatype'];
+                    
+                if datatype_type == 'string':
+                    setattr(model, key, _handle_value_string_view_model());
+            
+                elif datatype_type == 'number':
+                    setattr(model, key, random.randrange(1,1000))
+        
+            recursive_handling()
+            datatype_seeders()
+        
+
                 
         return model
 
-    model = recursive(model, excludes, includes)
+    model = recursive(model)
 
     return model
     
@@ -82,15 +112,13 @@ def get_nodes_by_key(seed_set: str, key: str) -> Dict[str, any]:
     Returns:
         _type_: The
     """
-    with (Path(__file__).parent / "seed/default" / seed_set / 'graph.json').open("r") as f:
+    with (Path(__file__).parent.parent / "arches_django/seed/default" / seed_set / 'graph.json').open("r") as f:
         archesfile = JSONDeserializer().deserialize(f)
         nodes = archesfile["graph"][0]['nodes']
 
         return {node[key]: node for node in nodes}
     
 def _handle_value_string_view_model(length=10):
-    import random
-    return random.choice(['UP', 'DOWN'])
     import random
     import string
 
