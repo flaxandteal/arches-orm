@@ -134,7 +134,6 @@ class DataTypes:
                 self.definitions = {}
 
                 for _, model in orm_models.items():
-                    print(repr(model))
                     model_name = model._model_name
                     field, info = next(iter(model.get_fields(include_root=True).items()))
                     self.definitions[model_name] = {
@@ -155,9 +154,7 @@ class DataTypes:
     def _process_field(self, model_name, field, info, model, top_level=False):
         typ = info["type"]
         model_class_name = model.__name__
-        print(typ, field, "TF")
         if typ == DataTypeNames.SEMANTIC:
-            print(info)
             for subfield, subinfo in info.get("children", {}).items():
                 self._build_semantic(field, subfield, subinfo, model_name, model.__name__)
                 self._process_field(model_name, subfield, subinfo, model)
@@ -340,14 +337,12 @@ class DataTypes:
                 if additional_fields:
                     fields += additional_fields
                 semantic_schema_objects[semantic_type] = None # empty semantic fields are not useful
-                print(self.semantic_nodes)
                 if semantic_type in self.semantic_nodes:
                     semantic_detail = self.semantic_nodes[semantic_type]
                     for subfield, subinfo in semantic_detail["fields"]:
                         data_type = data_types.to_graphene(subinfo, subfield, semantic_detail["model_class_name"])
                         if data_type:
                             fields.append((subfield, data_type))
-                    print(fields, "FIELDS")
                     if fields:
                         members = {
                             subfield: typ for subfield, typ in fields
