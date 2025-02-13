@@ -1200,7 +1200,7 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
 
         query_builder_instance = QueryBuilder(parent_wrapper_instance=cls, )
 
-        return query_builder_instance.filters.where(*args).selectors.get()
+        return query_builder_instance.where(*args).get()
 
         # TODO: replace with proper query
         unknown_keys = set(kwargs) - set(cls._node_objects_by_alias())

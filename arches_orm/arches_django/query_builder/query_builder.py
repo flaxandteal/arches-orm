@@ -8,6 +8,7 @@ from arches_orm.arches_django.wrapper import ValueList
 
 from .sub_classes.filters import QueryBuilderFilters
 from .sub_classes.selectors import QueryBuilderSelectors
+from .sub_classes.modifiers import QueryBuilderModifier
 
 from collections import defaultdict
 
@@ -23,39 +24,43 @@ class QueryBuilder:
 
     _instance_filters = None;
     _instance_selectors = None;
+    _instance_modifiers = None;
+    _current_build_stage = None;
 
     _edges_domain_to_range = None;
     _edges_range_to_domain = None;
 
     _filters = {};
     _annotations = {};
+    _order_by = [];
 
     def __init__(self, parent_wrapper_instance):
         self._parent_wrapper_instance = parent_wrapper_instance;
         self._instance = self;
 
-        self._instance_selectors = QueryBuilderSelectors(self._instance)
         self._instance_filters  = QueryBuilderFilters(self._instance)
+        self._instance_modifiers  = QueryBuilderModifier(self._instance)
+        self._instance_selectors = QueryBuilderSelectors(self._instance)
 
-        # self._globally_expose_query_builder_additional_methods(self._instance_filters)
-        # self._globally_expose_query_builder_additional_methods(self._instance_selectors)
+    # def _globally_expose_query_builder_additional_methods(instance):
+    #     for method_name in dir(instance):
+    #         if not method_name.startswith("_") and callable(getattr(instance, method_name)):
+    #             setattr(instance, method_name, getattr(instance, method_name))
 
-    def _globally_expose_query_builder_additional_methods(instance):
-        for method_name in dir(instance):
-            if not method_name.startswith("_") and callable(getattr(instance, method_name)):
-                setattr(instance, method_name, getattr(instance, method_name))
-                
-    @property
-    def filters(self):
-        if self._instance_filters is None:
-            self._instance_filters = QueryBuilderFilters(self._instance)
-        return self._instance_filters
-    
-    @property
-    def selectors(self):
-        if self._instance_selectors is None:
-            self._instance_selectors = QueryBuilderSelectors(self._instance)
-        return self._instance_selectors
+    def __getattr__(self, name):
+        if not self._current_build_stage and hasattr(self._instance_filters, name):
+            self._current_build_stage = 'filters'
+            return getattr(self._instance_filters, name)
+
+        elif (self._current_build_stage == 'filters' or self._current_build_stage == None) and hasattr(self._instance_modifiers, name):
+            self._current_build_stage = 'modifiers'
+            return getattr(self._instance_modifiers, name)
+
+        elif (self._current_build_stage == 'modifiers' or self._current_build_stage == 'filters') and hasattr(self._instance_selectors, name):
+            self._current_build_stage = 'selectors'
+            return getattr(self._instance_selectors, name)
+
+        raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{name}'")    
     
     def create_wkri_with_datatype_values(
             self, 

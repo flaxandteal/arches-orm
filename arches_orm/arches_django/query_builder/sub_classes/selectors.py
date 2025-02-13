@@ -23,10 +23,44 @@ class QueryBuilderSelectors:
     def get(self):
         annotations = self._instance_query_builder._annotations;
         filters = self._instance_query_builder._filters;
- 
+        order_by = self._instance_query_builder._order_by;
+
         def callable_get_tiles(**defaultFilterTileAgrs):
-            self.queryset_tiles = self.queryset_tiles.annotate(**annotations)
+            if (annotations): 
+                self.queryset_tiles = self.queryset_tiles.annotate(**annotations)
+
             self.queryset_tiles = self.queryset_tiles.filter(**filters, **defaultFilterTileAgrs)
+
+            if (order_by):
+                self.queryset_tiles = self.queryset_tiles.order_by("category", "-price")  
+
             return self.queryset_tiles.select_related('resourceinstance', 'nodegroup').iterator()
 
         return self._instance_query_builder.create_wkri_with_datatype_values(callable_get_tiles=callable_get_tiles)
+    
+
+#     def callback_get_tiles(self):
+#         annotations = self._instance_query_builder._annotations;
+#         filters = self._instance_query_builder._filters;
+#         order_by = self._instance_query_builder._order_by;
+
+#         print('BELOW!!! TILE DATA')
+
+#         print(TileModel.objects.filter('graph_id'))
+        
+#         def callback(**defaultFilterTileAgrs):
+#             if (annotations): 
+#                 self.queryset_tiles = self.queryset_tiles.annotate(**annotations)
+                
+#             self.queryset_tiles = self.queryset_tiles.filter(**filters, **defaultFilterTileAgrs)
+
+#             if (order_by):
+#                 self.queryset_tiles = self.queryset_tiles.order_by("category", "-price")  
+
+#             return self.queryset_tiles.select_related('resourceinstance', 'nodegroup').iterator()
+
+#         return callback
+     
+#     def get(self):
+#         callback = self.callback_get_tiles()
+        # return self._instance_query_builder.create_wkri_with_datatype_values(callable_get_tiles=callback)
