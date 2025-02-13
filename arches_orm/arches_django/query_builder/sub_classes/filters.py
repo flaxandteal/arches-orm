@@ -37,7 +37,7 @@ class QueryBuilderFilters:
 
             if (query['operator'] == '='):
                 self._instance_query_builder._filters[query_key] = query['value']
-
+    
         return self._instance_query_builder
 
     def where_in():
