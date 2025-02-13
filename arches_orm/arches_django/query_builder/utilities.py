@@ -1,6 +1,9 @@
 import re
 from arches.app.utils.permission_backend import get_nodegroups_by_perm
 
+def annotation_key(node_alias: str):
+    return f'{node_alias}_annotation';
+
 def transform_query(input_string):
     # Match pattern for the string format, allowing additional keys
     operators = ['=', '=>', '=<', '<', '>']
