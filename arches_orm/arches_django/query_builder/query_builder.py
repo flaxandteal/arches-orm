@@ -52,6 +52,7 @@ class QueryBuilder:
         self._instance_selectors = QueryBuilderSelectors(self._instance)
 
     def __getattr__(self, name):
+        print('INSIDE GET __getattr__ : ', name)
         if not self._current_build_stage and hasattr(self._instance_filters, name):
             return getattr(self._instance_filters, name)
 
