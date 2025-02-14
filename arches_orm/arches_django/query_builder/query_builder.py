@@ -20,9 +20,9 @@ class AnnotationProperties(TypedDict):
     name: str
     values: List[int]
 
-class WKRIEntry(TypedDict):
-    values: Dict[str, Any]
-    wkri: type 
+class FilterStructure(TypedDict):
+    logical_operator: str
+    kwargs: Dict[str, any]
 
 LOAD_ALL_NODES = True
 
@@ -38,7 +38,7 @@ class QueryBuilder:
     _edges_domain_to_range: Dict[str, str] = None;
     _edges_range_to_domain: Dict[str, str] = None;
 
-    _filters: Dict[str, any] = {};
+    _filter_structures: List[FilterStructure] = [];
     _annotations: Dict[str, ExpressionWrapper] = {};
     _order_by: List[str] = [];
 
@@ -46,14 +46,24 @@ class QueryBuilder:
         self._parent_wrapper_instance = parent_wrapper_instance;
         self._instance = self;
 
+        # * Setup instances of filters, modifiers, selectors
         self._instance_filters  = QueryBuilderFilters(self._instance)
         self._instance_modifiers  = QueryBuilderModifier(self._instance)
         self._instance_selectors = QueryBuilderSelectors(self._instance)
 
-    # def _globally_expose_query_builder_additional_methods(instance):
-    #     for method_name in dir(instance):
-    #         if not method_name.startswith("_") and callable(getattr(instance, method_name)):
-    #             setattr(instance, method_name, getattr(instance, method_name))
+    def __getattr__(self, name):
+        if not self._current_build_stage and hasattr(self._instance_filters, name):
+            return getattr(self._instance_filters, name)
+
+        elif not self._current_build_stage and hasattr(self._instance_modifiers, name):
+            self._current_build_stage = 'modifiers'
+            return getattr(self._instance_modifiers, name)
+
+        elif (self._current_build_stage == 'modifiers' or not self._current_build_stage) and hasattr(self._instance_selectors, name):
+            self._current_build_stage = 'selectors'
+            return getattr(self._instance_selectors, name)
+
+        raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{name}'")    
 
     def set_annotation(
         self,
@@ -79,21 +89,6 @@ class QueryBuilder:
         elif (node.datatype == 'number'):
             self._annotations[annotation_key(node_alias)] = expression_number_datatype(node.nodeid)
 
-    def __getattr__(self, name):
-        print('INSIDE GET __getattr__ : ', name)
-        if not self._current_build_stage and hasattr(self._instance_filters, name):
-            return getattr(self._instance_filters, name)
-
-        elif not self._current_build_stage and hasattr(self._instance_modifiers, name):
-            self._current_build_stage = 'modifiers'
-            return getattr(self._instance_modifiers, name)
-
-        elif (self._current_build_stage == 'modifiers' or not self._current_build_stage) and hasattr(self._instance_selectors, name):
-            self._current_build_stage = 'selectors'
-            return getattr(self._instance_selectors, name)
-
-        raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{name}'")    
-    
     def create_wkri_with_datatype_values(
             self, 
             related_prefetch = None,
@@ -221,6 +216,9 @@ class QueryBuilder:
     
 
     def _build_edges(self):
+        """
+        Method builds the edges if required, if the edges already exisit then its returned. The purpose is we can find the next node forward or backwards
+        """
         if (self._edges_domain_to_range and self._edges_range_to_domain):
             return;
 
@@ -237,11 +235,23 @@ class QueryBuilder:
             self._edges_range_to_domain[range_].append(domain)
 
     @property
-    def edges_domain_to_range(self):
+    def edges_domain_to_range(self) -> Dict[str, str]:
+        """
+        Getter method to return edges towards the domain to range
+
+        Returns:
+            Dict[str, str]: returns the edges domain to range
+        """
         self._build_edges
         return self._edges_domain_to_range
     
     @property
-    def edges_range_to_domain(self):
+    def edges_range_to_domain(self) -> Dict[str, str]:
+        """
+        Getter method to return edges towards the range to domain
+
+        Returns:
+            Dict[str, str]: Returns the edges range to domain
+        """
         self._build_edges
         return self._edges_range_to_domain

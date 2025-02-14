@@ -1,6 +1,6 @@
 from tests.utilities.common import create_tile_from_model
 
-def sub_test_where_number_check(arches_orm):
+def sub_test_where_equal(arches_orm):
     Person = arches_orm.models.Person
     includes = [
         'system_reference_numbers', 
@@ -26,8 +26,7 @@ def sub_test_where_number_check(arches_orm):
         )
         person.save() 
         
-    records = Person.where('primary_reference_number=87').get();
-
+    records = Person.where(primary_reference_number=87).get();
     assert(len(records) == 25)
 
     for record in records:
