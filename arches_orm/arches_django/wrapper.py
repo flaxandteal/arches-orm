@@ -10,7 +10,6 @@ from datetime import datetime
 from django.db import transaction
 from arches.app.models.models import ResourceXResource, Node, NodeGroup, Edge, TileModel
 from arches.app.models.graph import Graph
-from .responses import pagination
 from arches.app.models.tile import Tile as TileProxyModel
 from arches.app.models.system_settings import settings as system_settings
 from arches.app.utils.permission_backend import get_nodegroups_by_perm
@@ -62,12 +61,6 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
     TileProxyModel = TileProxyModel
 
     """Provides functionality for translating to/from Arches types."""
-
-    def __getattr__(self, name):
-        if hasattr(self._instance_query_builder, name):
-            return getattr(self._instance_query_builder, name)
-        
-        print('FAILED!')
 
     @property
     def query_builder_instance(cls):
