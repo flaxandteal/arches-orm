@@ -10,9 +10,10 @@ from arches.app.utils.betterJSONSerializer import JSONDeserializer
 from pathlib import Path
 from arches_orm.view_models import SemanticViewModel, NodeListViewModel, StringViewModel
 from tests.utilities.common import create_tile_from_model
-from sub_tests.queries.read.all import all_check_default
-from sub_tests.queries.read.where import sub_test_where_number_check
-from sub_tests.queries.read.order_by import sub_test_order_by_ascend
+
+from tests.arches_django.sub_tests.queries.read.selectors import all_check_default
+from sub_tests.queries.read.filters import sub_test_where_equal, sub_test_or_where_equal
+from tests.arches_django.sub_tests.queries.read.modifiers import sub_test_order_by_ascend
 
 def arches_import_method():
     from arches.app.utils.data_management.resources.importer import BusinessDataImporter
@@ -35,15 +36,18 @@ def arches_import_method():
 
 # @context_free
 # def test_where_quries_context_free(arches_orm):
-#     sub_test_where_number_check(arches_orm)
+#     sub_test_where_equal(arches_orm)
+
+@context_free
+def test_or_where_quries_context_free(arches_orm):
+    sub_test_or_where_equal(arches_orm)
+
+# @context_free
+# def test_order_by_context_free(arches_orm):
+#     sub_test_order_by_ascend(arches_orm)
 
 
 @context_free
-def test_order_by_context_free(arches_orm):
-    sub_test_order_by_ascend(arches_orm)
-
-
-# @context_free
-# def test_all_query_context_free(arches_orm):
-#     all_check_default(arches_orm)
+def test_all_query_context_free(arches_orm):
+    all_check_default(arches_orm)
 
