@@ -1,3 +1,4 @@
+
 import pytest
 import json
 from uuid import UUID
@@ -11,9 +12,8 @@ from pathlib import Path
 from arches_orm.view_models import SemanticViewModel, NodeListViewModel, StringViewModel
 from tests.utilities.common import create_tile_from_model
 
-from tests.arches_django.sub_tests.queries.read.selectors import all_check_default
-from sub_tests.queries.read.filters import sub_test_where_equal, sub_test_or_where_equal
-from tests.arches_django.sub_tests.queries.read.modifiers import sub_test_order_by_ascend
+from tests.arches_django.sub_tests.arches_django_query_builder.read.selectors import sub_test_selector_all
+from tests.arches_django.sub_tests.arches_django_query_builder.read.filters import sub_test_filter_where
 
 def arches_import_method():
     from arches.app.utils.data_management.resources.importer import BusinessDataImporter
@@ -39,6 +39,15 @@ def arches_import_method():
 #     sub_test_where_equal(arches_orm)
 
 @context_free
+def test_or_where_quries_context_free(arches_orm):
+    sub_test_filter_where(arches_orm)
+
+# @context_free
+# def test_order_by_context_free(arches_orm):
+#     sub_test_order_by_ascend(arches_orm)
+
+
+@context_free
 def test_all_query_context_free(arches_orm):
-    Person = arches_orm.models.Person;
-    all_check_default(arches_orm)
+    sub_test_selector_all(arches_orm)
+
