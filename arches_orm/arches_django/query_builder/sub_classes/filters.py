@@ -3,10 +3,14 @@ from ..utilities import transform_query, annotation_key
 from django.db.models import Func, F, ExpressionWrapper, IntegerField, CharField
 from arches.app.models.models import ResourceXResource, Node, NodeGroup, Edge, TileModel
 import uuid
+from typing import TYPE_CHECKING
 
 class QueryBuilderFilters:
     _instance_query_builder = None;
     _wrapper_instance = None;
+
+    if TYPE_CHECKING:
+        from arches_orm.arches_django.query_builder.query_builder import QueryBuilder
 
     def __init__(self, instance_query_builder):
         self._instance_query_builder = instance_query_builder;
@@ -20,7 +24,7 @@ class QueryBuilderFilters:
     #     }
     # }
 
-    def where(self, *args):     
+    def where(self, *args) -> "QueryBuilder":     
         nodes = self._wrapper_instance._node_objects_by_alias();
 
         for index in range(len(args)):
