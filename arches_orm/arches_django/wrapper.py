@@ -845,94 +845,94 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
 
     #         return tiles;
 
-        def set_tile_values_and_create_wkris(tiles: Iterator[TileModel]) -> Dict[str, WKRIEntry]:
-            """
-            This method takes in the tiles which want convert towards Dict[str, WKRIEntry], to allow the mapping of resources and tile data, the creation of
-            instances for wkris and the converations towards tile data to datatype classes.
+        # def set_tile_values_and_create_wkris(tiles: Iterator[TileModel]) -> Dict[str, WKRIEntry]:
+        #     """
+        #     This method takes in the tiles which want convert towards Dict[str, WKRIEntry], to allow the mapping of resources and tile data, the creation of
+        #     instances for wkris and the converations towards tile data to datatype classes.
 
-            @param tiles: An iterator of TileModel instances representing resource tiles.
-            @return: This returns an iteratoring of permitted tiles towards the user.
-            """
-            nodes: Iterator[Node] = Node.objects.filter(nodeid__in=permittedNodegroupIds).iterator();
-            node_dict: Dict[str, Node] = {node.nodegroup_id: node for node in nodes}
-            wkriMapping: Dict[str, WKRIEntry] = {}
+        #     @param tiles: An iterator of TileModel instances representing resource tiles.
+        #     @return: This returns an iteratoring of permitted tiles towards the user.
+        #     """
+        #     nodes: Iterator[Node] = Node.objects.filter(nodeid__in=permittedNodegroupIds).iterator();
+        #     node_dict: Dict[str, Node] = {node.nodegroup_id: node for node in nodes}
+        #     wkriMapping: Dict[str, WKRIEntry] = {}
 
-            # * Loop all tiles so (n*tiles)
-            for tile in tiles:
-                # * We get the resource instance from the tile and the node instance from the tiles node gorup
-                resource = tile.resourceinstance
-                node = node_dict.get(tile.nodegroup_id)
+        #     # * Loop all tiles so (n*tiles)
+        #     for tile in tiles:
+        #         # * We get the resource instance from the tile and the node instance from the tiles node gorup
+        #         resource = tile.resourceinstance
+        #         node = node_dict.get(tile.nodegroup_id)
     
-                # * We check if the resource from the tile has already created the wkri
-                if (wkriMapping.get(resource.resourceinstanceid)):
-                    wkri = wkriMapping[resource.resourceinstanceid]["wkri"]
+        #         # * We check if the resource from the tile has already created the wkri
+        #         if (wkriMapping.get(resource.resourceinstanceid)):
+        #             wkri = wkriMapping[resource.resourceinstanceid]["wkri"]
 
-                # * If not then we create the wkri for the resource and the values oject
-                else:
-                    wkri = cls.view_model(
-                        id=resource.resourceinstanceid,
-                        resource=resource,
-                        cross_record=None,
-                        related_prefetch=related_prefetch,
-                    )
+        #         # * If not then we create the wkri for the resource and the values oject
+        #         else:
+        #             wkri = cls.view_model(
+        #                 id=resource.resourceinstanceid,
+        #                 resource=resource,
+        #                 cross_record=None,
+        #                 related_prefetch=related_prefetch,
+        #             )
 
-                    wkriMapping[resource.resourceinstanceid] = {
-                        "values": {},
-                        "wkri": wkri
-                    }
+        #             wkriMapping[resource.resourceinstanceid] = {
+        #                 "values": {},
+        #                 "wkri": wkri
+        #             }
                     
-                # * Next we convert our value into a datatype class
-                pseudo_node = cls._make_pseudo_node_cls(
-                    key=node.alias,
-                    # node=node,
-                    tile=tile,
-                    wkri=wkri
-                )
+        #         # * Next we convert our value into a datatype class
+        #         pseudo_node = cls._make_pseudo_node_cls(
+        #             key=node.alias,
+        #             # node=node,
+        #             tile=tile,
+        #             wkri=wkri
+        #         )
 
-                # ? Here we state that the tile can be converted from a resource to a Tile Datatype Class as again this slows the process
-                pseudo_node._convert_tile_resource = True;
+        #         # ? Here we state that the tile can be converted from a resource to a Tile Datatype Class as again this slows the process
+        #         pseudo_node._convert_tile_resource = True;
 
-                # * We hook up the tile datatype class into values with our key as the node alias
-                wkriMapping[resource.resourceinstanceid]["values"][node.alias] = [pseudo_node]
+        #         # * We hook up the tile datatype class into values with our key as the node alias
+        #         wkriMapping[resource.resourceinstanceid]["values"][node.alias] = [pseudo_node]
 
-            return wkriMapping
+        #     return wkriMapping
 
 
-        def set_wkri_value_to_tile_values(wkriMapping: Dict[str, WKRIEntry]) -> List[type]:
-            """
-            This method handles the converation of all the values for the tile datatype class into a ValueList class which then this ValueList class
-            is stored within the wkri instance and finally the method returns all the wkri instances.
+        # def set_wkri_value_to_tile_values(wkriMapping: Dict[str, WKRIEntry]) -> List[type]:
+        #     """
+        #     This method handles the converation of all the values for the tile datatype class into a ValueList class which then this ValueList class
+        #     is stored within the wkri instance and finally the method returns all the wkri instances.
 
-            @param wkriMapping: The mapping of wkri towards values
-            @return: This returns all the wkri instances within a list
-            """
+        #     @param wkriMapping: The mapping of wkri towards values
+        #     @return: This returns all the wkri instances within a list
+        #     """
 
-            wkris: List[type] = [];
+        #     wkris: List[type] = [];
 
-            # * Loop wkri mapping created from the method above (n*resources)
-            for key in wkriMapping:
-                # * Extract the wkri instance and values from the mapping
-                wkri: type = wkriMapping[key]['wkri'];
-                values: dict[str, any] = wkriMapping[key]['values'];
+        #     # * Loop wkri mapping created from the method above (n*resources)
+        #     for key in wkriMapping:
+        #         # * Extract the wkri instance and values from the mapping
+        #         wkri: type = wkriMapping[key]['wkri'];
+        #         values: dict[str, any] = wkriMapping[key]['values'];
 
-                # * Convert the values into a ValueList instance and attach this onto the wkri instance
-                wkri._values = ValueList(
-                    values,
-                    wkri._,
-                    related_prefetch=related_prefetch
-                )
+        #         # * Convert the values into a ValueList instance and attach this onto the wkri instance
+        #         wkri._values = ValueList(
+        #             values,
+        #             wkri._,
+        #             related_prefetch=related_prefetch
+        #         )
 
-                # * Append the wkri instance on a list
-                wkris.append(wkri)
+        #         # * Append the wkri instance on a list
+        #         wkris.append(wkri)
 
-            return wkris
+        #     return wkris
 
-        # * Calls our inner methods here     
-        tiles = get_tiles()
-        wkriMapping = set_tile_values_and_create_wkris(tiles)
-        wkris = set_wkri_value_to_tile_values(wkriMapping)
+        # # * Calls our inner methods here     
+        # tiles = get_tiles()
+        # wkriMapping = set_tile_values_and_create_wkris(tiles)
+        # wkris = set_wkri_value_to_tile_values(wkriMapping)
 
-        return wkris;
+        # return wkris;
 
     @classmethod
     def find(cls, resourceinstanceid, from_prefetch=None, lazy=False):
