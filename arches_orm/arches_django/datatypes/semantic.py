@@ -35,6 +35,7 @@ def get_child_values(svm, target_key: str | None = None, parent = None, child_ke
     for key in child_keys:
         parent._._values._get(key)
     children = {}
+    # print(parent._._values)
     for key, values in parent._._values.items():
         for value in values:
             if (
