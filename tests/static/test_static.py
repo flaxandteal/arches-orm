@@ -34,4 +34,3 @@ def test_can_insert_into_concept_scheme(arches_orm):
     StatusEnum = rdm.get_collection("7849cd3c-3f0d-454d-aaea-db9164629641")
     concept_1 = rdm.make_simple_concept("My Status", "Done")
     StatusEnum = rdm.derive_collection("7849cd3c-3f0d-454d-aaea-db9164629641", include=[concept_1], exclude=[StatusEnum.BacklogDashSkeleton.value])
-    print(list(StatusEnum))
