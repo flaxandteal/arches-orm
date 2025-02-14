@@ -5,6 +5,7 @@ from arches.app.models.resource import Resource
 from arches.app.models.models import ResourceXResource, Node, NodeGroup, Edge, TileModel
 from functools import lru_cache
 from arches_orm.arches_django.wrapper import ValueList
+from django.db.models import Func, F, ExpressionWrapper, FloatField, CharField
 
 from .sub_classes.filters import QueryBuilderFilters
 from .sub_classes.selectors import QueryBuilderSelectors
@@ -29,17 +30,17 @@ class QueryBuilder:
     _instance = None
     _parent_wrapper_instance = None;
 
-    _instance_filters = None;
-    _instance_selectors = None;
-    _instance_modifiers = None;
-    _current_build_stage = None;
+    _instance_filters: QueryBuilderFilters = None;
+    _instance_selectors: QueryBuilderSelectors = None;
+    _instance_modifiers: QueryBuilderModifier = None;
+    _current_build_stage: str = None;
 
-    _edges_domain_to_range = None;
-    _edges_range_to_domain = None;
+    _edges_domain_to_range: Dict[str, str] = None;
+    _edges_range_to_domain: Dict[str, str] = None;
 
-    _filters = {};
-    _annotations = {};
-    _order_by = [];
+    _filters: Dict[str, any] = {};
+    _annotations: Dict[str, ExpressionWrapper] = {};
+    _order_by: List[str] = [];
 
     def __init__(self, parent_wrapper_instance):
         self._parent_wrapper_instance = parent_wrapper_instance;
@@ -97,24 +98,35 @@ class QueryBuilder:
             self, 
             related_prefetch = None,
             lazy = False, 
-            callable_get_tiles: Optional[Callable[[], Iterator[TileModel]]] = None
-        ):
+            callback_get_tiles: Optional[Callable[[], Iterator[TileModel]]] = None
+        ) -> List[type]:
+        """
+        This method handles getting tiles, converting tiles to their respected datatype classes, storing these datatype classes within WKRI instances and
+        returning WKRI instances within a list. We can also use callbacks to handle getting tiles differently
 
+        Args:
+            related_prefetch (_type_, optional): Related prefetch is used for methods on the wrapper.py
+            lazy (bool, optional): Lazy is used for methods on the wrapper.py
+            callback_get_tiles (Optional[Callable[[], Iterator[TileModel]]], optional): This method is used to handle a callback for getting the tiles
+                & this should be mainly used within selectors.py
+
+        Returns:
+            List[type]: The list of WKRI instances
+        """
+
+        # * These vars are used manally to setup the get tiles methods for the user premitted node groups
         permittedNodegroupIds: List[str | None] = self._parent_wrapper_instance._permitted_nodegroups()
-
         defaultFilterTileAgrs: Dict[str, any] = {
             'nodegroup_id__in': permittedNodegroupIds
         }
 
-        def fallback_get_tiles(**defaultFilterTileAgrs) -> Iterator[TileModel]:
+        def _fallback_get_tiles(**defaultFilterTileAgrs) -> Iterator[TileModel]:
             """
-            This method gets an Iterator[TileModel] which are the only tiles permitted towards the user. This method also handles the pagination on the tiles
-            however remember that tiles are children of resources so we paginate the resources
+            This method is a fallback method for the get tiles, incase a callback_get_tiles is not provided
 
             @return: This returns an iteratoring of permitted tiles towards the user
             """
 
-    
             tiles: Iterator[TileModel] = []
             # limit: int | None = args.get('limit', 30)
             # page: int | None = args.get('page', 1)
@@ -128,34 +140,39 @@ class QueryBuilder:
             #     tiles = TileModel.objects.filter(**defaultFilterTileAgrs, resourceinstance__in=resource_ids).select_related('resourceinstance', 'nodegroup').iterator()    
 
             # else: 
-            tiles = TileModel.objects.filter(**defaultFilterTileAgrs).select_related('resourceinstance', 'nodegroup').iterator()  
+            tiles: Iterator[TileModel] = TileModel.objects.filter(**defaultFilterTileAgrs).select_related('resourceinstance', 'nodegroup').iterator()  
 
             return tiles;
 
-        def set_tile_values_and_create_wkris(tiles: Iterator[TileModel]) -> Dict[str, WKRIEntry]:
+        def _convert_tile_pseudo_nodes_and_create_wkris_with_value_lists(tiles: Iterator[TileModel]) -> List[type]:
             """
-            This method takes in the tiles which want convert towards Dict[str, WKRIEntry], to allow the mapping of resources and tile data, the creation of
-            instances for wkris and the converations towards tile data to datatype classes.
+            This methods loops through our tiles so (n*tiles), converts the tiles to a pseudo node, then appends the pseudo nodes on a ValustList which
+            is stored on a WKRI instance. These WKRI instances are appended on list and that is the return value
 
             @param tiles: An iterator of TileModel instances representing resource tiles.
-            @return: This returns an iteratoring of permitted tiles towards the user.
+            @return: This returns the list of WKRI instances
             """
+
+            # * Gets a Dict of nodes with the node group UUID as the key, as this is the fastest way of gaining the nodes
             nodes: Iterator[Node] = Node.objects.filter(nodeid__in=permittedNodegroupIds).iterator();
             node_dict: Dict[str, Node] = {node.nodegroup_id: node for node in nodes}
-            wkriMapping: Dict[str, WKRIEntry] = {}
+
+            # * Next we have our return value and a mapping of index within wkris with the key as resource ids
+            wkri_resource_instance_mapping_wkris_index: Dict[str, int] = {}
+            wkris: List[type] = []; # * Return value
 
             # * Loop all tiles so (n*tiles)
             for tile in tiles:
                 # * We get the resource instance from the tile and the node instance from the tiles node gorup
                 resource = tile.resourceinstance
                 node = node_dict.get(tile.nodegroup_id)
+                wkri = None;
 
-                # * We check if the resource from the tile has already created the wkri
-                if (wkriMapping.get(resource.resourceinstanceid)):
-                    wkri = wkriMapping[resource.resourceinstanceid]["wkri"]
+                # * If the resource id is not contained within mapping, it means there is no WKRI instance towrads this tile as of yet
+                # * therefore we must create this WKRI and append/map towards our variables
+                if wkri_resource_instance_mapping_wkris_index.get(resource.resourceinstanceid) == None:
 
-                # * If not then we create the wkri for the resource and the values oject
-                else:
+                    # * Create WKRI and hook up ValueList towards the wkri values
                     wkri = self._parent_wrapper_instance.view_model(
                         id=resource.resourceinstanceid,
                         resource=resource,
@@ -163,12 +180,21 @@ class QueryBuilder:
                         related_prefetch=related_prefetch,
                     )
 
-                    wkriMapping[resource.resourceinstanceid] = {
-                        "values": {},
-                        "wkri": wkri
-                    }
-                    
-                # * Next we convert our value into a datatype class
+                    wkri._values = ValueList(
+                        {},
+                        wkri._,
+                        related_prefetch=related_prefetch
+                    )
+
+                    # * Save the WKRI instances so we can reuse the instances
+                    wkris.append(wkri)
+                    wkri_resource_instance_mapping_wkris_index[resource.resourceinstanceid] = len(wkris) - 1
+         
+                # * Get the current WKRI instance towards this tile
+                current_wkri_index = wkri_resource_instance_mapping_wkris_index.get(resource.resourceinstanceid)
+                wkri = wkris[current_wkri_index] if not wkri else wkri;
+
+                # * Convert the tile to a pseudo node
                 pseudo_node = self._parent_wrapper_instance._make_pseudo_node_cls(
                     key=node.alias,
                     # node=node,
@@ -179,47 +205,19 @@ class QueryBuilder:
                 # ? Here we state that the tile can be converted from a resource to a Tile Datatype Class as again this slows the process
                 pseudo_node._convert_tile_resource = True;
 
-                # * We hook up the tile datatype class into values with our key as the node alias
-                wkriMapping[resource.resourceinstanceid]["values"][node.alias] = [pseudo_node]
-
-            return wkriMapping
-
-
-        def set_wkri_value_to_tile_values(wkriMapping: Dict[str, WKRIEntry]) -> List[type]:
-            """
-            This method handles the converation of all the values for the tile datatype class into a ValueList class which then this ValueList class
-            is stored within the wkri instance and finally the method returns all the wkri instances.
-
-            @param wkriMapping: The mapping of wkri towards values
-            @return: This returns all the wkri instances within a list
-            """
-
-            wkris: List[type] = [];
-
-            # * Loop wkri mapping created from the method above (n*resources)
-            for key in wkriMapping:
-                # * Extract the wkri instance and values from the mapping
-                wkri: type = wkriMapping[key]['wkri'];
-                values: dict[str, any] = wkriMapping[key]['values'];
-
-                # * Convert the values into a ValueList instance and attach this onto the wkri instance
-                wkri._values = ValueList(
-                    values,
-                    wkri._,
-                    related_prefetch=related_prefetch
-                )
-
-                # * Append the wkri instance on a list
-                wkris.append(wkri)
+                # * Append on the wkri values and update the WKRI within our return value list
+                wkri._._values.__setitem__(node.alias, [pseudo_node])
+                wkris[current_wkri_index] = wkri
 
             return wkris
 
-        # * Calls our inner methods heree
-        tiles = callable_get_tiles(**defaultFilterTileAgrs) if callable_get_tiles else fallback_get_tiles(**defaultFilterTileAgrs)
-        wkriMapping = set_tile_values_and_create_wkris(tiles)
-        wkris = set_wkri_value_to_tile_values(wkriMapping)
+        # * We first need to quire the tiles so we use the callback_get_tiles and if one is not provided then we use _fallback_get_tiles as a default.
+        # * Either way we get the tiles
+        tiles = callback_get_tiles(**defaultFilterTileAgrs) if callback_get_tiles else _fallback_get_tiles(**defaultFilterTileAgrs)
 
-        return wkris
+        # * Next we convert the tiles towards pseudo nodes, store the pseudo nodes inside ValueList and store the ValueList inside a instance of WKRI
+        # * Finally we return a list of WKRIs
+        return _convert_tile_pseudo_nodes_and_create_wkris_with_value_lists(tiles)
     
 
     def _build_edges(self):

@@ -28,8 +28,8 @@ class QueryBuilderSelectors:
 
         print('DATA : ', self.queryset_tiles.values('data'))
 
-        def callable_get_tiles(**defaultFilterTileAgrs):
-            if (annotations): 
+        def callback_get_tiles(**defaultFilterTileAgrs):
+            if (annotations):
                 self.queryset_tiles = self.queryset_tiles.annotate(**annotations)
 
             self.queryset_tiles = self.queryset_tiles.filter(**filters, **defaultFilterTileAgrs)
@@ -39,7 +39,7 @@ class QueryBuilderSelectors:
 
             return self.queryset_tiles.select_related('resourceinstance', 'nodegroup').iterator()
 
-        return self._instance_query_builder.create_wkri_with_datatype_values(callable_get_tiles=callable_get_tiles)
+        return self._instance_query_builder.create_wkri_with_datatype_values(callback_get_tiles=callback_get_tiles)
     
 
 #     def callback_get_tiles(self):
@@ -66,4 +66,4 @@ class QueryBuilderSelectors:
      
 #     def get(self):
 #         callback = self.callback_get_tiles()
-        # return self._instance_query_builder.create_wkri_with_datatype_values(callable_get_tiles=callback)
+        # return self._instance_query_builder.create_wkri_with_datatype_values(callback_get_tiles=callback)

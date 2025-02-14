@@ -1,7 +1,16 @@
 import re
 from arches.app.utils.permission_backend import get_nodegroups_by_perm
 
-def annotation_key(node_alias: str):
+def annotation_key(node_alias: str) -> str:
+    """
+    Method handles returning the annotation key. We are just keeping structure towards the annotation key
+
+    Args:
+        node_alias (str): The node alias for example age, person, name, etc.
+
+    Returns:
+        str: The transfromed string, this just appends '_annotation' on the node alias
+    """
     return f'{node_alias}_annotation';
 
 def transform_query(input_string):
