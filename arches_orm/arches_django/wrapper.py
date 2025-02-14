@@ -131,12 +131,23 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
         return query_builder_instance.order_by(*args)
 
     @classmethod
-    def where(cls, *args):
+    def where(cls, **kwargs):
         from arches_orm.arches_django.query_builder.query_builder import QueryBuilder
         query_builder_instance = QueryBuilder(parent_wrapper_instance=cls)
-        return query_builder_instance.where(*args)
+        return query_builder_instance.where(**kwargs)
 
-
+    @classmethod
+    def or_where(cls, **kwargs):
+        from arches_orm.arches_django.query_builder.query_builder import QueryBuilder
+        query_builder_instance = QueryBuilder(parent_wrapper_instance=cls)
+        return query_builder_instance.where_or(**kwargs)
+    
+    @classmethod
+    def all(cls):
+        from arches_orm.arches_django.query_builder.query_builder import QueryBuilder
+        query_builder_instance = QueryBuilder(parent_wrapper_instance=cls)
+        return query_builder_instance.all()
+    
     def _can_delete_resource(self, resource=None):
         if (user := self._context_get("user")):
             resource = resource or self.resource
@@ -784,56 +795,55 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
                 del ArchesDjangoResourceWrapper.start_times[key]  # Remove the start time after finishing the task
                 return execution_time_ms
             
-    @classmethod
-    def all(cls, related_prefetch=None, lazy=False, **kwargs) -> List[type]:
-        """
-        This fetchs all the records from the datatable, 
+    # def all(cls, related_prefetch=None, lazy=False, **kwargs) -> List[type]:
+    #     """
+    #     This fetchs all the records from the datatable, 
 
-        Args:
-            related_prefetch (_type_, optional): _description_. Defaults to None.
-            lazy (bool, optional): _description_. Defaults to False.
+    #     Args:
+    #         related_prefetch (_type_, optional): _description_. Defaults to None.
+    #         lazy (bool, optional): _description_. Defaults to False.
 
-        Raises:
-            WKRMPermissionDenied: _description_
+    #     Raises:
+    #         WKRMPermissionDenied: _description_
 
-        Returns:
-            _type_: _description_
-        """
-        cls.time_execution('all', True)
+    #     Returns:
+    #         _type_: _description_
+    #     """
+    #     cls.time_execution('all', True)
 
-        if not cls ._can_read_graph():
-            raise WKRMPermissionDenied()
+    #     if not cls ._can_read_graph():
+    #         raise WKRMPermissionDenied()
         
-        permittedNodegroupIds: List[str | None] = cls._permitted_nodegroups()
+    #     permittedNodegroupIds: List[str | None] = cls._permitted_nodegroups()
 
-        def get_tiles() -> Iterator[TileModel]:
-            """
-            This method gets an Iterator[TileModel] which are the only tiles permitted towards the user. This method also handles the pagination on the tiles
-            however remember that tiles are children of resources so we paginate the resources
+    #     def get_tiles() -> Iterator[TileModel]:
+    #         """
+    #         This method gets an Iterator[TileModel] which are the only tiles permitted towards the user. This method also handles the pagination on the tiles
+    #         however remember that tiles are children of resources so we paginate the resources
 
-            @return: This returns an iteratoring of permitted tiles towards the user
-            """
+    #         @return: This returns an iteratoring of permitted tiles towards the user
+    #         """
 
-            defaultFilterTileAgrs: Dict[str, any] = {
-                'nodegroup_id__in': permittedNodegroupIds
-            }
+    #         defaultFilterTileAgrs: Dict[str, any] = {
+    #             'nodegroup_id__in': permittedNodegroupIds
+    #         }
             
-            tiles: Iterator[TileModel] = []
-            limit: int | None = kwargs.get('limit', 30)
-            page: int | None = kwargs.get('page', 1)
+    #         tiles: Iterator[TileModel] = []
+    #         limit: int | None = kwargs.get('limit', 30)
+    #         page: int | None = kwargs.get('page', 1)
 
-            if (page is not None):
-                resource_ids: List[str] = list(Resource.objects.filter(graph_id=cls.graphid).values_list("resourceinstanceid", flat=True))
-                paginator: Paginator = Paginator(resource_ids, limit)
-                page_obj: Page = paginator.get_page(page)
+    #         if (page is not None):
+    #             resource_ids: List[str] = list(Resource.objects.filter(graph_id=cls.graphid).values_list("resourceinstanceid", flat=True))
+    #             paginator: Paginator = Paginator(resource_ids, limit)
+    #             page_obj: Page = paginator.get_page(page)
 
-                resource_ids: List[str] = page_obj.object_list
-                tiles = TileModel.objects.filter(**defaultFilterTileAgrs, resourceinstance__in=resource_ids).select_related('resourceinstance', 'nodegroup').iterator()    
+    #             resource_ids: List[str] = page_obj.object_list
+    #             tiles = TileModel.objects.filter(**defaultFilterTileAgrs, resourceinstance__in=resource_ids).select_related('resourceinstance', 'nodegroup').iterator()    
 
-            else: 
-                tiles = TileModel.objects.filter(**defaultFilterTileAgrs).select_related('resourceinstance', 'nodegroup').iterator()  
+    #         else: 
+    #             tiles = TileModel.objects.filter(**defaultFilterTileAgrs).select_related('resourceinstance', 'nodegroup').iterator()  
 
-            return tiles;
+    #         return tiles;
 
         def set_tile_values_and_create_wkris(tiles: Iterator[TileModel]) -> Dict[str, WKRIEntry]:
             """
