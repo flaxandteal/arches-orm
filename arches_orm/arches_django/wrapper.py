@@ -28,7 +28,7 @@ from arches_orm.wrapper import ResourceWrapper
 from arches_orm.utils import snake
 from arches_orm.errors import WKRIPermissionDenied, WKRMPermissionDenied, DescriptorsNotYetSet
 from arches_orm.view_models.resources import RelatedResourceInstanceViewModelMixin
-from arches_orm.pseudo_node.pseudo_nodes import PseudoNodeList, PseudoNodeValue, PseudoNodeUnavailable, update_tiles
+from arches_orm.pseudo_node.pseudo_nodes import PseudoNodeList, PseudoNodeValue, PseudoNodeUnavailable, update_tiles, PseudoNodeWrapperMixin
 from arches_orm.pseudo_node.value_list import ValueList
 
 from .bulk_create import BulkImportWKRM
@@ -51,7 +51,7 @@ def get_permitted_nodegroups(user):
     nodegroups = [str(ng) for ng in get_nodegroups_by_perm(user, "models.write_nodegroup")]
     return nodegroups
 
-class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
+class ArchesDjangoResourceWrapper(SearchMixin, PseudoNodeWrapperMixin, ResourceWrapper, proxy=True):
     _nodes_real: dict = None
     _nodegroup_objects_real: dict = None
     _values_list: ValueList | None = None
@@ -61,6 +61,7 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
     start_times = {}
     count = {}
     TileProxyModel = TileProxyModel
+    get_view_model_for_datatype = get_view_model_for_datatype
 
     """Provides functionality for translating to/from Arches types."""
 
@@ -1174,60 +1175,6 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
             cls.from_resource_instance(tile.resourceinstance, cross_record=cross_record, lazy=lazy)
             for tile in tiles
         ]
-
-    @classmethod
-    def _make_pseudo_node_cls(cls, key, single=False, tile=None, wkri=None):
-        node_obj = cls._node_objects_by_alias()[key]
-        nodegroups = cls._nodegroup_objects()
-        permitted = cls._permitted_nodegroups()
-        edges = cls._edges().get(str(node_obj.nodeid))
-        value = None
-
-        if (
-            node_obj.nodegroup_id
-            and node_obj.is_collector
-            and nodegroups[str(node_obj.nodegroup_id)].cardinality == "n"
-            and not single
-        ):
-            value = PseudoNodeList(
-                node_obj,
-                parent=wkri,
-                parent_cls=cls.view_model,
-            )
-        if value is None or tile:
-            child_nodes = {}
-            if edges is not None:
-                child_nodes.update(
-                    {
-                        n.alias: (n, not n.is_collector)
-                        for n in cls._node_objects().values()
-                        if str(n.nodeid) in edges
-                    }
-                )
-            if node_obj.nodegroup_id is not None and str(node_obj.nodegroup_id) not in permitted:
-                node_value = PseudoNodeUnavailable(
-                    node=node_obj,
-                    parent=wkri,
-                    parent_cls=cls.view_model,
-                )
-            else:
-                  node_value = PseudoNodeValue(
-                    tile=tile,
-                    TileProxyModel=cls.TileProxyModel,
-                    get_view_model_for_datatype=get_view_model_for_datatype,
-                    node=node_obj,
-                    value=None,
-                    parent=wkri,
-                    parent_cls=cls.view_model,
-                    child_nodes=child_nodes,
-                )
-            # If we have a tile in a list, add it
-            if value is not None:
-                value.append(node_value)
-            else:
-                value = node_value
-
-        return value
 
     def __init_subclass__(cls, well_known_resource_model=None, proxy=None, adapter=None):
         super().__init_subclass__(

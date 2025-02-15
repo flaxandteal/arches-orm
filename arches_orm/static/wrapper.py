@@ -8,7 +8,7 @@ from arches_orm.errors import DescriptorsNotYetSet
 from threading import Event
 from arches_orm.datatypes import DataTypeNames
 from arches_orm.wrapper import ResourceWrapper
-from arches_orm.pseudo_node.pseudo_nodes import PseudoNodeList, PseudoNodeValue, PseudoNodeUnavailable
+from arches_orm.pseudo_node.pseudo_nodes import PseudoNodeList, PseudoNodeValue, PseudoNodeUnavailable, PseudoNodeWrapperMixin
 from arches_orm.pseudo_node.value_list import ValueList
 from arches_orm.view_models.resources import RelatedResourceInstanceViewModelMixin
 from arches_orm.utils import consistent_uuid as cuuid
@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 LOAD_ALL_NODES = True
 
 
-class StaticResourceWrapper(ResourceWrapper, proxy=True):
+class StaticResourceWrapper(PseudoNodeWrapperMixin, ResourceWrapper, proxy=True):
     """Static wrapper for all well-known resources.
 
     When you use, `Person`, etc. it will be this class in disguise.
@@ -33,6 +33,7 @@ class StaticResourceWrapper(ResourceWrapper, proxy=True):
     _nodegroup_objects_real: dict = None
     _unique_identifier_cb = None
     TileProxyModel = StaticTile.model_construct
+    get_view_model_for_datatype = get_view_model_for_datatype
 
     @classmethod
     def search(cls, text, fields=None, _total=None) -> tuple[list[int], int]:
@@ -234,6 +235,7 @@ class StaticResourceWrapper(ResourceWrapper, proxy=True):
         return self._node_objects_by_alias()
 
     @classmethod
+    @lru_cache
     def _node_objects_by_alias(cls):
         if hasattr(cls.__bases__[0], "_node_objects_by_alias") and cls.proxy:
             return cls.__bases__[0]._node_objects_by_alias()
@@ -803,60 +805,6 @@ class StaticResourceWrapper(ResourceWrapper, proxy=True):
             related_prefetch=related_prefetch
         )
         return wkri
-
-    @classmethod
-    def _make_pseudo_node_cls(cls, key, single=False, tile=None, wkri=None):
-        node_obj = cls._node_objects_by_alias()[key]
-        nodegroups = cls._nodegroup_objects()
-
-        permitted = cls._permitted_nodegroups()
-        edges = cls._edges().get(node_obj.nodeid)
-        value = None
-        if (
-            node_obj.nodegroup_id
-            and node_obj.is_collector
-            and nodegroups[node_obj.nodegroup_id].cardinality == "n"
-            and not single
-        ):
-            value = PseudoNodeList(
-                node_obj,
-                parent=wkri,
-                parent_cls=cls.view_model,
-            )
-        if value is None or tile:
-            child_nodes = {}
-            if edges is not None:
-                child_nodes.update(
-                    {
-                        n.alias: (n, not n.is_collector)
-                        for n in cls._node_objects().values()
-                        if n.nodeid in edges
-                    }
-                )
-            if node_obj.nodegroup_id is not None and node_obj.nodegroup_id not in permitted:
-                node_value = PseudoNodeUnavailable(
-                    node=node_obj,
-                    parent=wkri,
-                    parent_cls=cls.view_model,
-                )
-            else:
-                node_value = PseudoNodeValue(
-                    tile=tile,
-                    TileProxyModel=cls.TileProxyModel,
-                    get_view_model_for_datatype=get_view_model_for_datatype,
-                    node=node_obj,
-                    value=None,
-                    parent=wkri,
-                    parent_cls=cls.view_model,
-                    child_nodes=child_nodes,
-                )
-            # If we have a tile in a list, add it
-            if value is not None:
-                value.append(node_value)
-            else:
-                value = node_value
-
-        return value
 
     def __init_subclass__(cls, well_known_resource_model=None, proxy=None, adapter=None):
         super().__init_subclass__(

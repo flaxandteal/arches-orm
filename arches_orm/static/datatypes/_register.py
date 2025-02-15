@@ -88,6 +88,7 @@ class StaticDataTypeFactory:
 REGISTER = ViewModelRegister.create_with_factory(StaticDataTypeFactory())
 
 def get_view_model_for_datatype(tile, node, parent, parent_cls, child_nodes, value=None):
+    print(value, node)
     return REGISTER.make(
         tile, node, value=value, parent=parent, parent_cls=parent_cls, child_nodes=child_nodes
     )
