@@ -1,4 +1,5 @@
 from __future__ import annotations
+from functools import lru_cache
 from collections import UserList
 from uuid import UUID
 
@@ -7,6 +8,69 @@ from typing import Any
 from arches_orm.view_models import ViewModel, NodeListViewModel, UnavailableViewModel, ResourceInstanceViewModel
 from arches_orm.view_models.resources import RelatedResourceInstanceViewModelMixin
 
+
+class PseudoNodeWrapperMixin:
+    @classmethod
+    @lru_cache
+    def _child_nodes(cls, node_id):
+        child_nodes = {}
+        edges = cls._edges().get(node_id)
+        if edges is not None:
+            child_nodes.update(
+                {
+                    n.alias: (n, not n.is_collector)
+                    for n in cls._node_objects().values()
+                    if n.nodeid in edges
+                }
+            )
+        return child_nodes
+
+    @classmethod
+    def _make_pseudo_node_cls(cls, key, single=False, tile=None, wkri=None):
+        node_obj = cls._node_objects_by_alias()[key]
+        nodegroups = cls._nodegroup_objects()
+
+        permitted = cls._permitted_nodegroups()
+        value = None
+        if (
+            node_obj.nodegroup_id
+            and node_obj.is_collector
+            and nodegroups[node_obj.nodegroup_id].cardinality == "n"
+            and not single
+        ):
+            value = PseudoNodeList(
+                node_obj,
+                parent=wkri,
+                parent_cls=cls.view_model,
+            )
+        if value is None or tile:
+            if node_obj.nodegroup_id is not None and node_obj.nodegroup_id not in permitted:
+                node_value = PseudoNodeUnavailable(
+                    node=node_obj,
+                    parent=wkri,
+                    parent_cls=cls.view_model,
+                )
+            else:
+                child_nodes = cls._child_nodes(node_obj.nodeid)
+                print(child_nodes)
+                node_value = PseudoNodeValue(
+                    tile=tile,
+                    TileProxyModel=cls.TileProxyModel,
+                    get_view_model_for_datatype=cls.get_view_model_for_datatype,
+                    node=node_obj,
+                    value=None,
+                    parent=wkri,
+                    parent_cls=cls.view_model,
+                    child_nodes=child_nodes,
+                )
+                print(node_value)
+            # If we have a tile in a list, add it
+            if value is not None:
+                value.append(node_value)
+            else:
+                value = node_value
+
+        return value
 
 class PseudoNodeList(UserList):
     def __init__(self, node, parent=None, parent_cls=None):

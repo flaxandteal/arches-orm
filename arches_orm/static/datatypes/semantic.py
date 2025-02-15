@@ -25,6 +25,7 @@ def make_pseudo_node(svm, key, parent_cls, tile, child_nodes, parent):
     if parent:
         parent._._values.setdefault(key, [])
         parent._._values[key].append(child)
+    print("CHILD", key, child)
     return child
 
 def get_child_values(svm, target_key: str | None = None, parent = None, child_keys = None, child_nodes = None, tile = None, node = None):
