@@ -1,13 +1,16 @@
 import uuid
 from enum import Enum
 from functools import partial
-
+from typing import List
 from arches.app.models.concept import Concept
 
 from arches_orm.view_models import (
     ConceptListValueViewModel,
     ConceptValueViewModel,
     EmptyConceptValueViewModel,
+    DomainListValueViewModel,
+    DomainValueViewModel, 
+    DomainOptions
 )
 from arches_orm.collection import make_collection, CollectionEnum
 from ._register import REGISTER
@@ -111,7 +114,6 @@ def make_concept_value(value: uuid.UUID | None, collection_id: uuid.UUID | None,
         partial(retrieve_collection, datatype=datatype),
         partial(retrieve_children, datatype=datatype)
     )
-
 
 @concept_value.as_tile_data
 def cv_as_tile_data(concept_value):

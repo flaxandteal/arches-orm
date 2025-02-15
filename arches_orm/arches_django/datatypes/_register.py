@@ -13,10 +13,12 @@ class RegisterFunction(Callable):
         return self.fn(*args, **kwargs)
 
     def as_tile_data(self, as_tile_data_fn):
+        print(f"Setting as_tile_data for {self.fn.__name__}")  # Debugging
         self.as_tile_data_fn = as_tile_data_fn
         return as_tile_data_fn
 
     def transform_value_for_tile(self, value):
+        print('transform_value_for_tile', value)
         return self.as_tile_data_fn(value)
 
 
@@ -96,6 +98,7 @@ class ViewModelRegister(UserDict):
                 )
             else:
                 transformed = None
+            
             return transformed, lambda value: datatype.transform_value_for_tile(
                 value, **(node.config or {})
             ), datatype_name, datatype.collects_multiple_values()
