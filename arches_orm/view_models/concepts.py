@@ -58,6 +58,26 @@ class StaticBroader(StaticRelationship):
 class StaticScopeNote(StaticValue):
     __type__: type[Node] = SKOS.scopeNote
 
+class ValueDict(dict[UUID, StaticValue]):
+    _concept: "StaticConcept"
+    _VALUES: dict[UUID, StaticValue] = {} # class variable
+
+    def __init__(self, concept: "StaticConcept", *args, **kwargs):
+        self._concept = concept
+        super().__init__(*args, **kwargs)
+        self._VALUES.update({k if isinstance(k, UUID) else UUID(k): v for k, v in self.items()})
+
+    def __setitem__(self, key, val):
+        if not isinstance(key, UUID):
+            key = UUID(key)
+        self._VALUES[key] = val
+        return super().__setitem__(key, val)
+
+    def update(self, *args, **kwargs):
+        arg = dict(*args, **kwargs)
+        for k, v in arg.values():
+            self[k] = v
+
 @dataclass
 class StaticConcept:
     """Minimal representation of an Arches concept."""
@@ -70,6 +90,9 @@ class StaticConcept:
     related: list[StaticRelationship] = field(default_factory=list)
     sort_order: int | None = None
     _title: dict[str | None, StaticValue | None] = field(default_factory=dict)
+
+    def __post_init__(self):
+        self.values = ValueDict(self, self.values)
 
     @property
     def children(self) -> list["StaticConcept"]:
@@ -98,6 +121,8 @@ class StaticConcept:
                 title = next(value for value in values if hasattr(value, "language") and value.language == language)
             except StopIteration:
                 ...
+        elif values:
+            title = values[0]
 
         if title is None:
             try:

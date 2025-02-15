@@ -43,6 +43,7 @@ class StaticAdapter(Adapter, PseudoNodeAdapterMixin):
             for concept_path in self.config["concept_paths"]:
                 load_concept_path(concept_path)
                 load_collection_path(concept_path)
+            self._collections_loaded = True
 
     def get_wrapper(self):
         from .wrapper import StaticResourceWrapper

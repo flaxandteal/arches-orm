@@ -23,6 +23,7 @@ from rdflib.namespace import SKOS, DCTERMS
 from arches_orm.collection import make_collection, CollectionEnum
 from arches_orm.utils import consistent_uuid as cuuid
 from arches_orm.view_models.concepts import (
+    ValueDict,
     ConceptValueViewModel,
     StaticConcept,
     StaticValue,
@@ -46,12 +47,7 @@ _COLLECTIONS: dict[UUID, type[Enum]] = {}
 def value_from_concept(value_id: str | UUID) -> StaticValue:
     value_id = UUID(value_id) if isinstance(value_id, str) else value_id
     value: StaticValue
-    try:
-        concept = next(concept for concept in _CONCEPTS.values() if hasattr(concept, "values") and value_id in concept.values)
-        value = concept.values[value_id]
-    except StopIteration:
-        concept = next(concept for concept in _CONCEPTS.values() if concept.title().id == value_id)
-        value = concept.title()
+    value = ValueDict._VALUES[value_id]
     return value
 
 @lru_cache

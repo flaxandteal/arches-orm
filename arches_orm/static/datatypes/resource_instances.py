@@ -6,7 +6,7 @@ from collections import UserDict
 from uuid import UUID
 from pathlib import Path
 
-from pydantic import BaseModel
+from pydantic import BaseModel, PrivateAttr
 
 _RESOURCE_LOCATIONS: dict[UUID, Path] = {}
 
@@ -26,10 +26,20 @@ class StaticTile(BaseModel):
     nodegroup_id: UUID
     resourceinstance_id: UUID
     tileid: UUID
-    parenttile: StaticTile | None = None
+    _parenttile: StaticTile | None = PrivateAttr()
     parenttile_id: UUID | None = None
     provisionaledits: None | list[StaticProvisionalEdit] = None
     sortorder: int | None = None
+
+    @property
+    def parenttile(self) -> StaticTile | None:
+        # Note that this does not try to check or load from parenttile_id
+        return self._parenttile
+
+    @parenttile.setter
+    def parenttile(self, tile: StaticTile):
+        self._parenttile = tile
+        self.parenttile_id = tile.tileid
 
 class StaticResource(BaseModel):
     resourceinstance: StaticResourceInstanceInfo

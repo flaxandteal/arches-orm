@@ -64,7 +64,6 @@
             "resourceinstance_id": "<UUID:1>",
             "tileid": "<UUID:2>",
             "parenttile_id": null,
-            "parenttile": null,
             "provisionaledits": null,
             "sortorder": 0
           },
@@ -117,7 +116,6 @@
             "resourceinstance_id": "<UUID:1>",
             "tileid": "<UUID:3>",
             "parenttile_id": null,
-            "parenttile": null,
             "provisionaledits": null,
             "sortorder": 0
           }
