@@ -226,6 +226,10 @@ class PseudoNodeValue:
                 parent_cls=self._parent_cls,
                 child_nodes=self._child_nodes,
             )
+            # print('_datatype | ', self._datatype)
+
+            # print('_as_tile_data | ', self._as_tile_data)
+
             if self._value is not None and isinstance(self._value, ViewModel):
                 self._value._parent_pseudo_node = self
             if self._value is not None:
