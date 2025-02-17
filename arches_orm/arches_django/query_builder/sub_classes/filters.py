@@ -38,7 +38,8 @@ class QueryBuilderFilters:
 
             self._instance_query_builder.set_annotation(
                 key, 
-                node
+                node,
+                query['additional_keys']
             )
 
             # * We do use the annotation_key as the filter field_key as within set_annotation it setups the annotation with the key as annotation_key(query['field_key'])

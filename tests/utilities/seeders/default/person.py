@@ -1,4 +1,6 @@
 from tests.utilities.common import create_tile_from_model
+import random
+from datetime import datetime, timedelta
 
 def person_basic_seeder(model, amount: int):
     includes = [
@@ -17,6 +19,33 @@ def person_basic_seeder(model, amount: int):
         person = create_tile_from_model(
             model.create(), 
             includes=includes
+        )
+        person.save() 
+
+def person_primary_date_50_50_older_past_seeder(model, amount: int):
+    includes = [
+        'associated_actors', 
+            'associated_actor_start_date'
+    ]
+
+    for index in range(amount):
+        def custom_value_primary_refernce_number():
+            nonlocal index
+            today = datetime.today()
+            days_ahead = random.randint(1, 5 * 365)
+
+            if (index % 2 == 0):
+   
+                future_date = today + timedelta(days=days_ahead)
+               
+            else:
+                future_date = today - timedelta(days=days_ahead)
+            return future_date.strftime("%Y-%m-%d")
+
+        person = create_tile_from_model(
+            model.create(), 
+            includes=includes,
+            custom_seed_values={ 'associated_actor_start_date': custom_value_primary_refernce_number }
         )
         person.save() 
 
