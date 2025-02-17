@@ -11,7 +11,7 @@ from .sub_classes.filters import QueryBuilderFilters
 from .sub_classes.selectors import QueryBuilderSelectors
 from .sub_classes.modifiers import QueryBuilderModifier
 
-from .expressions import expression_string_datatype, expression_number_datatype
+from .expressions import expression_string_datatype, expression_number_datatype, expression_date_datatype
 from .utilities import annotation_key
 from collections import defaultdict
 from typing import TypedDict
@@ -68,8 +68,8 @@ class QueryBuilder:
     def set_annotation(
         self,
         node_alias: str, 
-        node: Node, 
-        properties: AnnotationProperties | None = None
+        node: Node,
+        addiontal_keys: List[str] = None 
     ):
         """
         Method adds a annoitation to the _annotations variable, if its not already contained. This gets the expressions by using the methods inside
@@ -78,16 +78,19 @@ class QueryBuilder:
         Args:
             key (str): The node alias
             node (Node): The node
-            properties (AnnotationProperties | None, optional): Future properties towards the experessions
+            addiontal_keys (List[str], optional): Addional keys allowed for example firstname__en__value='Harry'
         """
         if (node_alias in self._annotations):
             return;
 
         if (node.datatype == 'string'):
-            self._annotations[annotation_key(node_alias)] = expression_string_datatype(node.nodeid)
+            self._annotations[annotation_key(node_alias)] = expression_string_datatype(node.nodeid, addiontal_keys)
 
         elif (node.datatype == 'number'):
             self._annotations[annotation_key(node_alias)] = expression_number_datatype(node.nodeid)
+
+        elif (node.datatype == 'date'):
+            self._annotations[annotation_key(node_alias)] = expression_date_datatype(node.nodeid)
 
     def create_wkri_with_datatype_values(
             self, 
