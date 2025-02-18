@@ -25,7 +25,6 @@ def make_pseudo_node(svm, key, parent_cls, tile, child_nodes, parent):
     if parent:
         parent._._values.setdefault(key, [])
         parent._._values[key].append(child)
-    print("CHILD", key, child)
     return child
 
 def get_child_values(svm, target_key: str | None = None, parent = None, child_keys = None, child_nodes = None, tile = None, node = None):
@@ -99,7 +98,7 @@ def semantic(
         try:
             svm.update(value)
         except Exception as exc:
-            _tile_loading_error("Suppressed a tile loading error: %s (tile: %s; node: %s)", exc, str(tile), str(node))
+            _tile_loading_error("Suppressed a tile loading error: {}: {} {} (tile: {}; node: {})", exc, type(exc), exc.message if hasattr(exc, "message") else "", str(tile), str(node))
     svm.get_children()
 
     return svm
@@ -107,6 +106,8 @@ def semantic(
 
 def _tile_loading_error(reason, exc, *args):
     if not get_adapter().config.get("suppress-tile-loading-errors"):
+        print(reason.format(exc, *args))
+        logging.error(reason, exc, *args)
         raise exc
     elif not get_adapter().config.get("silence-tile-loading-errors"):
         logging.warning(reason, exc, *args)

@@ -21,8 +21,8 @@ def make_collection(name: str, collection: list[ConceptValueViewModel], identifi
     values = dict()
     def _get_children(entries: list[ConceptValueViewModel]) -> None:
         for entry in entries:
-            if hasattr(entry, "_concept_value_id"):
-                values[entry.enum] = entry
+            # if hasattr(entry, "_concept_value_id"):
+            values[entry.enum] = entry
             _get_children(entry.children)
     _get_children(collection)
     new_collection = CollectionEnum(string_to_enum(name), values) # type: ignore

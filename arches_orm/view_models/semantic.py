@@ -56,7 +56,7 @@ class SemanticViewModel(ViewModel, Mapping[str, ViewModel]):
         return children
 
     def __getattr__(self, key):
-        if key in self.__dict__:
+        if key in self.__dict__ or key.startswith("__"):
             return super().__getattr__(key)
 
         child_value = self._get_child_value(key)

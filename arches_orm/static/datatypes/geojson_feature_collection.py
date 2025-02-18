@@ -2,6 +2,8 @@ from __future__ import annotations
 from arches_orm.view_models import (
     GeoJSONFeatureCollectionViewModel,
 )
+import json
+import geojson
 from ._register import REGISTER
 
 
@@ -25,4 +27,4 @@ def geojson_feature_collection(tile, node, value: dict | None, _, __, ___, geojs
 
 @geojson_feature_collection.as_tile_data
 def gj_as_tile_data(geojson_feature_collection):
-    return dict(geojson_feature_collection)
+    return json.loads(geojson.dumps(geojson_feature_collection))

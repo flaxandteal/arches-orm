@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import uuid
 try:
     from typing import NotRequired
@@ -59,7 +60,14 @@ def concept_value(tile, node, value: uuid.UUID | str | None | CollectionEnum | C
         except (ValueError, TypeError):
             if collection_id:
                 collection = retrieve_collection(collection_id)
-                return collection._member_map_[value].value
+                # print(collection_id, "CID")
+                # print(collection, "C")
+                # print(value, "V")
+                # print(collection._member_map_, "CV")
+                # print(collection.__members__, "CV")
+                if value not in collection._member_map_:
+                    logging.error("Missing collection value: {} in node {} tile {}", value, node.nodeid, str(tile))
+                return collection[value].value
             else:
                 raise
     return make_concept_value(value if isinstance(value, uuid.UUID) else uuid.UUID(value) if value else None, collection_id, datatype)

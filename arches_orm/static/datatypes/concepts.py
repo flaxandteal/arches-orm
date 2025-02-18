@@ -298,7 +298,7 @@ def build_collection(collection_id: UUID | str, include: list[UUID] | None=None,
             raise RuntimeError(f"Asked to insert concepts from {collection_id} that are already present")
         concepts += include
 
-    return make_collection(
+    collection = make_collection(
         collection.title.value,
         [
             _make_concept_value(c.title(language).id, collection_id) for concept in
@@ -306,6 +306,7 @@ def build_collection(collection_id: UUID | str, include: list[UUID] | None=None,
         ],
         str(collection_id)
     )
+    return collection
 
 def update_collections(collection: CollectionEnum, source_file: Path, arches_url: str) -> None:
     cgraph = Graph()

@@ -90,14 +90,11 @@ class DomainValueViewModel(str, DomainValue, ViewModel):
     This class is an ORM to handle a node which is a domain-value datatype. 
     """
 
-    _value_uuid: uuid.UUID = None;
-    _key_by_domain_options: Dict[uuid.UUID, DomainOptions] = None;
     _selected_domain_option: DomainOption = None;
     _lang: str = None;
-    _domain_options: DomainOptions = None;
     _datatype: str = None;
 
-    def __init__(self, value_uuid: uuid.UUID, domain_options: DomainOptions, datatype: str, lang: str = 'en'):
+    def __init__(self, domain_id: uuid.UUID, domain_option: DomainOption, lang: str = 'en'):
         """
         Initialize the DomainValueViewModel.
 
@@ -105,9 +102,8 @@ class DomainValueViewModel(str, DomainValue, ViewModel):
         :param options: A list of options (e.g., for dropdowns or selections).
         :param datatype: The data type of the value (optional).
         """
-        self._value_uuid = value_uuid
-        self._domain_options = domain_options
-        self._datatype = datatype
+        self._domain_id = domain_id
+        self._domain_option = domain_option
         self._lang = lang
 
     def __new__(
@@ -145,29 +141,13 @@ class DomainValueViewModel(str, DomainValue, ViewModel):
     def enum(self):
         return string_to_enum(self.value)
 
-    """ GETTERS """
     @property
-    def key_by_domain_options(self) -> Dict[uuid.UUID, DomainOptions]:
-        """_summary_
-        This method gets the domain options, however this will return the key as the domain option uuid and the domain option as the value
-        
-        Returns:
-            Dict[uuid.UUID, DomainOptions]: returns the key as the domain option uuid and the domain option as the value
-        """
-        if self._key_by_domain_options is None:
-            self._key_by_domain_options = {option['id']: option for option in self._domain_options}
-
-        return self._key_by_domain_options;
+    def enum(self):
+        return string_to_enum(self.value)
 
     @property
-    def domain_options(self) -> DomainOptions:
-        """_summary_
-        Method gets the domain options
-        
-        Returns:
-            DomainOptions: Returns the domain options
-        """
-        return self._domain_options
+    def selected(self) -> bool:
+        return self._domain_option.get("selected", False)
 
     @property
     def selected(self) -> bool:
@@ -176,25 +156,24 @@ class DomainValueViewModel(str, DomainValue, ViewModel):
     @property
     def domain_id(self) -> uuid.UUID:
         """_summary_
+        Method gets the domain node id
+
+        Returns:
+            uuid.UUID: This is the domain option id
+        """
+        return self._domain_id
+
+    @property
+    def domain_value_id(self) -> uuid.UUID | None:
+        """_summary_
         Method gets the domain option id which has been selected
 
         Returns:
             uuid.UUID: This is the domain option id
         """
-        return self._value_uuid
-
-    @property
-    def domain(self) -> DomainOption:
-        """_summary_
-        Method returns the domain option which the domain value is apart of
-
-        Returns:
-            DomainOption: This is the domain option which the domain value is apart of
-        """
-        if (self._selected_domain_option is None):
-            self._selected_domain_option = self.key_by_domain_options[self.domain_id]
-
-        return self._selected_domain_option
+        if (domain_value_id := self._domain_option.get("id")):
+            return UUID(domain_value_id)
+        return None
 
     @property
     def text(self) -> DomainOptionText:
@@ -204,7 +183,7 @@ class DomainValueViewModel(str, DomainValue, ViewModel):
         Returns:
             DomainOptionText: The domain option text
         """
-        return self.domain.get('text')
+        return self._domain_option.get("text")
     
     @property
     def value(self) -> str | None:
@@ -215,7 +194,9 @@ class DomainValueViewModel(str, DomainValue, ViewModel):
             str | None: The domain option text string based on the lang, however if the lang doesn't exisit, then return None
         """
 
-        return self.domain['text'].get(lang or DEFAULT_LANGUAGE)
+        lang = self._lang or DEFAULT_LANGUAGE
+
+        return self.text.get(lang)
 
 
     """ SETTER """
@@ -231,7 +212,7 @@ class DomainValueViewModel(str, DomainValue, ViewModel):
         """
 
         self._lang  = lang;
-        return self.value;
+        return self.value
 
 
 class DomainListValueViewModel(UserList[DomainValueViewModel], ViewModel):

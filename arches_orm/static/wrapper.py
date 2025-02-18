@@ -1,4 +1,5 @@
 from __future__ import annotations
+import copy
 import logging
 from uuid import uuid4, UUID
 from typing import Any, Callable
@@ -375,12 +376,12 @@ class StaticResourceWrapper(PseudoNodeWrapperMixin, ResourceWrapper, proxy=True)
             }
         else:
             nodegroups = {
-                node.nodegroup_id: {
+                node.nodegroup_id: StaticNodeGroup(**{
                     "cardinality": "n",
                     "legacygroupid": None,
                     "nodegroupid": node.nodegroup_id,
                     "parentnodegroup_id": None,
-                }
+                })
                 for node in nodes.values() if node.nodegroup_id
             }
             nodegroups.update({
@@ -487,15 +488,17 @@ class StaticResourceWrapper(PseudoNodeWrapperMixin, ResourceWrapper, proxy=True)
 
         nodes = cls._node_objects()
         if nodegroups := kwargs.get("nodegroup_id__in", []):
-            nodes = [node for node in nodes if node.nodegroup_id in nodegroups]
+            nodes = [node for node in nodes .values()if node.nodegroup_id in nodegroups]
             del kwargs["nodegroup_id__in"]
         if nodegroup := kwargs.get("nodegroup_id", []):
-            nodes = [node for node in nodes if node.nodegroup_id == nodegroup]
+            nodes = [node for node in nodes.values() if node.nodegroup_id == nodegroup]
             del kwargs["nodegroup_id"]
         if resourceinstance := kwargs.get("resourceinstance", []):
             resourceid = resourceinstance.resource_id
             del kwargs["resourceinstance"]
         else:
+            if resourceinstance is None:
+                del kwargs["resourceinstance"]
             resourceid = None
 
         if kwargs:
@@ -586,16 +589,24 @@ class StaticResourceWrapper(PseudoNodeWrapperMixin, ResourceWrapper, proxy=True)
             for ng, nodegroup in nodegroup_objs.items()
         }
 
-        fields = wkri._.get_fields()
+        fields = copy.deepcopy(wkri._.all_fields())
         tiles = []
+        nodes = []
         for field, value in values.items():
             node = fields[field]["node"]
             node.value = value
             node.get_tile()
-            if isinstance(node, PseudoNodeList):
-                tiles += [n.tile for n in node]
-            else:
-                tiles.append(node.tile)
+            nodes.append(node)
+
+        def _children(children):
+            nonlocal tiles
+            for node in children:
+                if isinstance(node, PseudoNodeList):
+                    tiles += [n.tile for n in node]
+                else:
+                    tiles.append(node.tile)
+                _children(node.get_children(direct=False))
+        _children(nodes)
 
         if not lazy:
             for ng, nodegroup in nodegroup_objs.items():

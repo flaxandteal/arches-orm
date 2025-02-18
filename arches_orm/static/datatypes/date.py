@@ -16,7 +16,7 @@ def date(tile, node, value: str | datetime | None, _, __, ___, date_datatype):
                 value = value.isoformat(timespec="milliseconds")
             tile.data[str(node.nodeid)] = str(value)
 
-    if not tile or (data := tile.data[str(node.nodeid)]) is None:
+    if not tile or (data := tile.data[str(node.nodeid)]) is None or data.strip() == "":
         return None
 
     return DateTimeViewModel.parse(data)
