@@ -3,11 +3,15 @@ from ..utilities import split_query_key, annotation_key
 from django.db.models import Func, F, ExpressionWrapper, IntegerField, CharField
 from arches.app.models.models import ResourceXResource, Node, NodeGroup, Edge, TileModel
 import uuid
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING, Dict
+from arches_orm.arches_django.query_builder.consts import NOT_EQUAL_KEYS
 
 class QueryBuilderFilters:
     _instance_query_builder = None;
     _wrapper_instance = None;
+
+    _filters: Dict[str, any] = {};
+    _excludes: Dict[str, any] = {};
 
     if TYPE_CHECKING:
         from arches_orm.arches_django.query_builder.query_builder import QueryBuilder
@@ -15,6 +19,22 @@ class QueryBuilderFilters:
     def __init__(self, instance_query_builder):
         self._instance_query_builder = instance_query_builder;
         self._wrapper_instance = instance_query_builder._parent_wrapper_instance;
+
+    def _handle_setting_excludes_filters(self, field_key: str, field_lookup: str, value: any):
+        if field_lookup == 'equal':
+            self._filters[annotation_key(field_key)] = value
+
+        elif field_lookup in NOT_EQUAL_KEYS:
+            self._excludes[annotation_key(field_key)] = value
+        
+        else:
+            self._filters[annotation_key(field_key) + "__" + field_lookup] = value
+            self._excludes[annotation_key(field_key) + "__isnull"] = True
+
+
+    def _reset_previous_filtering_excluding(self):
+        self._filters = {}
+        self._excludes = {}
 
     def _where_core(self, logical_operator: str, **kwargs):
         """
@@ -27,7 +47,8 @@ class QueryBuilderFilters:
         # * We need to get the nodes as we have to find the correct node towards the field key and then this node is used to find the datatype towards
         # * annotation
         nodes: List[Node] = self._wrapper_instance._node_objects_by_alias();
-        filters: List[str, any] = {};
+
+        self._reset_previous_filtering_excluding()
 
         # * Loop through keyword argmunets, this will be what the user has inputed for example where(age__gt=18)
         for key, value in kwargs.items():
@@ -37,21 +58,27 @@ class QueryBuilderFilters:
             node: Node = nodes.get(query['field_key'])
 
             self._instance_query_builder.set_annotation(
-                key, 
+                query['field_key'], 
                 node,
                 query['additional_keys']
             )
 
             # * We do use the annotation_key as the filter field_key as within set_annotation it setups the annotation with the key as annotation_key(query['field_key'])
             # * and the value as the expression wrapper, therefore we have to use the same key to filter with
-            if (query['operator'] == 'equal'):
-                filters[annotation_key(query['field_key'])] = value
+            self._handle_setting_excludes_filters(query['field_key'], query['operator'], value)
 
         # * Attach the filters and the logical operator (AND | OR) to the parent query builder for future use within selectors.py
-        self._instance_query_builder._filter_structures.append({
-            'logical_operator': logical_operator,
-            'filters': filters
-        })
+        if self._filters:
+            self._instance_query_builder._filter_structures.append({
+                'logical_operator': logical_operator,
+                'conditions': self._filters
+            })
+
+        if self._excludes:
+              self._instance_query_builder._exclude_structures.append({
+                'logical_operator': logical_operator,
+                'conditions': self._excludes
+            })
 
     def where(self, **kwargs) -> "QueryBuilder":
         """

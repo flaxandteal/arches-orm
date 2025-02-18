@@ -24,6 +24,8 @@ class FilterStructure(TypedDict):
     logical_operator: str
     kwargs: Dict[str, any]
 
+ExcludeStructure = FilterStructure
+
 LOAD_ALL_NODES = True
 
 class QueryBuilder:
@@ -39,6 +41,8 @@ class QueryBuilder:
     _edges_range_to_domain: Dict[str, str] = None;
 
     _filter_structures: List[FilterStructure] = [];
+    _exclude_structures: List[ExcludeStructure] = [];
+
     _annotations: Dict[str, ExpressionWrapper] = {};
     _order_by: List[str] = [];
 

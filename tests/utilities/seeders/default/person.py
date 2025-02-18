@@ -22,32 +22,33 @@ def person_basic_seeder(model, amount: int):
         )
         person.save() 
 
-def person_primary_date_50_50_older_past_seeder(model, amount: int):
+def person_date_field_seeder(model, amount: int, callback):
     includes = [
-        'associated_actors', 
-            'associated_actor_start_date'
+        'audit_metadata', 
+            'audit_creation',
+                'creation_timespan',
+                    'creation_end_date'
     ]
 
     for index in range(amount):
-        def custom_value_primary_refernce_number():
-            nonlocal index
-            today = datetime.today()
-            days_ahead = random.randint(1, 5 * 365)
+        def parent_callback():
+            nonlocal callback, index
 
-            if (index % 2 == 0):
-   
-                future_date = today + timedelta(days=days_ahead)
-               
-            else:
-                future_date = today - timedelta(days=days_ahead)
-            return future_date.strftime("%Y-%m-%d")
-
+            result = callback(index)
+            print(result)
+            return result
+        
         person = create_tile_from_model(
             model.create(), 
             includes=includes,
-            custom_seed_values={ 'associated_actor_start_date': custom_value_primary_refernce_number }
+            custom_seed_values={ 'creation_end_date': parent_callback }
         )
+
+        print('HERE :', person.audit_metadata.audit_creation.creation_timespan.creation_end_date)
+
         person.save() 
+
+    return includes;
 
 def person_primary_reference_number_odd_even_seeder(model, amount: int):
     includes = [
@@ -70,4 +71,8 @@ def person_primary_reference_number_odd_even_seeder(model, amount: int):
             includes=includes,
             custom_seed_values={ 'primary_reference_number': custom_value_primary_refernce_number }
         )
+
+        print('HERE :', person.system_reference_numbers.primaryreferencenumber.primary_reference_number)
+
+
         person.save() 

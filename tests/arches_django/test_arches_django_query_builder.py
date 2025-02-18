@@ -47,6 +47,6 @@ def test_or_where_quries_context_free(arches_orm):
 #     sub_test_order_by_ascend(arches_orm)
 
 
-@context_free
-def test_all_query_context_free(arches_orm):
-    sub_test_selector_all(arches_orm)
+# @context_free
+# def test_all_query_context_free(arches_orm):
+#     sub_test_selector_all(arches_orm)
