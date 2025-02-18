@@ -61,26 +61,26 @@ def create_tile_from_model(
             processed_recursive_keys.append(key)
             datatype = getattr(model, key, "Attribute not found")
 
-            def recursive_handling():
-                nonlocal datatype
+ 
+            if (isinstance(datatype, NodeListViewModel)):
+                datatype = datatype.append()
 
-                if (isinstance(datatype, NodeListViewModel)):
-                    datatype = datatype.append()
+            if (isinstance(datatype, SemanticViewModel)):
+                model.update({key: recursive(model[key])})
+                print('NEW MODEL UPDATED ', getattr(model, key))
+                continue
 
-                if (isinstance(datatype, SemanticViewModel)):
-                    recursive(datatype)
+        
 
-            def datatype_seeders():
-                nonlocal datatype, model, key, nodes, custom_seed_values
+            if (custom_seed_values and key in custom_seed_values):
+                if (callable(custom_seed_values[key])):
+                    setattr(model, key, custom_seed_values[key]())
+                    print('getattr | ', getattr(model, key))
+                    print('SHOW | ', model[key])
+                else:
+                    setattr(model, key, custom_seed_values[key])
 
-                if (custom_seed_values and key in custom_seed_values):
-                    if (callable(custom_seed_values[key])):
-                        setattr(model, key, custom_seed_values[key]())
-                    else:
-                        setattr(model, key, custom_seed_values[key])
-
-                    return;
-            
+            else:
                 datatype_type = nodes[key]['datatype'];
                     
                 if datatype_type == 'string':
@@ -89,14 +89,16 @@ def create_tile_from_model(
                 elif datatype_type == 'number':
                     setattr(model, key, random.randrange(1,1000))
         
-            recursive_handling()
-            datatype_seeders()
+            # recursive_handling()
+            # datatype_seeders()
         
 
-                
         return model
 
     model = recursive(model)
+
+    print('HERE :', model.audit_metadata.audit_creation.creation_timespan.creation_end_date)
+
 
     return model
     

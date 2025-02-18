@@ -1,12 +1,12 @@
 import re
 from arches.app.utils.permission_backend import get_nodegroups_by_perm
-from .consts import GREATER_THAN_KEYS, LESS_THAN_KEYS, GREATER_THAN_OR_EQUAL_KEYS, LESS_THAN_OR_EQUAL_KEYS, NOT_EQUAL_KEYS, VALUE_EXIST_KEYS, VALUE_NON_EXIST_KEYS, CONTAINS_KEYS, INSENSITIVE_CONTAINS_KEYS
+from .consts import GREATER_THAN_KEYS, LESS_THAN_KEYS, GREATER_THAN_OR_EQUAL_KEYS, LESS_THAN_OR_EQUAL_KEYS, NOT_EQUAL_KEYS, CONTAINS_KEYS, INSENSITIVE_CONTAINS_KEYS
 from typing import List, TYPE_CHECKING
 from django.db.models import Q
 from typing import TypedDict
 
 if TYPE_CHECKING:
-    from .query_builder import FilterStructure
+    from .query_builder import FilterStructure, ExcludeStructure
 
 class SplitQueryKeyReturn(TypedDict):
     field_key: str
@@ -61,39 +61,31 @@ def handle_operatortion(raw_operator: str | None) -> str:
     if raw_operator in NOT_EQUAL_KEYS:
         return 'not_equal'
     
-    # * Need to handle this operator, needs meaning that this should be stored in a excludes, instead of filter using None
-    if raw_operator in VALUE_EXIST_KEYS:
-        return 'value_exist'
-    
-    # * Need to handle this operator, needs to with filter to search for None
-    if raw_operator in VALUE_NON_EXIST_KEYS:
-        return 'value_non_exist'
-    
     return 'equal'
         
 
-def transform_filter_structure_towards_query(filter_structures: List["FilterStructure"]) -> Q:
+def transform_filter_exclude_structure_towards_query(structures: List["FilterStructure"] | List["ExcludeStructure"]) -> Q:
     """
-    Method for transforming a filter structure towrads a query, basically the filter is structured in a way for the purpose towards this method.
+    Method for transforming a filter structure towrads a query, basically the filter or exclude is structured in a way for the purpose towards this method.
     The reason being as before we had filter(**kwargs), however this could not handle OR & AND statement properly, therefore this method was developed.
-    This method should take this filter structure and convert it to a Q object, stating ANDs & ORs so the return value for this method is compatlile with
-    filter(transform_filter_structure_towards_query()), towards Django
+    This method should take this structure and convert it to a Q object, stating ANDs & ORs so the return value for this method is compatlile with
+    filter(transform_filter_exclude_structure_towards_query()) or exclude(transform_filter_exclude_structure_towards_query()), towards Django
 
     Args:
-        filter_structures (List[&quot;FilterStructure&quot;]): This is the filter structure which is contained within query_builder.py and set within filters.py
+        structures (List[&quot;FilterStructure&quot;] | List["ExcludeStructure"]): This is the filter structure which is contained within query_builder.py and set within filters.py
 
     Returns:
-        Q: This is the Query object return and suitable for filter()
+        Q: This is the Query object return and suitable for filter() or exclude()
     """
     query: Q = Q()
     
     # * Loop through the filtered structures
-    for filter_structure in filter_structures:
+    for structure in structures:
         # * Get the operators and filters from this structure
-        operator = filter_structure.get('logical_operator', 'AND')
-        filters = filter_structure.get('filters', {})
+        operator = structure.get('logical_operator', 'AND')
+        conditions = structure.get('conditions', {})
         
-        condition_query = Q(**filters)
+        condition_query = Q(**conditions)
         
         # * Append & or | towards the query
         if operator.upper() == 'OR':

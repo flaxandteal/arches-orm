@@ -13,6 +13,7 @@ from arches.app.models.models import ResourceXResource, Node, NodeGroup, Edge, T
 from arches.app.models.graph import Graph
 from arches.app.models.tile import Tile as TileProxyModel
 from arches.app.models.system_settings import settings as system_settings
+from arches_orm.view_models.semantic import SemanticViewModel;
 from arches.app.utils.permission_backend import get_nodegroups_by_perm
 import logging
 from arches.app.utils.permission_backend import (
@@ -279,6 +280,11 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
 
         for tile, subrelationships in combined_tiles:
             if tile:
+                keys_to_delete = [key for key in tile.data if isinstance(tile.data[key], SemanticViewModel)]
+
+                for key in keys_to_delete:
+                    del tile.data[key]
+                        
                 if parent and parent.tile != tile and parent.node.nodegroup_id:
                     tile.parenttile = parent.tile
                 nodegroup_id = str(tile.nodegroup_id)
@@ -419,6 +425,7 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
 
         if do_final_save:
             with transaction.atomic():
+                print('DATA : ', resource.tiles[0].data)
                 resource.save()
             resource = Resource.objects.get(resourceinstanceid=self.id)
             self.resource = resource
