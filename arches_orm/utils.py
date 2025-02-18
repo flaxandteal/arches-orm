@@ -109,4 +109,5 @@ def is_unset(variable: Any, unavailable: bool=True) -> bool:
 def consistent_uuid(string: str) -> uuid.UUID:
     hsh = hashlib.md5()
     hsh.update(string.encode("utf-8"))
-    return uuid.UUID(hsh.hexdigest())
+    cuuid = uuid.UUID(hsh.hexdigest())
+    return cuuid

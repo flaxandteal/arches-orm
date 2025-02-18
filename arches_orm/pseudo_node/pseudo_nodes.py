@@ -1,4 +1,5 @@
 from __future__ import annotations
+from copy import deepcopy
 from functools import lru_cache
 from collections import UserList
 from uuid import UUID
@@ -52,7 +53,6 @@ class PseudoNodeWrapperMixin:
                 )
             else:
                 child_nodes = cls._child_nodes(node_obj.nodeid)
-                print(child_nodes)
                 node_value = PseudoNodeValue(
                     tile=tile,
                     TileProxyModel=cls.TileProxyModel,
@@ -63,7 +63,6 @@ class PseudoNodeWrapperMixin:
                     parent_cls=cls.view_model,
                     child_nodes=child_nodes,
                 )
-                print(node_value)
             # If we have a tile in a list, add it
             if value is not None:
                 value.append(node_value)
@@ -227,6 +226,19 @@ class PseudoNodeValue:
 
     def __repr__(self):
         return str(self)
+
+    def __deepcopy__(self, memo):
+        # We do not copy the value, as this should be derived from the tile anyway.
+        return PseudoNodeValue(
+            self.node,
+            self.get_view_model_for_datatype,
+            self._TileProxyModel,
+            deepcopy(self.tile),
+            None,
+            self._parent,
+            self._child_nodes,
+            self._parent_cls
+        )
 
     @property
     def parenttile_id(self):
