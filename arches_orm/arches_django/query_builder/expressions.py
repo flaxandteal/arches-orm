@@ -36,7 +36,9 @@ def expression_date_datatype(nodeid: str) -> ExpressionWrapper:
             output_field=DateField()
         )
     elif connection.vendor == 'sqlite':
-        # SQLite - Use STRFTIME to extract date
+        
+        print('------------ SQLITE HERE ----------------')
+        
         return ExpressionWrapper(
             Func(F(f'data__{nodeid}'), function='STRFTIME', template="%(function)s('%%Y-%%m-%%d', %(expressions)s)"),
             output_field=DateField()
