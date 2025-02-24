@@ -5,5 +5,8 @@ LESS_THAN_OR_EQUAL_KEYS = ['lte', 'less_than_or_equal']
 
 NOT_EQUAL_KEYS = ['ne', 'not_equal']
 
-CONTAINS_KEYS = ['ct', 'contains']
 INSENSITIVE_CONTAINS_KEYS = ['ict', 'icontains']
+INSENSITIVE_STARTS_WITH_KEYS = ['istartswith', 'isw']
+
+STARTS_WITH_KEYS = ['startswith', 'sw']
+CONTAINS_KEYS = ['ct', 'contains']

@@ -1,12 +1,12 @@
-from arches.app.models.tile import Tile as TileProxyModel
+from __future__ import annotations
 from collections import UserList
-import inspect
+from uuid import UUID
+
+from typing import Any
 
 from arches_orm.view_models import ViewModel, NodeListViewModel, UnavailableViewModel, ResourceInstanceViewModel
-from arches.app.models.models import TileModel
+from arches_orm.view_models.resources import RelatedResourceInstanceViewModelMixin
 
-from .datatypes import get_view_model_for_datatype
-from arches.app.models.tile import Tile as TileProxyModel
 
 class PseudoNodeList(UserList):
     def __init__(self, node, parent=None, parent_cls=None):
@@ -51,20 +51,20 @@ class PseudoNodeList(UserList):
         entry = self._find(x)[1]
         super().remove(entry)
 
-        if str(entry.node.nodegroup_id) == str(self.node.nodeid):
+        if entry.node.nodegroup_id == self.node.nodeid:
             self._ghost_children.add(entry)
 
     def pop(self, i=-1):
         entry = super().pop(i)
 
-        if str(entry.node.nodegroup_id) == str(self.node.nodeid):
+        if entry.node.nodegroup_id == self.node.nodeid:
             self._ghost_children.add(entry)
 
         return entry
 
     def clear(self):
         self._ghost_children |= {
-            entry for entry in self if str(entry.node.nodegroup_id) == str(self.node.nodeid)
+            entry for entry in self if entry.node.nodegroup_id == self.node.nodeid
         }
         super().clear()
         if self.tile and str(self.node.nodeid) in self.tile.data:
@@ -138,15 +138,17 @@ class PseudoNodeValue:
     _datatype = None
     _multiple = False
     _as_tile_data = None
-    _convert_tile_model_to_tile_orm = False
 
-    def __init__(self, node, get_view_model_for_datatype, TileProxyModel: type, tile: TileProxyModel | TileModel = None, value=None, parent=None, child_nodes=None, parent_cls=None):
+    def __init__(self, node, get_view_model_for_datatype, TileProxyModel: type, tile=None, value=None, parent=None, child_nodes=None, parent_cls=None):
         self.node = node
-        self._tile = tile
+        self.tile = tile
+        # if self.tile and "Model" in str(self.tile.__class__):
+        #     raise RuntimeError("Should only use Tiles not TileModels")
         if parent_cls is None:
             if parent is None:
                 raise RuntimeError("Must have a parent or parent class for a pseudo-node")
             parent_cls = parent.__class__
+        self.get_view_model_for_datatype = get_view_model_for_datatype
         self._parent = parent
         self._parent_cls = parent_cls
         self._parent_node = None
@@ -154,6 +156,7 @@ class PseudoNodeValue:
         self._value = value
         self._accessed = False
         self._original_tile = tile
+        self._TileProxyModel = TileProxyModel
 
     def __str__(self):
         return f"{{{self.value}}}"
@@ -164,21 +167,6 @@ class PseudoNodeValue:
     @property
     def parenttile_id(self):
         return self.tile.parenttile_id if self.tile else None
-    
-    @property
-    def tile(self):
-        if (self._convert_tile_model_to_tile_orm and isinstance(self._tile, TileModel)):
-            self._tile = TileProxyModel(
-                tileid=self._tile.tileid,  
-                data=self._tile.data,
-                resourceinstance_id=self._tile.resourceinstance_id
-            )
-
-        return self._tile
-
-    @tile.setter
-    def tile(self, value):
-        self._tile = value
 
     def get_tile(self):
         self._update_value()
@@ -192,12 +180,12 @@ class PseudoNodeValue:
             relationships = [
                 relationship
                 if isinstance(relationship, tuple)
-                else (str(self.tile.nodegroup_id), str(self.node.nodeid), relationship)
+                else (self.tile.nodegroup_id, self.node.nodeid, relationship)
                 for relationship in tile_value[1]
             ]
             tile_value = tile_value[0]
         if tile_value is None:
-            self.tile.data.pop(self.node.nodeid, None)
+            self.tile.data.pop(str(self.node.nodeid), None)
         else:
             self.tile.data[
                 str(self.node.nodeid)
@@ -221,8 +209,11 @@ class PseudoNodeValue:
         if not self.tile:
             if not self.node:
                 raise RuntimeError("Empty tile")
-            self.tile = TileProxyModel(
-                nodegroup_id=self.node.nodegroup_id, tileid=None, data={}
+            # NB: You may see issues where the nodegroup is null because it is the root node,
+            # and a node below is not marked as a collector, so tries to fill its tile in
+            # A cardinality n node below the root should be a collector.
+            self.tile = self._TileProxyModel(
+                nodegroup_id=self.node.nodegroup_id, tileid=None, data={}, sortorder=self.node.sortorder
             )
             self.relationships = []
         if not self._value_loaded:
@@ -235,7 +226,7 @@ class PseudoNodeValue:
             else:
                 data = self._value
 
-            self._value, self._as_tile_data, self._datatype, self._multiple = get_view_model_for_datatype(
+            self._value, self._as_tile_data, self._datatype, self._multiple = self.get_view_model_for_datatype(
                 self.tile,
                 self.node,
                 value=data,
@@ -257,7 +248,7 @@ class PseudoNodeValue:
     def value(self, value):
         if not isinstance(value, ViewModel) or isinstance(value, ResourceInstanceViewModel):
             self.get_tile()
-            value, self._as_tile_data, self._datatype, self._multiple = get_view_model_for_datatype(
+            value, self._as_tile_data, self._datatype, self._multiple = self.get_view_model_for_datatype(
                 self.tile,
                 self.node,
                 value=value,
@@ -332,3 +323,73 @@ class PseudoNodeUnavailable:
 
     def get_children(self, direct=None):
         return []
+
+def update_tiles(
+    resource_id: UUID | str, tiles, all_values=None, nodegroup_id=None, root=None, parent=None, permitted_nodegroups: None | list[str]=None
+) -> tuple[list[tuple[int, ...]], set[Any]]:
+    if not root:
+        if not all_values:
+            return [], set()
+        root = [
+            nodelist[0]
+            for nodelist in all_values.values()
+            if nodelist[0].node.nodegroup_id is None
+        ][0]
+
+    combined_tiles = []
+    relationships = []
+    ghost_tiles = set()
+    if not isinstance(root, PseudoNodeList):
+        parent = root
+    for pseudo_node in root.get_children():
+        if isinstance(pseudo_node.value, RelatedResourceInstanceViewModelMixin):
+            # Do not cross between resources. The relationship should
+            # be captured. The canonical example of this is a semantic node that
+            # gives us a related resource instance.
+            t, r = pseudo_node.get_tile()
+            combined_tiles.append((t, r))
+            continue
+        if isinstance(pseudo_node, PseudoNodeList) or pseudo_node.accessed:
+            if len(pseudo_node):
+                subrelationships, subghost_tiles = update_tiles(
+                    resource_id, tiles, root=pseudo_node, parent=parent, permitted_nodegroups=permitted_nodegroups
+                )
+                relationships += subrelationships
+                ghost_tiles |= subghost_tiles
+            if isinstance(pseudo_node, PseudoNodeList):
+                # Only hold ghost tiles that have been saved.
+                ghost_tiles = {
+                    tile for ghost in pseudo_node.free_ghost_children()
+                    if (tile := ghost.get_tile()[0]) and tile.pk and not tile._state.adding
+                }
+            else:
+                t, r = pseudo_node.get_tile()
+                if t is not None and permitted_nodegroups is not None and (t.nodegroup_id is None or str(t.nodegroup_id) not in permitted_nodegroups):
+                    # Warn if we can
+                    if pseudo_node._original_tile and hasattr(pseudo_node._original_tile, "_original_data"):
+                        if t.data == pseudo_node._original_tile._original_data:
+                            continue
+                    raise RuntimeError(f"Attempt to modify data that this user does not have permissions to: {t.nodegroup_id} in {resource_id}")
+                else:
+                    combined_tiles.append((t, r))
+        # This avoids loading a tile as a set of view models, simply to re-save it.
+        elif not isinstance(pseudo_node, PseudoNodeList) and pseudo_node._original_tile:
+            # TODO: NOTE THAT THIS DOES NOT CAPTURE RELATIONSHIPS THAT HAVE NOT BEEN ACCESSED
+            combined_tiles.append((
+                pseudo_node._original_tile,
+                []
+            ))
+
+    for tile, subrelationships in combined_tiles:
+        if tile:
+            if parent and parent.tile != tile and parent.node.nodegroup_id:
+                tile.parenttile = parent.tile
+            nodegroup_id = tile.nodegroup_id
+            tiles.setdefault(nodegroup_id, [])
+            relationships += [
+                (len(tiles[nodegroup_id]), *relationship)
+                for relationship in subrelationships
+            ]
+            tiles[nodegroup_id].append(tile)
+    return relationships, ghost_tiles
+

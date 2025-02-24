@@ -1,6 +1,16 @@
 import re
 from arches.app.utils.permission_backend import get_nodegroups_by_perm
-from .consts import GREATER_THAN_KEYS, LESS_THAN_KEYS, GREATER_THAN_OR_EQUAL_KEYS, LESS_THAN_OR_EQUAL_KEYS, NOT_EQUAL_KEYS, CONTAINS_KEYS, INSENSITIVE_CONTAINS_KEYS
+from .consts import (
+    GREATER_THAN_KEYS, 
+    LESS_THAN_KEYS, 
+    GREATER_THAN_OR_EQUAL_KEYS, 
+    LESS_THAN_OR_EQUAL_KEYS, 
+    NOT_EQUAL_KEYS, 
+    CONTAINS_KEYS, 
+    INSENSITIVE_CONTAINS_KEYS,
+    STARTS_WITH_KEYS,
+    INSENSITIVE_STARTS_WITH_KEYS
+)
 from typing import List, TYPE_CHECKING
 from django.db.models import Q
 from typing import TypedDict
@@ -38,6 +48,12 @@ def handle_operatortion(raw_operator: str | None) -> str:
     """
     if not raw_operator:
         return 'equal'
+    
+    if raw_operator in STARTS_WITH_KEYS:
+        return 'startswith'
+    
+    if raw_operator in INSENSITIVE_STARTS_WITH_KEYS:
+        return 'istartswith'
 
     if raw_operator in INSENSITIVE_CONTAINS_KEYS:
         return 'icontains'

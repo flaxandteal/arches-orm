@@ -30,6 +30,9 @@ class SemanticViewModel(ViewModel, Mapping[str, ViewModel]):
         return iter(self._child_keys)
 
     def update(self, values):
+        if not isinstance(values, dict):
+            return;
+
         for key, value in values.items():
             setattr(self, key, value)
 

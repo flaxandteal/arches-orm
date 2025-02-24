@@ -155,14 +155,41 @@
                     "nodegroup_id": "312aa645-bf2f-4783-bf25-1bb6423fb91c",
                     "sortorder": 9,
                     "visible": true
-                },
+                }, 
+                {
+                    "active": true,
+                    "cardid": "7769817a-aa87-4db7-83f0-13afd83f5a6a",
+                    "component_id": "f05e4d3a-53c1-11e8-b0ea-784f435179ea",
+                    "config": null,
+                    "constraints": [
+                    ],
+                    "cssclass": null,
+                    "description": "",
+                    "graph_id": "22477f01-1a44-11e9-b0a9-000d3ab1e588",
+                    "helpenabled": true,
+                    "helptext": {
+                        "en": "<p>&nbsp;</p>\n\n<p>&nbsp;</p>\n\n<p>&nbsp;</p>\n\n<p>The following guidelines are based on the National Council of Archives <em>Rules for the Construction of Personal, Place and Corporate Names.&nbsp;</em></p>\n\n<p><strong>Full Name</strong></p>\n\n<p>Use to record a concatenated form of the name. This can be useful for display or migration purposes but should not be used as a repalcement for the structured name data.</p>\n\n<p><strong>Title</strong></p>\n\n<p>In English only the titles Lord, Lady, Sir, Dame and Hon (Honourable) may precede the forename. However common practice allows for other titles, such as Mr, Mrs etc, to be used. Select the most appropriate.</p>\n\n<p><strong>Forename</strong></p>\n\n<p>A forename is the component of the name which a person is given in addition to his/her surname. All forenames, including middle names where known,&nbsp;should be listed to assist disambiguation between individuals.</p>\n\n<p><strong>Initials</strong></p>\n\n<p>These should only be used where the full name is not known&nbsp;or the individual is more usually known by their initials, eg. T.S. Eliot.&nbsp;</p>\n\n<p><strong>Surname</strong></p>\n\n<p>The component of a name which a person usually shares with other members of their family<strong>.</strong></p>\n\n<p><strong>Epithet</strong></p>\n\n<p>This is a word or phrase describing a person&#39;s status, position, occupation, nationality, place of birth etc. An epithet should be included as a qualifier where any confusion between persons may arise.</p>\n\n<p>&nbsp;</p>\n\n<p>&nbsp;</p>\n"
+                    },
+                    "helptitle": {
+                        "en": "Name Details"
+                    },
+                    "instructions": {
+                        "en": null
+                    },
+                    "is_editable": true,
+                    "name": {
+                        "en": "Names"
+                    },
+                    "nodegroup_id": "4d0c7d64-93b1-45ed-9073-b8f8462469dc",
+                    "sortorder": 0,
+                    "visible": true
+                }, 
                 {
                     "active": true,
                     "cardid": "9f6451e2-799e-4575-bf7b-9b2b67266cd9",
                     "component_id": "f05e4d3a-53c1-11e8-b0ea-784f435179ea",
                     "config": null,
-                    "constraints": [
-                    ],
+                    "constraints": [],
                     "cssclass": null,
                     "description": "",
                     "graph_id": "22477f01-1a44-11e9-b0a9-000d3ab1e588",
@@ -189,8 +216,7 @@
                     "cardid": "68a6ec98-6502-4cc8-bb6a-3ec6029b2648",
                     "component_id": "f05e4d3a-53c1-11e8-b0ea-784f435179ea",
                     "config": null,
-                    "constraints": [
-                    ],
+                    "constraints": [],
                     "cssclass": null,
                     "description": "",
                     "graph_id": "22477f01-1a44-11e9-b0a9-000d3ab1e588",
@@ -217,8 +243,7 @@
                     "cardid": "eb6303e0-4d7d-4715-b2b8-b876ca72e0ab",
                     "component_id": "f05e4d3a-53c1-11e8-b0ea-784f435179ea",
                     "config": null,
-                    "constraints": [
-                    ],
+                    "constraints": [],
                     "cssclass": null,
                     "description": "",
                     "graph_id": "22477f01-1a44-11e9-b0a9-000d3ab1e588",
@@ -279,8 +304,7 @@
                     "cardid": "4110f743-1a44-11e9-9a37-000d3ab1e588",
                     "component_id": "f05e4d3a-53c1-11e8-b0ea-784f435179ea",
                     "config": null,
-                    "constraints": [
-                    ],
+                    "constraints": [],
                     "cssclass": null,
                     "description": "",
                     "graph_id": "22477f01-1a44-11e9-b0a9-000d3ab1e588",
@@ -307,8 +331,7 @@
                     "cardid": "0a172af0-2dc6-4974-b5ee-40fca140114d",
                     "component_id": "f554c976-9026-463b-a11d-47528e77cf67",
                     "config": null,
-                    "constraints": [
-                    ],
+                    "constraints": [],
                     "cssclass": null,
                     "description": "",
                     "graph_id": "22477f01-1a44-11e9-b0a9-000d3ab1e588",
@@ -335,8 +358,7 @@
                     "cardid": "b06a1d0b-2987-440d-8347-5617d7b78f17",
                     "component_id": "84c4e9f8-6e05-4e99-9c09-fcd74466e6a5",
                     "config": null,
-                    "constraints": [
-                    ],
+                    "constraints": [],
                     "cssclass": null,
                     "description": "",
                     "graph_id": "22477f01-1a44-11e9-b0a9-000d3ab1e588",
@@ -359,8 +381,7 @@
                     "visible": true
                 }
             ],
-            "cards_x_nodes_x_widgets": [
-            ],
+            "cards_x_nodes_x_widgets": [],
             "color": "rgba(236,109,155,1)",
             "config": {
                 "nodes": [
@@ -1046,6 +1067,22 @@
                 {
                     "description": null,
                     "domainnode_id": "22477f00-1a44-11e9-a60e-000d3ab1e588",
+                    "edgeid": "cceed5ab-aba5-4947-8f5c-83454766a65a",
+                    "graph_id": "22477f01-1a44-11e9-b0a9-000d3ab1e588",
+                    "name": null,
+                    "rangenode_id": "4d0c7d64-93b1-45ed-9073-b8f8462469dc"
+                },
+                {
+                    "description": null,
+                    "domainnode_id": "4d0c7d64-93b1-45ed-9073-b8f8462469dc",
+                    "edgeid": "ccc8795c-d4c7-4e04-8e96-0817b2ee1608",
+                    "graph_id": "22477f01-1a44-11e9-b0a9-000d3ab1e588",
+                    "name": null,
+                    "rangenode_id": "d5c380a3-7384-44c4-abb7-ea35502e9226"
+                },
+                {
+                    "description": null,
+                    "domainnode_id": "22477f00-1a44-11e9-a60e-000d3ab1e588",
                     "edgeid": "5f94d962-80a9-11ea-b4e1-f875a44e0e11",
                     "graph_id": "22477f01-1a44-11e9-b0a9-000d3ab1e588",
                     "name": null,
@@ -1322,6 +1359,14 @@
                     "graph_id": "22477f01-1a44-11e9-b0a9-000d3ab1e588",
                     "name": null,
                     "rangenode_id": "9718f94c-950e-11ea-bf73-f875a44e0e11"
+                },
+                {
+                    "description": null,
+                    "domainnode_id": "4d0c7d64-93b1-45ed-9073-b8f8462469dc",
+                    "edgeid": "13a447b1-a750-4b14-9d81-6b5313307745",
+                    "graph_id": "22477f01-1a44-11e9-b0a9-000d3ab1e588",
+                    "name": null,
+                    "rangenode_id": "0649b942-4279-45b6-b0aa-31d6868b72c3"
                 },
                 {
                     "description": null,
@@ -2105,6 +2150,91 @@
                 }
             ],
             "nodes": [
+                {
+                    "alias": "family_members",
+                    "datatype": "semantic",
+                    "description": "",
+                    "exportable": false,
+                    "fieldname": "",
+                    "graph_id": "22477f01-1a44-11e9-b0a9-000d3ab1e588",
+                    "hascustomalias": false,
+                    "is_collector": false,
+                    "isrequired": false,
+                    "issearchable": false,
+                    "istopnode": false,
+                    "name": "Family Members",
+                    "nodegroup_id": "4d0c7d64-93b1-45ed-9073-b8f8462469dc",
+                    "nodeid": "4d0c7d64-93b1-45ed-9073-b8f8462469dc",
+                    "parentproperty": "http://www.cidoc-crm.org/cidoc-crm/P1_is_identified_by",
+                    "sortorder": 0
+                },
+                {
+                    "alias": "pet",
+                    "datatype": "string",
+                    "description": "",
+                    "exportable": false,
+                    "fieldname": "",
+                    "graph_id": "22477f01-1a44-11e9-b0a9-000d3ab1e588",
+                    "hascustomalias": false,
+                    "is_collector": false,
+                    "isrequired": false,
+                    "issearchable": false,
+                    "istopnode": false,
+                    "name": "Pets",
+                    "nodegroup_id": "4d0c7d64-93b1-45ed-9073-b8f8462469dc",
+                    "nodeid": "0649b942-4279-45b6-b0aa-31d6868b72c3",
+                    "parentproperty": "http://www.cidoc-crm.org/cidoc-crm/P1_is_identified_by",
+                    "sortorder": 0
+                },
+                {
+                    "alias": "family_members_amount",
+                    "config": {
+                        "options": [
+                            {
+                                "id": "049d0b2c-b2df-43a8-9a7e-855c7abc42dc",
+                                "text": {
+                                    "en": "4"
+                                },
+                                "selected": false
+                            },
+                            {
+                                "id": "0d8f6bd2-1a29-4a66-8ae0-363edf024678",
+                                "text": {
+                                    "en": "3"
+                                },
+                                "selected": false
+                            },
+                            {
+                                "id": "f94c3022-e5b2-463a-9710-501e30901ffe",
+                                "text": {
+                                    "en": "2"
+                                },
+                                "selected": false
+                            },
+                            {
+                                "id": "32f3e020-d50c-4202-95b4-5703bde8bfc0",
+                                "text": {
+                                    "en": "1"
+                                },
+                                "selected": false
+                            }
+                        ]
+                    },
+                    "datatype": "domain-value",
+                    "description": null,
+                    "exportable": false,
+                    "fieldname": null,
+                    "graph_id": "22477f01-1a44-11e9-b0a9-000d3ab1e588",
+                    "hascustomalias": false,
+                    "is_collector": false,
+                    "isrequired": false,
+                    "issearchable": false,
+                    "istopnode": false,
+                    "name": "Family Member Amount",
+                    "nodegroup_id": "4d0c7d64-93b1-45ed-9073-b8f8462469dc",
+                    "nodeid": "d5c380a3-7384-44c4-abb7-ea35502e9226",
+                    "sortorder": 0
+                },
                 {
                     "alias": "address_metatype",
                     "config": {

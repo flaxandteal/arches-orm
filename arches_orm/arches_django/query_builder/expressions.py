@@ -27,6 +27,12 @@ def expression_string_datatype(nodeid: str, addional_keys: List[str] = None) -> 
         output_field=CharField()
     )
 
+def expression_domain_value(node: Node, addional_keys: List[str] = None):
+    print(node.config.get("dateFormat"))
+    key_lang = addional_keys[0] if len(addional_keys) >= 1 else 'en'
+    value_lang = addional_keys[1] if len(addional_keys) >= 2 else 'value'
+
+# ! NEED TO COME BACK TO
 def expression_date_datatype(nodeid: str) -> ExpressionWrapper:
  # Check the database vendor
     if connection.vendor == 'postgresql':
@@ -35,12 +41,14 @@ def expression_date_datatype(nodeid: str) -> ExpressionWrapper:
             Func(F(f'data__{nodeid}'), function='TO_DATE', template="%(function)s(%(expressions)s, 'YYYY-MM-DD\"T\"HH24:MI:SS.MS\"TZ\"')"),
             output_field=DateField()
         )
-    elif connection.vendor == 'sqlite':
-        
-        print('------------ SQLITE HERE ----------------')
-        
+    elif connection.vendor == 'sqlite':    
+
         return ExpressionWrapper(
-            Func(F(f'data__{nodeid}'), function='STRFTIME', template="%(function)s('%%Y-%%m-%%d', %(expressions)s)"),
+            Func(
+                F(f"data__{nodeid}"),
+                Value('%Y-%m-%d'),
+                function="STRFTIME",
+            ),
             output_field=DateField()
         )
     else:

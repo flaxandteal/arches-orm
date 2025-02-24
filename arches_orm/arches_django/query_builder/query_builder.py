@@ -49,11 +49,12 @@ class QueryBuilder:
     def __init__(self, parent_wrapper_instance):
         self._parent_wrapper_instance = parent_wrapper_instance;
         self._instance = self;
+        self._reset()
 
         # * Setup instances of filters, modifiers, selectors
-        self._instance_filters  = QueryBuilderFilters(self._instance)
-        self._instance_modifiers  = QueryBuilderModifier(self._instance)
-        self._instance_selectors = QueryBuilderSelectors(self._instance)
+        self._instance_filters  = QueryBuilderFilters(self)
+        self._instance_modifiers  = QueryBuilderModifier(self)
+        self._instance_selectors = QueryBuilderSelectors(self)
 
     def __getattr__(self, name):
         if not self._current_build_stage and hasattr(self._instance_filters, name):
@@ -68,6 +69,12 @@ class QueryBuilder:
             return getattr(self._instance_selectors, name)
 
         raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{name}'")    
+
+    # ? Some strange reason if I call Person.where(age=30) and then Person.where(age=50), it will still have the previous filters age=30, thus this method
+    # ? is born
+    def _reset(self): 
+        self._filter_structures = []
+        self._exclude_structures = []
 
     def set_annotation(
         self,
@@ -217,9 +224,15 @@ class QueryBuilder:
         # * Either way we get the tiles
         tiles = callback_get_tiles(**defaultFilterTileAgrs) if callback_get_tiles else _fallback_get_tiles(**defaultFilterTileAgrs)
 
+        # # ! I'm not too sure why but once 
+        # for tile in tiles:
+        #     temp = tile 
+
         # * Next we convert the tiles towards pseudo nodes, store the pseudo nodes inside ValueList and store the ValueList inside a instance of WKRI
         # * Finally we return a list of WKRIs
-        return _convert_tile_pseudo_nodes_and_create_wkris_with_value_lists(tiles)
+        result = _convert_tile_pseudo_nodes_and_create_wkris_with_value_lists(tiles)
+        self._reset()
+        return result
     
 
     def _build_edges(self):
