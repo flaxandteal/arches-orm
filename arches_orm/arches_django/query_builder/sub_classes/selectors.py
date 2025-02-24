@@ -71,6 +71,7 @@ class QueryBuilderSelectors:
                 )
 
             if (order_by):
+                _apply_annotations()
                 self.queryset_tiles = self.queryset_tiles.order_by(*order_by) 
 
             if offset and (offset['limit'] is not None or offset['offset'] is not None):
@@ -159,13 +160,21 @@ class QueryBuilderSelectors:
             callback_get_tiles=callback_get_tiles
         )
     
-    def find(self, resourceinstance_id):
+    def find(self, resourceinstance_id: str):
         annotations = self._instance_query_builder._annotations;
         order_by = self._instance_query_builder._order_by;
 
         callback_get_tiles = self._default_get_tiles(
             annotations=annotations,
-            order_by=order_by
+            order_by=order_by,
+            filter_structures=[
+                {
+                    'logical_operator': 'AND',
+                    'conditions': {
+                        'resourceinstance_id': resourceinstance_id
+                    }
+                }
+            ]
         )
         
         return self._instance_query_builder.create_wkri_with_datatype_values(
