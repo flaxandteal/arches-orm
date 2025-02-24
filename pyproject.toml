@@ -76,7 +76,6 @@ allow-direct-references = true
 
 [project.optional-dependencies]
 graphql = [
-    "ray",
     "starlette",
     "starlette-context",
     "starlette_graphene3",
