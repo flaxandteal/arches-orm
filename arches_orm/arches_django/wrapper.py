@@ -71,29 +71,38 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
         
         return cls._instance_query_builder
     
+    # ** SELECTORS
     @classmethod
-    def order_by(cls, *args):
+    def offset(cls, offset: None | int = None, limit: None | int = None):
         from arches_orm.arches_django.query_builder.query_builder import QueryBuilder
         query_builder_instance = QueryBuilder(parent_wrapper_instance=cls)
-        return query_builder_instance.order_by(*args)
+        return query_builder_instance.offset(offset, limit)
 
     @classmethod
-    def where(cls, **kwargs):
+    def first(cls):
         from arches_orm.arches_django.query_builder.query_builder import QueryBuilder
         query_builder_instance = QueryBuilder(parent_wrapper_instance=cls)
-        return query_builder_instance.where(**kwargs)
-
-    @classmethod
-    def or_where(cls, **kwargs):
-        from arches_orm.arches_django.query_builder.query_builder import QueryBuilder
-        query_builder_instance = QueryBuilder(parent_wrapper_instance=cls)
-        return query_builder_instance.where_or(**kwargs)
+        return query_builder_instance.first()
     
     @classmethod
     def all(cls):
         from arches_orm.arches_django.query_builder.query_builder import QueryBuilder
         query_builder_instance = QueryBuilder(parent_wrapper_instance=cls)
         return query_builder_instance.all()
+    
+    # * MODIFIERS
+    @classmethod
+    def order_by(cls, *args):
+        from arches_orm.arches_django.query_builder.query_builder import QueryBuilder
+        query_builder_instance = QueryBuilder(parent_wrapper_instance=cls)
+        return query_builder_instance.order_by(*args)
+    
+    # * FILTERS
+    @classmethod
+    def where(cls, **kwargs):
+        from arches_orm.arches_django.query_builder.query_builder import QueryBuilder
+        query_builder_instance = QueryBuilder(parent_wrapper_instance=cls)
+        return query_builder_instance.where(**kwargs)
     
     def _can_delete_resource(self, resource=None):
         if (user := self._context_get("user")):
@@ -1174,15 +1183,15 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
                         _add_node(node, tile)
         return all_values, implied_nodegroups
 
-    @classmethod
-    def first(cls, cross_record=None, lazy=False, case_i=False, **kwargs):
-        if not cls ._can_read_graph():
-            raise WKRMPermissionDenied()
+    # @classmethod
+    # def first(cls, cross_record=None, lazy=False, case_i=False, **kwargs):
+    #     if not cls ._can_read_graph():
+    #         raise WKRMPermissionDenied()
 
-        found = cls.where(cross_record=cross_record, lazy=lazy, case_i=case_i, **kwargs)
-        if not found:
-            raise RuntimeError(f"No results for search of {', '.join(kwargs.keys())}")
-        return found[0]
+    #     found = cls.where(cross_record=cross_record, lazy=lazy, case_i=case_i, **kwargs)
+    #     if not found:
+    #         raise RuntimeError(f"No results for search of {', '.join(kwargs.keys())}")
+    #     return found[0]
 
     # @classmethod
     # def where(cls, *args, cross_record=None, lazy=False, case_i=False):

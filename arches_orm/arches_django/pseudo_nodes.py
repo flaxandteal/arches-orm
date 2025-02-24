@@ -3,7 +3,7 @@ import inspect
 
 from arches_orm.view_models import ViewModel, NodeListViewModel, UnavailableViewModel, ResourceInstanceViewModel
 from arches.app.models.models import TileModel
-
+from arches.app.models.tile import Tile as TileProxyModel
 
 class PseudoNodeList(UserList):
     def __init__(self, node, parent=None, parent_cls=None):
@@ -167,11 +167,11 @@ class PseudoNodeValue:
     @property
     def tile(self):
         if (self._convert_tile_model_to_tile_orm and isinstance(self._tile, TileModel)):
-                self._tile = TileProxyModel(
-                    tileid=self._tile.tileid,  
-                    data=self._tile.data,
-                    resourceinstance_id=self._tile.resourceinstance_id
-                )
+            self._tile = TileProxyModel(
+                tileid=self._tile.tileid,  
+                data=self._tile.data,
+                resourceinstance_id=self._tile.resourceinstance_id
+            )
 
         return self._tile
 

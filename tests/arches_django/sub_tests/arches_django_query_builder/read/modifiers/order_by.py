@@ -1,6 +1,6 @@
 from tests.utilities.common import create_tile_from_model
 
-def sub_test_order_by_ascend(arches_orm):
+def sub_test_modifier_order_by(arches_orm):
     Person = arches_orm.models.Person
     includes = [
         'system_reference_numbers', 

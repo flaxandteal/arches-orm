@@ -16,7 +16,8 @@ def create_tile_from_model(
         model,
         custom_seed_values: Dict[str, any] | None = None,
         excludes: List[str] | None = None, 
-        includes: List[str] | None = None
+        includes: List[str] | None = None,
+        loop_index: int = None
     ):
     """
     This method creates the nodes towards tiles
@@ -61,33 +62,32 @@ def create_tile_from_model(
             processed_recursive_keys.append(key)
             datatype = getattr(model, key, "Attribute not found")
 
- 
+            print(key)
+
             if (isinstance(datatype, NodeListViewModel)):
                 datatype = datatype.append()
 
             if (isinstance(datatype, SemanticViewModel)):
-                model.update({key: recursive(model[key])})
-                print('NEW MODEL UPDATED ', getattr(model, key))
+                model.update({key: recursive(datatype)})
                 continue
-
-        
 
             if (custom_seed_values and key in custom_seed_values):
                 if (callable(custom_seed_values[key])):
-                    setattr(model, key, custom_seed_values[key]())
-                    print('getattr | ', getattr(model, key))
-                    print('SHOW | ', model[key])
+                    setattr(model, key, custom_seed_values[key](loop_index))
                 else:
                     setattr(model, key, custom_seed_values[key])
 
             else:
                 datatype_type = nodes[key]['datatype'];
-                    
+
                 if datatype_type == 'string':
-                    setattr(model, key, _handle_value_string_view_model());
+                    model.update({key: _handle_value_string_view_model()})
             
                 elif datatype_type == 'number':
-                    setattr(model, key, random.randrange(1,1000))
+                    setattr(model, key, random.randrange(1,100))
+
+                elif datatype_type == 'domain-value':
+                    model.update({key: '049d0b2c-b2df-43a8-9a7e-855c7abc42dc'})
         
             # recursive_handling()
             # datatype_seeders()
@@ -96,10 +96,6 @@ def create_tile_from_model(
         return model
 
     model = recursive(model)
-
-    print('HERE :', model.audit_metadata.audit_creation.creation_timespan.creation_end_date)
-
-
     return model
     
 
@@ -121,7 +117,6 @@ def get_nodes_by_key(seed_set: str, key: str) -> Dict[str, any]:
         return {node[key]: node for node in nodes}
     
 def _handle_value_string_view_model(length=10):
-    return 'TEST'
     import random
     import string
 
