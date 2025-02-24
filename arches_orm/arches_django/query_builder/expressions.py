@@ -1,10 +1,10 @@
-from django.db.models import Func, F, ExpressionWrapper, FloatField, CharField
+from django.db.models import Func, F, ExpressionWrapper, FloatField, CharField, JSONField
 from typing import Dict, List
 from arches.app.models.models import Node
 
 def expression_string_datatype(nodeid: str, lang: str = 'en') -> ExpressionWrapper:
     """
-    Method gets the experssion for a string datatype. This is mainaly used for the tiles JSON column that is stored within the database so we can use
+    Method gets the experssion for a string datatype. This is mainly used for the tiles JSON column that is stored within the database so we can use
     annotations around the expressions
 
     Args:
@@ -22,7 +22,7 @@ def expression_string_datatype(nodeid: str, lang: str = 'en') -> ExpressionWrapp
 # ! Doesn't have a datatype
 def expression_number_datatype(nodeid: str) -> ExpressionWrapper:
     """
-    Method gets the experssion for a number datatype. This is mainaly used for the tiles JSON column that is stored within the database so we can use
+    Method gets the experssion for a number datatype. This is mainly used for the tiles JSON column that is stored within the database so we can use
     annotations around the expressions
 
     Args:
@@ -35,3 +35,37 @@ def expression_number_datatype(nodeid: str) -> ExpressionWrapper:
         F(f'data__{nodeid}'),
         output_field=FloatField()
     )
+
+def expression_resource_instance_list_datatype(nodeid: str) -> ExpressionWrapper:
+    """
+    Method gets the experssion for a resource-instance-list datatype. This is mainaly used for the tiles JSON column that is stored within the database so we can use
+    annotations around the expressions
+
+    Args:
+        nodeid (str): The node id
+
+    Returns:
+        ExpressionWrapper: This is the expression wrapper that is returned and should be mainly used for annotations
+    """
+    print("DEBUG exp wrap", F(f"data__{nodeid}"))
+    print("DEBUG ", ExpressionWrapper(
+        F(f'data__{nodeid}'),
+        output_field=JSONField()
+    ))
+    return ExpressionWrapper(
+        F(f'data__{nodeid}'),
+        output_field=JSONField()
+    )
+
+def expression_generic(nodeid: str) -> F:
+    """
+    Method used as a fallback which will work when psql can determine the query without an expression wrapper
+
+        Args:
+        nodeid (str): The node id
+
+    Returns:
+        F: This is the expression that is returned and should be mainly used for annotations
+
+    """
+    return F(f'data__{nodeid}')

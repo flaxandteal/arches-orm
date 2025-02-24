@@ -11,7 +11,7 @@ from .sub_classes.filters import QueryBuilderFilters
 from .sub_classes.selectors import QueryBuilderSelectors
 from .sub_classes.modifiers import QueryBuilderModifier
 
-from .expressions import expression_string_datatype, expression_number_datatype
+from .expressions import expression_string_datatype, expression_number_datatype, expression_resource_instance_list_datatype, expression_generic
 from .utilities import annotation_key
 from collections import defaultdict
 from typing import TypedDict
@@ -80,6 +80,7 @@ class QueryBuilder:
             node (Node): The node
             properties (AnnotationProperties | None, optional): Future properties towards the experessions
         """
+        print("DEBUG the set annotation", node_alias,)
         if (node_alias in self._annotations):
             return;
 
@@ -88,6 +89,12 @@ class QueryBuilder:
 
         elif (node.datatype == 'number'):
             self._annotations[annotation_key(node_alias)] = expression_number_datatype(node.nodeid)
+
+        elif (node.datatype == 'resource-instance-list'):
+            self._annotations[annotation_key(node_alias)] = expression_resource_instance_list_datatype(node.nodeid)
+
+        else:
+            self._annotations[annotation_key(node_alias)] = expression_generic(node.nodeid)
 
     def create_wkri_with_datatype_values(
             self, 
@@ -190,6 +197,8 @@ class QueryBuilder:
                 wkri = wkris[current_wkri_index] if not wkri else wkri;
 
                 # * Convert the tile to a pseudo node
+                print("DEBUG node", node)
+                print("DEBUG vars node", vars(node))
                 pseudo_node = self._parent_wrapper_instance._make_pseudo_node_cls(
                     key=node.alias,
                     # node=node,
