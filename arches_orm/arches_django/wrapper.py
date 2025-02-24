@@ -90,6 +90,12 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
         query_builder_instance = QueryBuilder(parent_wrapper_instance=cls)
         return query_builder_instance.all()
     
+    @classmethod
+    def find(cls, resource_instance_id: str): 
+        from arches_orm.arches_django.query_builder.query_builder import QueryBuilder
+        query_builder_instance = QueryBuilder(parent_wrapper_instance=cls)
+        return query_builder_instance.find(resource_instance_id)
+    
     # * MODIFIERS
     @classmethod
     def order_by(cls, *args):
@@ -899,26 +905,26 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
 
         # return wkris;
 
-    @classmethod
-    def find(cls, resourceinstanceid, from_prefetch=None, lazy=False):
-        """Find an individual well-known resource by instance ID."""
+    # @classmethod
+    # def find(cls, resourceinstanceid, from_prefetch=None, lazy=False):
+    #     """Find an individual well-known resource by instance ID."""
 
-        if not cls ._can_read_graph():
-            raise WKRMPermissionDenied()
+    #     if not cls ._can_read_graph():
+    #         raise WKRMPermissionDenied()
 
-        resource = (
-            from_prefetch(resourceinstanceid)
-            if from_prefetch is not None
-            else Resource.objects.get(pk=resourceinstanceid)
-        )
-        if resource:
-            if str(resource.graph_id) != cls.graphid:
-                raise RuntimeError(
-                    f"Using find against wrong resource type: {resource.graph_id} for"
-                    f" {cls.graphid}"
-                )
-            return cls.from_resource(resource, lazy=lazy)
-        return None
+    #     resource = (
+    #         from_prefetch(resourceinstanceid)
+    #         if from_prefetch is not None
+    #         else Resource.objects.get(pk=resourceinstanceid)
+    #     )
+    #     if resource:
+    #         if str(resource.graph_id) != cls.graphid:
+    #             raise RuntimeError(
+    #                 f"Using find against wrong resource type: {resource.graph_id} for"
+    #                 f" {cls.graphid}"
+    #             )
+    #         return cls.from_resource(resource, lazy=lazy)
+    #     return None
 
     def remove(self):
         """When called via a relationship (dot), remove the relationship."""

@@ -12,8 +12,9 @@ from pathlib import Path
 from arches_orm.view_models import SemanticViewModel, NodeListViewModel, StringViewModel
 from tests.utilities.common import create_tile_from_model
 
-from tests.arches_django.sub_tests.arches_django_query_builder.read.selectors import sub_test_selector_offset, sub_test_selector_first
+from tests.arches_django.sub_tests.arches_django_query_builder.read.selectors import sub_test_selector_offset, sub_test_selector_first, sub_test_selector_find
 from tests.arches_django.sub_tests.arches_django_query_builder.read.filters import sub_test_filter_where
+from tests.arches_django.sub_tests.arches_django_query_builder.read.modifiers import sub_test_modifier_order_by
 
 def arches_import_method():
     from arches.app.utils.data_management.resources.importer import BusinessDataImporter
@@ -33,22 +34,27 @@ def arches_import_method():
 
 #     for result in results:
 #         print('HERE IS THE VALUE : ',  result.name[0].full_name)
+# @context_free
+# def test_selector_find(arches_orm):
+#     sub_test_selector_find(arches_orm)
 
-@context_free
-def test_selector_offset(arches_orm):
-    sub_test_selector_offset(arches_orm)
 
-@context_free
-def test_selector_first(arches_orm):
-    sub_test_selector_first(arches_orm)
-
-@context_free
-def test_or_where_quries_context_free(arches_orm):
-    sub_test_filter_where(arches_orm)
 
 # @context_free
-# def test_order_by_context_free(arches_orm):
-#     sub_test_order_by_ascend(arches_orm)
+# def test_selector_offset(arches_orm):
+#     sub_test_selector_offset(arches_orm)
+
+# @context_free
+# def test_selector_first(arches_orm):
+#     sub_test_selector_first(arches_orm)
+
+# @context_free
+# def test_or_where_quries_context_free(arches_orm):
+#     sub_test_filter_where(arches_orm)
+
+@context_free
+def test_order_by_context_free(arches_orm):
+    sub_test_modifier_order_by(arches_orm)
 
 
 # @context_free

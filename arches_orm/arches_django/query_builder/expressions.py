@@ -1,4 +1,4 @@
-from django.db.models import Func, F, ExpressionWrapper, FloatField, CharField, Value, DateField
+from django.db.models import Func, F, ExpressionWrapper, FloatField, CharField, Value, DateTimeField
 from typing import Dict, List
 from arches.app.models.models import Node
 from django.db import connection
@@ -32,28 +32,15 @@ def expression_domain_value(node: Node, addional_keys: List[str] = None):
     key_lang = addional_keys[0] if len(addional_keys) >= 1 else 'en'
     value_lang = addional_keys[1] if len(addional_keys) >= 2 else 'value'
 
-# ! NEED TO COME BACK TO
 def expression_date_datatype(nodeid: str) -> ExpressionWrapper:
- # Check the database vendor
-    if connection.vendor == 'postgresql':
-        # PostgreSQL - Use TO_DATE function
-        return ExpressionWrapper(
-            Func(F(f'data__{nodeid}'), function='TO_DATE', template="%(function)s(%(expressions)s, 'YYYY-MM-DD\"T\"HH24:MI:SS.MS\"TZ\"')"),
-            output_field=DateField()
-        )
-    elif connection.vendor == 'sqlite':    
-
-        return ExpressionWrapper(
-            Func(
-                F(f"data__{nodeid}"),
-                Value('%Y-%m-%d'),
-                function="STRFTIME",
-            ),
-            output_field=DateField()
-        )
-    else:
-        # For other databases, you can implement default behavior or throw an error if unsupported
-        raise NotImplementedError(f"Unsupported database vendor: {connection.vendor}")
+    """
+    Converts a string-based date stored in `data__{nodeid}` into a proper DateTimeField 
+    for sorting, based on the database backend.
+    """
+    return ExpressionWrapper(
+        F(f'data__{nodeid}'),
+        output_field=DateTimeField()
+    )
 
 def expression_number_datatype(nodeid: str) -> ExpressionWrapper:
     """
