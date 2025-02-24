@@ -18,7 +18,7 @@ from tests.arches_django.sub_tests.arches_django_query_builder.read.modifiers im
 
 def arches_import_method():
     from arches.app.utils.data_management.resources.importer import BusinessDataImporter
-    from django.test.utils import captured_stdout
+    from django.test.utils import captured_stdoutv
     
     with captured_stdout():
         BusinessDataImporter(
