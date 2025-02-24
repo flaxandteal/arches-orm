@@ -22,7 +22,7 @@ class AnnotationProperties(TypedDict):
 
 class FilterStructure(TypedDict):
     logical_operator: str
-    kwargs: Dict[str, any]
+    conditions: Dict[str, any]
 
 ExcludeStructure = FilterStructure
 
@@ -75,6 +75,7 @@ class QueryBuilder:
     def _reset(self): 
         self._filter_structures = []
         self._exclude_structures = []
+        self._order_by = []
 
     def set_annotation(
         self,

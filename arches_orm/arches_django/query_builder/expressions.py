@@ -1,10 +1,25 @@
-from django.db.models import Func, F, ExpressionWrapper, FloatField, CharField, Value, DateField
+from django.db.models import Func, F, ExpressionWrapper, FloatField, CharField, Value, DateTimeField
 from typing import Dict, List
 from arches.app.models.models import Node
 from django.db import connection
+from datetime import datetime
 
 # users = User.objects.annotate(fake_value=Value("FakeData", output_field=CharField()))
 
+def _figure_out_field_instance_type(value: str):
+    try:
+        datetime.fromisoformat(value)
+        return DateTimeField
+    except:
+        pass
+    
+    try:
+        int(value)
+        return FloatField
+    except:
+        pass
+
+    return CharField
 
 def expression_string_datatype(nodeid: str, addional_keys: List[str] = None) -> ExpressionWrapper:
     """
@@ -27,33 +42,34 @@ def expression_string_datatype(nodeid: str, addional_keys: List[str] = None) -> 
         output_field=CharField()
     )
 
-def expression_domain_value(node: Node, addional_keys: List[str] = None):
+def expression_domain_value(node: Node, addional_keys: List[str] = None) -> ExpressionWrapper:
     print(node.config.get("dateFormat"))
     key_lang = addional_keys[0] if len(addional_keys) >= 1 else 'en'
     value_lang = addional_keys[1] if len(addional_keys) >= 2 else 'value'
 
-# ! NEED TO COME BACK TO
 def expression_date_datatype(nodeid: str) -> ExpressionWrapper:
- # Check the database vendor
-    if connection.vendor == 'postgresql':
-        # PostgreSQL - Use TO_DATE function
-        return ExpressionWrapper(
-            Func(F(f'data__{nodeid}'), function='TO_DATE', template="%(function)s(%(expressions)s, 'YYYY-MM-DD\"T\"HH24:MI:SS.MS\"TZ\"')"),
-            output_field=DateField()
-        )
-    elif connection.vendor == 'sqlite':    
+    """
+    Converts a string-based date stored in `data__{nodeid}` into a proper DateTimeField 
+    for sorting, based on the database backend.
+    """
+    return ExpressionWrapper(
+        F(f'data__{nodeid}'),
+        output_field=DateTimeField()
+    )
 
-        return ExpressionWrapper(
-            Func(
-                F(f"data__{nodeid}"),
-                Value('%Y-%m-%d'),
-                function="STRFTIME",
-            ),
-            output_field=DateField()
-        )
-    else:
-        # For other databases, you can implement default behavior or throw an error if unsupported
-        raise NotImplementedError(f"Unsupported database vendor: {connection.vendor}")
+# def expression_concept_value(node: Node):
+#     from arches.app.models.concept import Concept
+
+    
+    
+#     collection = Concept().get(id=)
+
+#     return ExpressionWrapper(
+#         F(f'data__{node.nodeid}'),
+#         output_field=DateTimeField()
+#     )
+
+#     # _figure_out_field_instance_type()
 
 def expression_number_datatype(nodeid: str) -> ExpressionWrapper:
     """

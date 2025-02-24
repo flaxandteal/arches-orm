@@ -4,6 +4,9 @@ def number_seeder_odd_even(index: None | int):
         
         return 1
 
+def number_seeder_use_index_as_value(index):
+    return index
+
 def date_seeder_50_50_precent_older_future_dates_from_present(index: int):
     import random
     from datetime import datetime, timedelta
