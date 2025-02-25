@@ -39,3 +39,14 @@ class QueryBuilderModifier:
             self._instance_query_builder._order_by.append(annotation_key(args[index]))
     
         return self._instance_query_builder
+    
+    def lazy(self) -> "QueryBuilder":
+        """
+        Method enables the _lazy_mode variable to True which is used within the query_builder method "create_wkri_with_datatype_values"
+
+        Returns:
+            QueryBuilder: Enables chainable functionality 
+        """
+        
+        self._instance_query_builder._lazy_mode = True;
+        return self._instance_query_builder

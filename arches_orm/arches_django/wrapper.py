@@ -103,6 +103,12 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
         query_builder_instance = QueryBuilder(parent_wrapper_instance=cls)
         return query_builder_instance.order_by(*args)
     
+    @classmethod
+    def lazy(cls):
+        from arches_orm.arches_django.query_builder.query_builder import QueryBuilder
+        query_builder_instance = QueryBuilder(parent_wrapper_instance=cls)
+        return query_builder_instance.lazy()
+    
     # * FILTERS
     @classmethod
     def where(cls, **kwargs):
@@ -1043,6 +1049,8 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
                         tiles=tiles
                     )
                 )
+
+        print(all_values)
         return all_values
 
     @classmethod

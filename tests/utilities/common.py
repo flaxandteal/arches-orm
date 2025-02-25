@@ -88,7 +88,19 @@ def create_tile_from_model(
 
                 elif datatype_type == 'domain-value':
                     model.update({key: '049d0b2c-b2df-43a8-9a7e-855c7abc42dc'})
-        
+
+                # * Selects a random concept within the Collection List
+                elif datatype_type == 'concept':
+                    CollectionEnum = model.__collection__
+                    model.update({key: random.choice(list(CollectionEnum)) })
+
+                # * Selects random concepts within the Collection List
+                elif datatype_type == 'concept-list':
+                    CollectionEnum = model.__collection__
+                    num_conecpts = random.randint(1, len(CollectionEnum))
+                    random_concepts = random.sample(list(CollectionEnum), num_conecpts)
+                    model.update({key: random_concepts });
+                   
             # recursive_handling()
             # datatype_seeders()
         

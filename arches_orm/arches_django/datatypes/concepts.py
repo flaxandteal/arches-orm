@@ -5,6 +5,7 @@ from functools import partial
 
 from django.db.utils import OperationalError
 from arches.app.models.concept import Concept
+from arches.app.models.models import Value
 
 from arches_orm.view_models import (
     ConceptListValueViewModel,
@@ -37,6 +38,12 @@ def retrieve_concept(concept_id: uuid.UUID, language: str | None, datatype) -> S
 
 def retrieve_children(concept_id: uuid.UUID, language: str | None, datatype) -> list[ConceptValueViewModel]:
     concept = Concept().get(id=concept_id, include=["label"])
+
+    try:
+        children = Concept().get_child_concepts(concept.id)
+    except OperationalError:
+        logging.warn("This backend does not support child concepts.")
+        children = []
 
     return [
         make_concept_value(concept.get_preflabel().valueid, collection_id=None, datatype=datatype)
@@ -101,11 +108,6 @@ def cl_as_tile_data(concept_list):
 
 @REGISTER("concept")
 def concept_value(tile, node, value: uuid.UUID | str | None | CollectionEnum | ConceptValueViewModel | EmptyConceptValueViewModel, __, ___, ____, datatype) -> ConceptValueViewModel | EmptyConceptValueViewModel | None:
-    
-    print('concept_value | value | ', value)
-    print('concept_value | node | ', node)
-    print('concept_value | tile | ', tile)
-
     if value is None:
         value = tile.data.get(str(node.nodeid), None)
     collection_id = None
@@ -126,6 +128,8 @@ def make_concept_value(value: uuid.UUID | None, collection_id: uuid.UUID | None,
         if isinstance(value, ConceptValueViewModel):
             value = value._concept_value_id
         return datatype.get_value(value)
+    
+    print('HERE IS THE VALUE : ', value)
 
     if value is None or isinstance(value, EmptyConceptValueViewModel):
         if collection_id:
