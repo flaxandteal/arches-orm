@@ -14,10 +14,46 @@ from arches_orm.arches_django.query_builder.consts import (
     CONTAINS_KEYS,
     INSENSITIVE_CONTAINS_KEYS
 )
+
+
+from tests.utilities.seeders.seeder import Seeder
+from tests.utilities.seeders.default.consts import PERSON_DATATYPE_NODE_ALIAS_KEYS, ACTIVITY_DATATYPE_NODE_ALIAS_KEYS
+
 def sub_test_filter_where(arches_orm):
-    # sub_test_filter_where_number_equal(arches_orm)
-    sub_test_filter_where_number_quries(arches_orm)
-    sub_test_filter_where_string_quries(arches_orm)
+    # sub_test_filter_where_number_quries(arches_orm)
+    # sub_test_filter_where_string_quries(arches_orm)
+
+    instance_arches_orm_model_activity = arches_orm.models.Activity
+    instance_activity_seeder = Seeder(instance_arches_orm_model_activity, ACTIVITY_DATATYPE_NODE_ALIAS_KEYS)
+
+    sub_test_filter_where_concept_quries(instance_arches_orm_model_activity, instance_activity_seeder)
+
+def sub_test_filter_where_concept_quries(instance_arches_orm_model_activity, instance_activity_seeder):
+    activity = instance_arches_orm_model_activity.create()
+    record_status = activity.record_status_assignment.record_status
+    CollectionEnum = record_status.__collection__
+    target_node_alias = ACTIVITY_DATATYPE_NODE_ALIAS_KEYS['concept'][-1];
+
+    def concept_seed(index: int = None):
+        import random
+        nonlocal CollectionEnum
+        return random.choice(list(CollectionEnum))
+    
+    def _equal():
+        nonlocal concept_seed
+        instance_activity_seeder.seed(4, { 'concept': concept_seed })
+        concept_selected = concept_seed()
+        search_value = concept_selected.value
+        records = instance_arches_orm_model_activity.where(**{f"{target_node_alias}": 'Active - Full/Published' }).get()
+
+        for record in records:
+            print(instance_activity_seeder.get_nested_datatype_value(record, 'concept'))
+            print('Active - Full/Published')
+
+            assert(instance_activity_seeder.get_nested_datatype_value(record, 'concept') == 'Active - Full/Published')
+
+    _equal();
+
 
 def sub_test_filter_where_string_quries(arches_orm):
     Person = arches_orm.models.Person

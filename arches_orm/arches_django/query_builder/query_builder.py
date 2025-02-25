@@ -11,7 +11,14 @@ from .sub_classes.filters import QueryBuilderFilters
 from .sub_classes.selectors import QueryBuilderSelectors
 from .sub_classes.modifiers import QueryBuilderModifier
 
-from .expressions import expression_string_datatype, expression_number_datatype, expression_date_datatype
+from .expressions import (
+    expression_string_datatype, 
+    expression_number_datatype, 
+    expression_date_datatype, 
+    expression_concept_value, 
+    expression_boolean_value
+)
+
 from .utilities import annotation_key
 from collections import defaultdict
 from typing import TypedDict
@@ -45,6 +52,7 @@ class QueryBuilder:
 
     _annotations: Dict[str, ExpressionWrapper] = {};
     _order_by: List[str] = [];
+    _lazy_mode: bool = False
 
     def __init__(self, parent_wrapper_instance):
         self._parent_wrapper_instance = parent_wrapper_instance;
@@ -76,6 +84,7 @@ class QueryBuilder:
         self._filter_structures = []
         self._exclude_structures = []
         self._order_by = []
+        self._lazy_mode = False 
 
     def set_annotation(
         self,
@@ -103,6 +112,13 @@ class QueryBuilder:
 
         elif (node.datatype == 'date'):
             self._annotations[annotation_key(node_alias)] = expression_date_datatype(node.nodeid)
+
+        elif (node.datatype == 'boolean'):
+             self._annotations[annotation_key(node_alias)] = expression_boolean_value(node.nodeid)
+
+        elif (node.datatype == 'concept'):
+            self._annotations[annotation_key(node_alias)] = expression_concept_value(node)
+    
 
     def create_wkri_with_datatype_values(
             self, 
@@ -171,53 +187,91 @@ class QueryBuilder:
             wkri_resource_instance_mapping_wkris_index: Dict[str, int] = {}
             wkris: List[type] = []; # * Return value
 
+            def _get_wkri_index_nor_create_wkri_instance(resource) -> int:
+                """
+                This method will create a new WKRI or if the WKRI has already been previsouly created, then it finds the index.
+
+                Args:
+                    resource (ResourceObject): This is the resource which the tile is related towards
+
+                Returns:
+                    int: The WKRI index within the List wkris
+                """
+                nonlocal wkris, wkri_resource_instance_mapping_wkris_index
+
+                # * If the resource id is not contained within mapping, it means there is no WKRI instance towrads this tile as of yet
+                # * therefore we must create this WKRI and append/map towards our variables
+                current_wkri_index = wkri_resource_instance_mapping_wkris_index.get(resource.resourceinstanceid)
+
+                if current_wkri_index is not None:
+                    return current_wkri_index
+
+                # * Create WKRI and hook up ValueList towards the wkri values
+                wkri = self._parent_wrapper_instance.view_model(
+                    id=resource.resourceinstanceid,
+                    resource=resource,
+                    cross_record=None,
+                    related_prefetch=related_prefetch,
+                )
+
+                wkri._values = ValueList(
+                    {},
+                    wkri._,
+                    related_prefetch=related_prefetch
+                )
+
+                # * Save the WKRI instances so we can reuse the instances
+                wkris.append(wkri)
+                wkri_resource_instance_mapping_wkris_index[resource.resourceinstanceid] = len(wkris) - 1
+
+                return wkri_resource_instance_mapping_wkris_index.get(resource.resourceinstanceid)
+
+            def _set_node_value_within_value_list(wkri, current_wkri_index: int, node: Node, tile: TileModel):
+                """
+                Method handles registering the node value to a datatype class/view model and then attaches this dataype class/view model to a ValueList 
+                class instance. Moreover, if lazy loading is enabled, then we just only care about the nodegroup alias which the node is related towards
+                and we attach that onto a Dict within the ValueList with the value being False. Lazy does not load the dataype class/view model on the value
+                and will only proceed with this option if the user access the value for example Person.name[0].full_name[0]
+
+                Args:
+                    wkri (WKRI): This is the well known resource instance, related to the Tile
+                    current_wkri_index (int): This is the current index of the wkri within wkris, which is gained from _get_wkri_index_nor_create_wkri_instance
+                    node (Node): This is the node which the tile is related towards
+                    tile (TileModel): This is the tile record itself, containing the database data
+                """
+                nonlocal node_dict, wkris
+                if self._lazy_mode:
+                    nodegroup = node_dict.get(tile.nodegroup.nodegroupid)
+
+                    wkri._._values.__setitem__(nodegroup.alias, False)
+                    wkris[current_wkri_index] = wkri
+
+                else:
+                    # * Convert the tile to a pseudo node
+                    pseudo_node = self._parent_wrapper_instance._make_pseudo_node_cls(
+                        key=node.alias,
+                        # node=node,
+                        tile=tile,
+                        wkri=wkri
+                    )
+
+                    # ? Here we state that the tile can be converted from a resource to a Tile Datatype Class as again this slows the process
+                    pseudo_node._convert_tile_resource = True;
+
+                    # * Append on the wkri values and update the WKRI within our return value list
+                    wkri._._values.__setitem__(node.alias, [pseudo_node])
+                    wkris[current_wkri_index] = wkri
+
             # * Loop all tiles so (n*tiles)
             for tile in tiles:
                 # * We get the resource instance from the tile and the node instance from the tiles node gorup
                 resource = tile.resourceinstance
                 node = node_dict.get(tile.nodegroup_id)
-                wkri = None;
 
-                # * If the resource id is not contained within mapping, it means there is no WKRI instance towrads this tile as of yet
-                # * therefore we must create this WKRI and append/map towards our variables
-                if wkri_resource_instance_mapping_wkris_index.get(resource.resourceinstanceid) == None:
-
-                    # * Create WKRI and hook up ValueList towards the wkri values
-                    wkri = self._parent_wrapper_instance.view_model(
-                        id=resource.resourceinstanceid,
-                        resource=resource,
-                        cross_record=None,
-                        related_prefetch=related_prefetch,
-                    )
-
-                    wkri._values = ValueList(
-                        {},
-                        wkri._,
-                        related_prefetch=related_prefetch
-                    )
-
-                    # * Save the WKRI instances so we can reuse the instances
-                    wkris.append(wkri)
-                    wkri_resource_instance_mapping_wkris_index[resource.resourceinstanceid] = len(wkris) - 1
-         
-                # * Get the current WKRI instance towards this tile
-                current_wkri_index = wkri_resource_instance_mapping_wkris_index.get(resource.resourceinstanceid)
-                wkri = wkris[current_wkri_index] if not wkri else wkri;
-
-                # * Convert the tile to a pseudo node
-                pseudo_node = self._parent_wrapper_instance._make_pseudo_node_cls(
-                    key=node.alias,
-                    # node=node,
-                    tile=tile,
-                    wkri=wkri
-                )
-
-                # ? Here we state that the tile can be converted from a resource to a Tile Datatype Class as again this slows the process
-                pseudo_node._convert_tile_resource = True;
-
-                # * Append on the wkri values and update the WKRI within our return value list
-                wkri._._values.__setitem__(node.alias, [pseudo_node])
-                wkris[current_wkri_index] = wkri
+                current_wkri_index = _get_wkri_index_nor_create_wkri_instance(resource);
+                wkri = wkris[current_wkri_index];
+                    
+                _set_node_value_within_value_list(wkri, current_wkri_index, node, tile)
 
             return wkris
 
