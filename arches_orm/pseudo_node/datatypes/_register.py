@@ -71,9 +71,11 @@ class ViewModelRegister(UserDict):
             record = registration(tile, node, value, parent, parent_cls, child_nodes, datatype)
             return record, registration.transform_value_for_tile, datatype_name, datatype.collects_multiple_values()
         else:
-            if value or (tile and tile.data.get(node.nodeid)):
+            if value is not None or (tile and tile.data.get(node.nodeid)):
+                tranforming_value = tile.data if value is None else value
+
                 transformed = datatype.transform_value_for_tile(
-                    value or tile.data, **(node.config or {})
+                    tranforming_value, **(node.config or {})
                 )
             else:
                 transformed = None

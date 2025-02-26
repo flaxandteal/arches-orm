@@ -43,12 +43,19 @@ def expression_string_datatype(nodeid: str, addional_keys: List[str] = None) -> 
         output_field=CharField()
     )
 
+# ! If I just return the key, the query works as expected where(old_enough=True), however if I return a ExpressionWrapper, this stops working, therefore
+# ! the return type is F (Just the key)
+def expression_boolean_value(nodeid: str) -> F:
+    """
+    Method handles using a custom key for the datatype booleans
 
-def expression_boolean_value(nodeid: str) -> ExpressionWrapper:
-    return ExpressionWrapper(
-        F(f'data__{nodeid}'),
-        output_field=BooleanField()
-    )
+    Args:
+        nodeid (str): This is the node ID string
+
+    Returns:
+        F: This is the Field which represents a reference into the database and this is used for annotations
+    """
+    return F(f'data__{nodeid}')
 
 def expression_domain_value(node: Node, addional_keys: List[str] = None) -> ExpressionWrapper:
     print(node.config.get("dateFormat"))

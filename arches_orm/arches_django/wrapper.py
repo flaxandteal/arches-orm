@@ -398,7 +398,6 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
 
         if do_final_save:
             with transaction.atomic():
-                print('DATA : ', resource.tiles[0].data)
                 resource.save()
             resource = Resource.objects.get(resourceinstanceid=self.id)
             self.resource = resource
@@ -1050,7 +1049,6 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
                     )
                 )
 
-        print(all_values)
         return all_values
 
     @classmethod
@@ -1260,6 +1258,7 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
         permitted = cls._permitted_nodegroups()
         edges = cls._edges().get(str(node_obj.nodeid))
         value = None
+
         if (
             node_obj.nodegroup_id
             and node_obj.is_collector

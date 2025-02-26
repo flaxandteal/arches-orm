@@ -2023,6 +2023,14 @@
                     "graph_id": "22477f01-1a44-11e9-b0a9-000d3ab1e588",
                     "name": null,
                     "rangenode_id": "ffffaaf0-9043-11ea-b115-f875a44e0e11"
+                },
+                {
+                    "description": null,
+                    "domainnode_id": "4d0c7d64-93b1-45ed-9073-b8f8462469dc",
+                    "edgeid": "5cb5daa8-5772-4b90-940a-9a69e81da5be",
+                    "graph_id": "22477f01-1a44-11e9-b0a9-000d3ab1e588",
+                    "name": null,
+                    "rangenode_id": "79d495cb-f291-488d-8c86-63f235464fb1"
                 }
             ],
             "graphid": "22477f01-1a44-11e9-b0a9-000d3ab1e588",
@@ -2171,6 +2179,24 @@
                     "name": "Family Members",
                     "nodegroup_id": "4d0c7d64-93b1-45ed-9073-b8f8462469dc",
                     "nodeid": "4d0c7d64-93b1-45ed-9073-b8f8462469dc",
+                    "parentproperty": "http://www.cidoc-crm.org/cidoc-crm/P1_is_identified_by",
+                    "sortorder": 0
+                },
+                {
+                    "alias": "cars",
+                    "datatype": "boolean",
+                    "description": "",
+                    "exportable": false,
+                    "fieldname": "",
+                    "graph_id": "22477f01-1a44-11e9-b0a9-000d3ab1e588",
+                    "hascustomalias": false,
+                    "is_collector": false,
+                    "isrequired": false,
+                    "issearchable": false,
+                    "istopnode": false,
+                    "name": "Cars",
+                    "nodegroup_id": "4d0c7d64-93b1-45ed-9073-b8f8462469dc",
+                    "nodeid": "79d495cb-f291-488d-8c86-63f235464fb1",
                     "parentproperty": "http://www.cidoc-crm.org/cidoc-crm/P1_is_identified_by",
                     "sortorder": 0
                 },

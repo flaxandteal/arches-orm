@@ -62,8 +62,6 @@ def create_tile_from_model(
             processed_recursive_keys.append(key)
             datatype = getattr(model, key, "Attribute not found")
 
-            print(key)
-
             if (isinstance(datatype, NodeListViewModel)):
                 datatype = datatype.append()
 
@@ -71,11 +69,12 @@ def create_tile_from_model(
                 model.update({key: recursive(datatype)})
                 continue
 
-            if (custom_seed_values and key in custom_seed_values):
+            if (custom_seed_values and key in custom_seed_values and custom_seed_values[key] is not None):
                 if (callable(custom_seed_values[key])):
-                    setattr(model, key, custom_seed_values[key](loop_index))
+                    model.update({key: custom_seed_values[key](loop_index)})
+                    print(model[key])
                 else:
-                    setattr(model, key, custom_seed_values[key])
+                    model.update({key: custom_seed_values[key]})
 
             else:
                 datatype_type = nodes[key]['datatype'];
@@ -100,11 +99,12 @@ def create_tile_from_model(
                     num_conecpts = random.randint(1, len(CollectionEnum))
                     random_concepts = random.sample(list(CollectionEnum), num_conecpts)
                     model.update({key: random_concepts });
+        
+                elif datatype_type == 'boolean':
+                    model.update({key: random.choice(["TRUE", "FALSE"])})
                    
             # recursive_handling()
             # datatype_seeders()
-        
-
         return model
 
     model = recursive(model)

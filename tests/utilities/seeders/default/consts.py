@@ -1,7 +1,7 @@
 PERSON_DATATYPE_NODE_ALIAS_KEYS = {
     'domain-value': [
-            'family_members', 
-                'family_members_amount'
+        'family_members', 
+            'family_members_amount'
         ],
     'string': [
         'family_members',
@@ -17,6 +17,10 @@ PERSON_DATATYPE_NODE_ALIAS_KEYS = {
             'audit_creation',
                 'creation_timespan',
                     'creation_end_date'
+    ],
+    'boolean': [
+        'family_members',
+            'cars'
     ]
 }
 
