@@ -84,7 +84,7 @@ class QueryBuilderSelectors:
                     return self.queryset_tiles.select_related('resourceinstance', 'nodegroup')[offset_value:]
                 
             else:
-                return self.queryset_tiles.select_related('resourceinstance', 'nodegroup').iterator()        
+                return self.queryset_tiles.select_related('resourceinstance', 'nodegroup')
         return _callback_get_tiles
 
     def get(self):

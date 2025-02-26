@@ -37,7 +37,11 @@ class QueryBuilderModifier:
 
             # * Using annotation provided, then orders by the annotation with appending the annotation onto the orders by from our parent
             self._instance_query_builder._order_by.append(annotation_key(args[index]))
-    
+
+            self._instance_query_builder._exclude_structures.append({
+                'logical_operator': 'AND',
+                'conditions': { annotation_key(node_alias) + "__isnull": True }
+            })
         return self._instance_query_builder
     
     def lazy(self) -> "QueryBuilder":

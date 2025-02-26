@@ -1,18 +1,20 @@
-from tests.utilities.seeders.default.person import person_seeder
-from tests.utilities.seeders.default.person import person_seeder, get_nested_datatype_value
+from tests.utilities.seeders.seeder import Seeder
+from tests.utilities.seeders.default.consts import PERSON_DATATYPE_NODE_ALIAS_KEYS
 
 def sub_test_selector_first(arches_orm):
-    sub_test_selector_first_amount(arches_orm)
+    instance_arches_orm_model_person = arches_orm.models.Person
+    instance_person_seeder = Seeder(instance_arches_orm_model_person, PERSON_DATATYPE_NODE_ALIAS_KEYS)
 
-def sub_test_selector_first_amount(arches_orm):
-    Person = arches_orm.models.Person
+    sub_test_selector_first_amount(instance_arches_orm_model_person, instance_person_seeder)
 
-    def _custom_number_handle(index: int):
-        return index + 1;
+def sub_test_selector_first_amount(instance_arches_orm_model_person, instance_person_seeder):
+    target_node_alias = PERSON_DATATYPE_NODE_ALIAS_KEYS['string'][-1];
 
-    person_seeder(Person, 5, seed_datatypes={ 'number': _custom_number_handle })
+    instance_person_seeder.seed(2, { 'string': None })
+    instance_person_seeder.seed(1, { 'string': 'RABBIT' })
+    instance_person_seeder.seed(2, { 'string': 'MOLE' })
 
-    records = Person.first();
+    records = instance_arches_orm_model_person.where(**{f"{target_node_alias}": 'RABBIT' }).or_where(**{f"{target_node_alias}": 'MOLE' }).first()
 
     assert(len(records) == 1)
-    assert(get_nested_datatype_value(records[0], 'number') == 1)
+    assert(instance_person_seeder.get_nested_datatype_value(records[0], 'string') == 'RABBIT')
