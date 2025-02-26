@@ -1,6 +1,11 @@
 from tests.utilities.common import create_tile_from_model
 from tests.utilities.seeders.default.person import person_seeder, get_nested_datatype_value, person_datatype_node_alias_keys
-from tests.utilities.seeders.common import number_seeder_odd_even, date_seeder_50_50_precent_older_future_dates_from_present
+from tests.utilities.seeders.common import (
+    number_seeder_odd_even, 
+    date_seeder_50_50_precent_older_future_dates_from_present, 
+    boolean_seeder_50_50_false_true,
+    date_seeder_33_precent_present_past_future_dates_from_present
+)
 from datetime import datetime
 import random
 from datetime import datetime, timedelta
@@ -15,9 +20,10 @@ from arches_orm.arches_django.query_builder.consts import (
     INSENSITIVE_CONTAINS_KEYS
 )
 
-
+from django.db.models import F, BooleanField, ExpressionWrapper
 from tests.utilities.seeders.seeder import Seeder
 from tests.utilities.seeders.default.consts import PERSON_DATATYPE_NODE_ALIAS_KEYS, ACTIVITY_DATATYPE_NODE_ALIAS_KEYS
+from arches.app.models.models import TileModel
 
 def sub_test_filter_where(arches_orm):
     # sub_test_filter_where_number_quries(arches_orm)
@@ -26,7 +32,72 @@ def sub_test_filter_where(arches_orm):
     instance_arches_orm_model_activity = arches_orm.models.Activity
     instance_activity_seeder = Seeder(instance_arches_orm_model_activity, ACTIVITY_DATATYPE_NODE_ALIAS_KEYS)
 
-    sub_test_filter_where_concept_quries(instance_arches_orm_model_activity, instance_activity_seeder)
+    instance_arches_orm_model_person = arches_orm.models.Person
+    instance_person_seeder = Seeder(instance_arches_orm_model_person, PERSON_DATATYPE_NODE_ALIAS_KEYS)
+
+    # sub_test_filter_where_concept_quries(instance_arches_orm_model_activity, instance_activity_seeder)
+    # sub_test_filter_where_boolean_quries(instance_arches_orm_model_person, instance_person_seeder)
+    sub_test_filter_where_date_quries(instance_arches_orm_model_person, instance_person_seeder)
+
+def sub_test_filter_where_boolean_quries(instance_arches_orm_model_person, instance_person_seeder):
+    target_node_alias = PERSON_DATATYPE_NODE_ALIAS_KEYS['boolean'][-1];
+
+    def _equal():
+        nonlocal target_node_alias
+
+        instance_person_seeder.seed(6, { 'boolean': boolean_seeder_50_50_false_true })
+        true_records = instance_arches_orm_model_person.where(**{f"{target_node_alias}": True }).get()
+        false_records = instance_arches_orm_model_person.where(**{f"{target_node_alias}": False }).get()
+
+        for true_record in true_records:
+            assert(instance_person_seeder.get_nested_datatype_value(true_record, 'boolean') == True)
+
+        for false_record in false_records:
+            assert(instance_person_seeder.get_nested_datatype_value(false_record, 'boolean') == False)
+
+    _equal()
+    _equal()
+    _equal()
+
+def sub_test_filter_where_date_quries(instance_arches_orm_model_person, instance_person_seeder):
+    target_node_alias = PERSON_DATATYPE_NODE_ALIAS_KEYS['date'][-1];
+    today_date = now().date()
+
+    def _greater_than():
+        instance_person_seeder.seed(4, { 'date': date_seeder_50_50_precent_older_future_dates_from_present })
+        operator = random.choice(GREATER_THAN_KEYS)
+        records = instance_arches_orm_model_person.where(**{f"{target_node_alias}__{operator}": today_date }).get()
+
+        for record in records:
+            date_str = str(instance_person_seeder.get_nested_datatype_value(record, 'date'))
+            date_obj = datetime.strptime(date_str, "%Y-%m-%d").date()
+            assert(date_obj > today_date)
+
+
+
+    _greater_than()
+    _greater_than()
+    _greater_than()
+
+    # _less_than(10)
+    # _less_than(53)
+    # _less_than(23)
+
+    # _less_than_or_equal(53)
+    # _less_than_or_equal(12)
+    # _less_than_or_equal(64)
+
+    # _greater_than_or_equal(75)
+    # _greater_than_or_equal(12)
+    # _greater_than_or_equal(54)
+
+    # _equal(53)
+    # _equal(12)
+    # _equal(64)
+
+    # _not_equals(63)
+    # _not_equals(97)
+    # _not_equals(43)
 
 def sub_test_filter_where_concept_quries(instance_arches_orm_model_activity, instance_activity_seeder):
     activity = instance_arches_orm_model_activity.create()

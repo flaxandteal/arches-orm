@@ -248,6 +248,7 @@ class PseudoNodeValue:
     def value(self, value):
         if not isinstance(value, ViewModel) or isinstance(value, ResourceInstanceViewModel):
             self.get_tile()
+            print('INSIDE VALUE SETTER BEFORE! : ', value);
             value, self._as_tile_data, self._datatype, self._multiple = self.get_view_model_for_datatype(
                 self.tile,
                 self.node,
@@ -256,6 +257,9 @@ class PseudoNodeValue:
                 parent_cls=self._parent_cls,
                 child_nodes=self._child_nodes,
             )
+            print('INSIDE VALUE SETTER AFTER! : ', value);
+            print('-------------------------')
+
         self._value = value
         self._value_loaded = True
 
