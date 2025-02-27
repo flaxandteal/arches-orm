@@ -21,48 +21,35 @@ from tests.arches_django.sub_tests.arches_django_query_builder.read.selectors im
 from tests.arches_django.sub_tests.arches_django_query_builder.read.filters import sub_test_filter_where
 from tests.arches_django.sub_tests.arches_django_query_builder.read.modifiers import sub_test_modifier_order_by, sub_test_modifier_lazy
 
-def arches_import_method():
-    from arches.app.utils.data_management.resources.importer import BusinessDataImporter
-    from django.test.utils import captured_stdoutv
-    
-    with captured_stdout():
-        BusinessDataImporter(
-            "tests/arches_django/seed/default/cars/business-data.json"
-        ).import_business_data()
+# * Filters
+# ! Need to developed or_where aswel, however waiting for where to be completed first
+@context_free
+def test_where_quries_context_free(arches_orm):
+    sub_test_filter_where(arches_orm)
 
-
-# @context_free
-# def test_all_query_context_free(arches_orm):
-#     Person = arches_orm.models.Person;
-#     all_check_default(arches_orm)
-#     results = Person.where('full_name=UP')
-
-#     for result in results:
-#         print('HERE IS THE VALUE : ',  result.name[0].full_name)
-# @context_free
-# def test_selector_find(arches_orm):
-#     sub_test_selector_find(arches_orm)
-
+# * Modifiers
 @context_free
 def test_modifier_lazy(arches_orm):
     sub_test_modifier_lazy(arches_orm)
+    
+@context_free
+def test_selector_offset(arches_orm):
+    sub_test_selector_offset(arches_orm)
 
-# @context_free
-# def test_selector_offset(arches_orm):
-#     sub_test_selector_offset(arches_orm)
+# * Selectors
+@context_free
+def test_selector_first(arches_orm):
+    sub_test_selector_first(arches_orm)
 
-# @context_free
-# def test_selector_first(arches_orm):
-#     sub_test_selector_first(arches_orm)
+@context_free
+def test_selector_find(arches_orm):
+    sub_test_selector_find(arches_orm)
 
-# @context_free
-# def test_where_quries_context_free(arches_orm):
-#     sub_test_filter_where(arches_orm)
+@context_free
+def test_all_query_context_free(arches_orm):
+    sub_test_selector_all(arches_orm)
 
-# @context_free
-# def test_order_by_context_free(arches_orm):
-#     sub_test_modifier_order_by(arches_orm)
-
-# @context_free
-# def test_all_query_context_free(arches_orm):
-#     sub_test_selector_all(arches_orm)
+# ? https://huly.galviadigital.com/workbench/galviadigital/tracker/EMR-106
+@context_free
+def test_order_by_context_free(arches_orm):
+    sub_test_modifier_order_by(arches_orm)

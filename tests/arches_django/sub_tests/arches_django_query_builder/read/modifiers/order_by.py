@@ -2,7 +2,9 @@ from tests.utilities.common import create_tile_from_model
 from tests.utilities.seeders.common import number_seeder_odd_even, number_seeder_use_index_as_value, date_seeder_50_50_precent_older_future_dates_from_present
 from tests.utilities.seeders.default.person import person_seeder, get_nested_datatype_value, person_datatype_node_alias_keys
 from datetime import datetime
+from django.db.models import Func, F, ExpressionWrapper, FloatField, CharField, DateTimeField, OuterRef, Subquery, BooleanField
 
+from arches.app.models.models import TileModel
 from tests.utilities.seeders.seeder import Seeder
 from tests.utilities.seeders.default.consts import PERSON_DATATYPE_NODE_ALIAS_KEYS
 
@@ -17,9 +19,9 @@ def sub_test_modifier_order_by_number_order(instance_arches_orm_model_person, in
     target_node_alias = PERSON_DATATYPE_NODE_ALIAS_KEYS['number'][-1];
 
     def _sub_test():
-        instance_person_seeder.seed(4, { 'number': number_seeder_odd_even })
+        instance_person_seeder.seed(4, { 'number': number_seeder_odd_even, 'string': None })
         descending_records = instance_arches_orm_model_person.order_by(f'-{target_node_alias}').get()
-        ascending_records = instance_arches_orm_model_person.order_by(f'{target_node_alias}').get()
+        ascending_records = instance_arches_orm_model_person.order_by(target_node_alias).get()
 
         previous_number_value = None
 
@@ -70,6 +72,7 @@ def sub_test_modifier_order_by_date_order(instance_arches_orm_model_person, inst
                 continue;
             
             current_date = datetime.fromisoformat(record_date);
+
             assert(current_date >= previous_date)
             previous_date = current_date
             

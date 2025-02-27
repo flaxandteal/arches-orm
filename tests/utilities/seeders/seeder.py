@@ -37,7 +37,6 @@ class Seeder:
                         seeds[keys[-1]] = seeder
 
         for index in range(amount):
-            print('HERE IS THE INEX : ', index)
             resource = create_tile_from_model(
                 self._instance_arches_orm_model.create(), 
                 includes=includes,
