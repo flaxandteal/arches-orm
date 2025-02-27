@@ -44,7 +44,6 @@ def date(tile, node, value: str | datetime | None, _, __, ___, date_datatype):
     if tile:
         tile.data.setdefault(str(node.nodeid), None)
         if value is not None:
-            print('INSIDE DATE DATAYPES : ', value)
             if isinstance(value, datetime):
                 value = value.astimezone()
                 value = value.isoformat(timespec="milliseconds")
@@ -52,14 +51,10 @@ def date(tile, node, value: str | datetime | None, _, __, ___, date_datatype):
 
     if not tile or (data := tile.data[str(node.nodeid)]) is None:
         return None
-    
-    print(date_datatype.transform_value_for_tile)
-    print()
 
     value = date_datatype.transform_value_for_tile(data)
     # value = handle_date_or_datetime_format(node.config.get("dateFormat"), value)
     # value = _handle_formats(value)
-    print('VALUE TYPE : ', value)
     return DateTimeViewModel.parse(value)
 
 

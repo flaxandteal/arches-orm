@@ -15,22 +15,6 @@ def sub_test_modifier_order_by(arches_orm):
     sub_test_modifier_order_by_date_order(instance_arches_orm_model_person, instance_person_seeder)
     sub_test_modifier_order_by_number_order(instance_arches_orm_model_person, instance_person_seeder)
 
-def expression_number_datatype(nodeid: str) -> ExpressionWrapper:
-    """
-    Method gets the experssion for a number datatype. This is mainaly used for the tiles JSON column that is stored within the database so we can use
-    annotations around the expressions
-
-    Args:
-        nodeid (str): The node id
-
-    Returns:
-        ExpressionWrapper: This is the expression wrapper that is returned and should be mainly used for annotations
-    """
-    return ExpressionWrapper(
-        F(f'data__{nodeid}'),
-        output_field=FloatField()
-    )
-
 def sub_test_modifier_order_by_number_order(instance_arches_orm_model_person, instance_person_seeder):
     target_node_alias = PERSON_DATATYPE_NODE_ALIAS_KEYS['number'][-1];
 

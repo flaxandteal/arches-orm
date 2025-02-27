@@ -75,7 +75,7 @@ class QueryBuilder:
         elif (self._current_build_stage == 'modifiers' or not self._current_build_stage) and hasattr(self._instance_selectors, name):
             self._current_build_stage = 'selectors'
             return getattr(self._instance_selectors, name)
-
+ 
         raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{name}'")    
 
     # ? Some strange reason if I call Person.where(age=30) and then Person.where(age=50), it will still have the previous filters age=30, thus this method
@@ -85,6 +85,7 @@ class QueryBuilder:
         self._exclude_structures = []
         self._order_by = []
         self._lazy_mode = False 
+        self._current_build_stage = None
 
     def set_annotation(
         self,
@@ -123,7 +124,7 @@ class QueryBuilder:
     def create_wkri_with_datatype_values(
             self, 
             related_prefetch = None,
-            lazy = False, 
+            lazy_mode = False, 
             callback_get_tiles: Optional[Callable[[], Iterator[TileModel]]] = None
         ) -> List[type]:
         """
@@ -225,7 +226,7 @@ class QueryBuilder:
                     tile (TileModel): This is the tile record itself, containing the database data
                 """
                 nonlocal node_dict, wkris
-                if self._lazy_mode:
+                if lazy_mode:
                     nodegroup = node_dict.get(tile.nodegroup.nodegroupid)
 
                     wkri._._values.__setitem__(nodegroup.alias, False)
@@ -246,7 +247,6 @@ class QueryBuilder:
                     # * Append on the wkri values and update the WKRI within our return value list
                     wkri._._values.__setitem__(node.alias, [pseudo_node])
                     wkris[current_wkri_index] = wkri
-                    print('PSEUDO NODE VALUE ', pseudo_node._value)
 
             # * Loop all tiles so (n*tiles)
             for tile in tiles:
@@ -256,13 +256,6 @@ class QueryBuilder:
 
                 current_wkri_index = _get_wkri_index_nor_create_wkri_instance(resource);
                 wkri = wkris[current_wkri_index];
-
-                print('INSIDE TILES : ', tile.data.get('9718f941-950e-11ea-a048-f875a44e0e11'))
-                print('current_wkri_index : ', current_wkri_index)
-                print('resourceinstance : ', resource.resourceinstanceid)
-                print('node : ', node.alias)
-
-                print('------------------------------')
 
                 _set_node_value_within_value_list(wkri, current_wkri_index, node, tile)
 
@@ -275,20 +268,11 @@ class QueryBuilder:
         # for tile in tiles:
         #     print('INSIDE TILES : ', tile.data.get('9718f941-950e-11ea-a048-f875a44e0e11'))
 
-        # # ! I'm not too sure why but once 
-        # for tile in tiles:
-        #     temp = tile 
+        self._reset()
 
         # * Next we convert the tiles towards pseudo nodes, store the pseudo nodes inside ValueList and store the ValueList inside a instance of WKRI
         # * Finally we return a list of WKRIs
-        result = _convert_tile_pseudo_nodes_and_create_wkris_with_value_lists(tiles)
-        for data in result:
-            print('FINAL : ', data.system_reference_numbers.primaryreferencenumber.primary_reference_number)
-
-        print('===================================')
-
-        return result
-    
+        return _convert_tile_pseudo_nodes_and_create_wkris_with_value_lists(tiles)    
 
     def _build_edges(self):
         """

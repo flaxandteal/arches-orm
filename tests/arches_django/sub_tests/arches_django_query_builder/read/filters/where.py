@@ -52,6 +52,7 @@ def sub_test_filter_where_boolean_quries(instance_arches_orm_model_person, insta
             assert(instance_person_seeder.get_nested_datatype_value(true_record, 'boolean') == True)
 
         for false_record in false_records:
+            print('HERE IS THE BOOLEAN : ', instance_person_seeder.get_nested_datatype_value(false_record, 'boolean'))
             assert(instance_person_seeder.get_nested_datatype_value(false_record, 'boolean') == False)
 
     _equal()
@@ -165,9 +166,6 @@ def sub_test_filter_where_concept_quries(instance_arches_orm_model_activity, ins
         records = instance_arches_orm_model_activity.where(**{f"{target_node_alias}": 'Active - Full/Published' }).get()
 
         for record in records:
-            print(instance_activity_seeder.get_nested_datatype_value(record, 'concept'))
-            print('Active - Full/Published')
-
             assert(instance_activity_seeder.get_nested_datatype_value(record, 'concept') == 'Active - Full/Published')
 
     _equal();
@@ -241,7 +239,6 @@ def sub_test_filter_where_number_quries(instance_arches_orm_model_person, instan
         operator = random.choice(LESS_THAN_KEYS)
         records = instance_arches_orm_model_person.where(**{f"{target_node_alias}__{operator}": value}).get()
         for record in records:
-            print('HERE IS THE NUMBER : ', instance_person_seeder.get_nested_datatype_value(record, 'number'))
             assert(instance_person_seeder.get_nested_datatype_value(record, 'number') < value)
 
     def _less_than_or_equal(value: int = 50):

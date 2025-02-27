@@ -131,9 +131,7 @@ def split_query_key(key: str) -> SplitQueryKeyReturn | None:
         return None;
 
     found_values: List[str] = match.group(1).split('__')
-    print('HERE IS THE OPERATOR : ', found_values[-1])
     operator: str = handle_operatortion(found_values[-1]);
-    print('GENERATED OPERATOR : ', operator)
 
     # * Remove the last key from found values as this is the operator
     if (operator != 'equal'):
