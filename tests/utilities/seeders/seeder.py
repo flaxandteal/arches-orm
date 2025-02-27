@@ -43,5 +43,4 @@ class Seeder:
                 custom_seed_values=seeds,
                 loop_index=index
             )
-            print('RESOURECE: ', resource.family_members.cars)
             resource.save() 

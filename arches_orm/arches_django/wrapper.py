@@ -104,65 +104,53 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
     _values_list: ValueList | None = None
     _values_real: list | None = None
     __datatype_factory = None
-    _instance_query_builder = None
+    _query_builder_instance = None
     start_times = {}
     count = {}
     TileProxyModel = TileProxyModel
 
     """Provides functionality for translating to/from Arches types."""
 
-    @property
-    def query_builder_instance(cls):
-        if not cls._instance_query_builder:
+    @classmethod
+    def get_query_builder(cls):
+        """Ensures a single instance of QueryBuilder is used."""
+        if cls._query_builder_instance is None:
             from arches_orm.arches_django.query_builder.query_builder import QueryBuilder
-            cls._instance_query_builder = QueryBuilder(parent_wrapper_instance=cls);
-        
-        return cls._instance_query_builder
+            cls._query_builder_instance = QueryBuilder(parent_wrapper_instance=cls)
+        cls._query_builder_instance._reset()
+        return cls._query_builder_instance
     
     # ** SELECTORS
     @classmethod
     def offset(cls, offset: None | int = None, limit: None | int = None):
-        from arches_orm.arches_django.query_builder.query_builder import QueryBuilder
-        query_builder_instance = QueryBuilder(parent_wrapper_instance=cls)
-        return query_builder_instance.offset(offset, limit)
+        return cls.get_query_builder().offset(offset, limit)
 
     @classmethod
     def first(cls):
-        from arches_orm.arches_django.query_builder.query_builder import QueryBuilder
-        query_builder_instance = QueryBuilder(parent_wrapper_instance=cls)
-        return query_builder_instance.first()
+        return cls.get_query_builder().first()
     
     @classmethod
     def all(cls):
-        from arches_orm.arches_django.query_builder.query_builder import QueryBuilder
-        query_builder_instance = QueryBuilder(parent_wrapper_instance=cls)
-        return query_builder_instance.all()
+        return cls.get_query_builder().all()
+
     
     @classmethod
     def find(cls, resource_instance_id: str): 
-        from arches_orm.arches_django.query_builder.query_builder import QueryBuilder
-        query_builder_instance = QueryBuilder(parent_wrapper_instance=cls)
-        return query_builder_instance.find(resource_instance_id)
+        return cls.get_query_builder().find(resource_instance_id)
     
     # * MODIFIERS
     @classmethod
     def order_by(cls, *args):
-        from arches_orm.arches_django.query_builder.query_builder import QueryBuilder
-        query_builder_instance = QueryBuilder(parent_wrapper_instance=cls)
-        return query_builder_instance.order_by(*args)
+        return cls.get_query_builder().order_by(*args)
     
     @classmethod
     def lazy(cls):
-        from arches_orm.arches_django.query_builder.query_builder import QueryBuilder
-        query_builder_instance = QueryBuilder(parent_wrapper_instance=cls)
-        return query_builder_instance.lazy()
+        return cls.get_query_builder().lazy()
     
     # * FILTERS
     @classmethod
     def where(cls, **kwargs):
-        from arches_orm.arches_django.query_builder.query_builder import QueryBuilder
-        query_builder_instance = QueryBuilder(parent_wrapper_instance=cls)
-        return query_builder_instance.where(**kwargs)
+        return cls.get_query_builder().where(**kwargs)
     
     def _can_delete_resource(self, resource=None):
         if (user := self._context_get("user")):

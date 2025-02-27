@@ -19,6 +19,9 @@ class QueryBuilderSelectors:
         self._instance_query_builder = instance_query_builder;
         self._wrapper_instance = instance_query_builder._parent_wrapper_instance;
     
+    def _reset(self):
+        self._queryset_tiles = None;
+    
     @property
     def queryset_tiles(self):
         """
@@ -87,6 +90,18 @@ class QueryBuilderSelectors:
                 return self.queryset_tiles.select_related('resourceinstance', 'nodegroup')
         return _callback_get_tiles
 
+    def _default_handle_selector_return(self, callback_get_tiles):
+        lazy_mode = self._instance_query_builder._lazy_mode;
+
+        results = self._instance_query_builder.create_wkri_with_datatype_values(
+            callback_get_tiles=callback_get_tiles,
+            lazy_mode=lazy_mode
+        )
+
+        self._reset()
+    
+        return results
+
     def get(self):
         annotations = self._instance_query_builder._annotations;
         filter_structures = self._instance_query_builder._filter_structures;
@@ -100,11 +115,8 @@ class QueryBuilderSelectors:
             order_by=order_by
         )
         
-        results = self._instance_query_builder.create_wkri_with_datatype_values(
-            callback_get_tiles=callback_get_tiles
-        )
+        return self._default_handle_selector_return(callback_get_tiles=callback_get_tiles)
 
-        return results
     
     def offset(self, offset: None | int = None, limit: None | int = None):
         annotations = self._instance_query_builder._annotations;
@@ -120,11 +132,8 @@ class QueryBuilderSelectors:
             offset={ 'limit': limit, 'offset': offset }
         )
         
-        results = self._instance_query_builder.create_wkri_with_datatype_values(
-            callback_get_tiles=callback_get_tiles
-        )
+        return self._default_handle_selector_return(callback_get_tiles=callback_get_tiles)
 
-        return results
     
     def first(self):
         annotations = self._instance_query_builder._annotations;
@@ -140,11 +149,8 @@ class QueryBuilderSelectors:
             offset={ 'limit': 1 }
         )
         
-        results = self._instance_query_builder.create_wkri_with_datatype_values(
-            callback_get_tiles=callback_get_tiles
-        )
+        return self._default_handle_selector_return(callback_get_tiles)
 
-        return results
 
 
     def all(self):
@@ -156,9 +162,8 @@ class QueryBuilderSelectors:
             order_by=order_by
         )
         
-        return self._instance_query_builder.create_wkri_with_datatype_values(
-            callback_get_tiles=callback_get_tiles
-        )
+        return self._default_handle_selector_return(callback_get_tiles)
+
     
     def find(self, resourceinstance_id: str):
         annotations = self._instance_query_builder._annotations;
@@ -176,7 +181,7 @@ class QueryBuilderSelectors:
                 }
             ]
         )
+
+        return self._default_handle_selector_return(callback_get_tiles)
         
-        return self._instance_query_builder.create_wkri_with_datatype_values(
-            callback_get_tiles=callback_get_tiles
-        )
+        
