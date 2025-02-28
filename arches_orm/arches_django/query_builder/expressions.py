@@ -43,8 +43,8 @@ def expression_string_datatype(nodeid: str, addional_keys: List[str] = None) -> 
         output_field=CharField()
     )
 
-# ! If I just return the key, the query works as expected where(old_enough=True), however if I return a ExpressionWrapper, this stops working, therefore
-# ! the return type is F (Just the key)
+# * If I just return the key, the query works as expected where(old_enough=True), however if I return a ExpressionWrapper, this stops working, therefore
+# * the return type is F (Just the key)
 def expression_boolean_value(nodeid: str) -> F:
     """
     Method handles using a custom key for the datatype booleans
@@ -71,10 +71,6 @@ def expression_date_datatype(nodeid: str) -> ExpressionWrapper:
         F(f'data__{nodeid}'),
         output_field=DateTimeField()
     )
-
-def custom_test(value):
-    print('HERE IS THE VALUE INSIDE CUSTOM TEST: ', value);
-    return value;
 
 def expression_concept_value(node: Node):
     from arches.app.models.concept import Concept
