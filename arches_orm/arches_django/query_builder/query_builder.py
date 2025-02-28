@@ -1,15 +1,12 @@
-from typing import Iterator, Dict, List, TypedDict, Any, Callable, Optional
+from typing import Iterator, Dict, List, TypedDict, Callable, Optional
 from arches.app.models.models import TileModel
-from django.core.paginator import Paginator, Page
-from arches.app.models.resource import Resource
-from arches.app.models.models import ResourceXResource, Node, NodeGroup, Edge, TileModel
-from functools import lru_cache
+from arches.app.models.models import Node, Edge, TileModel
 from arches_orm.arches_django.wrapper import ValueList
-from django.db.models import Func, F, ExpressionWrapper, FloatField, CharField
+from django.db.models import ExpressionWrapper
 
-from .sub_classes.filters import QueryBuilderFilters
-from .sub_classes.selectors import QueryBuilderSelectors
-from .sub_classes.modifiers import QueryBuilderModifier
+from .children_classes.filters import QueryBuilderFilters
+from .children_classes.selectors import QueryBuilderSelectors
+from .children_classes.modifiers import QueryBuilderModifier
 
 from .expressions import (
     expression_string_datatype, 
@@ -32,8 +29,6 @@ class FilterStructure(TypedDict):
     conditions: Dict[str, any]
 
 ExcludeStructure = FilterStructure
-
-LOAD_ALL_NODES = True
 
 class QueryBuilder:
     _instance = None
@@ -81,6 +76,10 @@ class QueryBuilder:
     # ? Some strange reason if I call Person.where(age=30) and then Person.where(age=50), it will still have the previous filters age=30, thus this method
     # ? is born
     def _reset(self): 
+        """
+        Method resets data structure within the query builder. Some strange reason the data is still retained even after a new instance is called each
+        time within the wrapper.py, thus this method was developed
+        """
         self._filter_structures = []
         self._exclude_structures = []
         self._order_by = []
@@ -264,9 +263,6 @@ class QueryBuilder:
         # * We first need to quire the tiles so we use the callback_get_tiles and if one is not provided then we use _fallback_get_tiles as a default.
         # * Either way we get the tiles
         tiles = callback_get_tiles(**defaultFilterTileAgrs) if callback_get_tiles else _fallback_get_tiles(**defaultFilterTileAgrs)
-
-        # for tile in tiles:
-        #     print('INSIDE TILES : ', tile.data.get('9718f941-950e-11ea-a048-f875a44e0e11'))
 
         self._reset()
 

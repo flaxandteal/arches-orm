@@ -1,10 +1,9 @@
 import re
 from ..utilities import split_query_key, annotation_key
-from django.db.models import Func, F, ExpressionWrapper, IntegerField, CharField
-from arches.app.models.models import ResourceXResource, Node, NodeGroup, Edge, TileModel
+from arches.app.models.models import Node
 import uuid
-from typing import TYPE_CHECKING, Dict
-from arches_orm.arches_django.query_builder.consts import NOT_EQUAL_KEYS
+from typing import TYPE_CHECKING, Dict, List
+from arches_orm.arches_django.query_builder.config import NOT_EQUAL_KEYS
 
 class QueryBuilderFilters:
     _instance_query_builder = None;
@@ -21,6 +20,16 @@ class QueryBuilderFilters:
         self._wrapper_instance = instance_query_builder._parent_wrapper_instance;
 
     def _handle_setting_excludes_filters(self, field_key: str, field_lookup: str, value: any):
+        """
+        This method handles getting the correct filter key towards Django as we can have custom keys, that are defined in consts.py which point to the
+        django key for example ['less_than']: 'lt'. This method gets the field key with the potational operator and stores this either in filters or excludes
+
+        Args:
+            field_key (str): The field key or node alias for example age
+            field_lookup (str): The field key which was gained from the method "handle_operatortion"
+            value (any): The value which the user inputted as the condition
+        """
+
         if field_lookup == 'equal':
             self._filters[annotation_key(field_key)] = value
 
@@ -29,10 +38,11 @@ class QueryBuilderFilters:
         
         else:
             self._filters[annotation_key(field_key) + "__" + field_lookup] = value
-            self._excludes[annotation_key(field_key) + "__isnull"] = True
-
 
     def _reset_previous_filtering_excluding(self):
+        """
+        The data is retained as the query builder is uses a single ton towards this class 
+        """
         self._filters = {}
         self._excludes = {}
 

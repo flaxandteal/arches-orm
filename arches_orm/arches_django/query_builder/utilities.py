@@ -1,6 +1,5 @@
 import re
-from arches.app.utils.permission_backend import get_nodegroups_by_perm
-from .consts import (
+from .config import (
     GREATER_THAN_KEYS, 
     LESS_THAN_KEYS, 
     GREATER_THAN_OR_EQUAL_KEYS, 

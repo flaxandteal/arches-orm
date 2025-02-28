@@ -1,9 +1,9 @@
 from tests.utilities.seeders.seeder import Seeder
-from tests.utilities.seeders.default.consts import PERSON_DATATYPE_NODE_ALIAS_KEYS
+from tests.utilities.seeders.default.config import PERSON_DATATYPE_NODE_ALIAS_KEYS, PERSON_DEFAULT_SEED_PATH
 
 def sub_test_selector_all(arches_orm):
     instance_arches_orm_model_person = arches_orm.models.Person
-    instance_person_seeder = Seeder(instance_arches_orm_model_person, PERSON_DATATYPE_NODE_ALIAS_KEYS)
+    instance_person_seeder = Seeder(instance_arches_orm_model_person, PERSON_DATATYPE_NODE_ALIAS_KEYS, PERSON_DEFAULT_SEED_PATH)
 
     sub_test_selector_all_amount(instance_arches_orm_model_person, instance_person_seeder)
 
