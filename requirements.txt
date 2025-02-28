@@ -1,0 +1,2 @@
+"portray @ git+https://github.com/flaxandteal/portray.git#v1.8.0-fat",
+"mkdocs-material==7.0"
