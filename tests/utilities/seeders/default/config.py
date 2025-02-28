@@ -1,4 +1,9 @@
-PERSON_DATATYPE_NODE_ALIAS_KEYS = {
+from typing import Dict, List;
+
+PERSON_DEFAULT_SEED_PATH = 'default/person'
+ACTIVITY_DEFAULT_SEED_PATH = 'default/activity'
+
+PERSON_DATATYPE_NODE_ALIAS_KEYS: Dict[str, List[str]] = {
     'domain-value': [
         'family_members', 
             'family_members_amount'
@@ -24,7 +29,7 @@ PERSON_DATATYPE_NODE_ALIAS_KEYS = {
     ]
 }
 
-ACTIVITY_DATATYPE_NODE_ALIAS_KEYS = {
+ACTIVITY_DATATYPE_NODE_ALIAS_KEYS: Dict[str, List[str]] = {
     'concept': [
         'record_status_assignment',
             'record_status'

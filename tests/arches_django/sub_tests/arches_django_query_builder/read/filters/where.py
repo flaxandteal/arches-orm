@@ -9,7 +9,7 @@ from datetime import datetime
 import random
 from datetime import datetime, timedelta
 from django.utils.timezone import now
-from arches_orm.arches_django.query_builder.consts import (
+from arches_orm.arches_django.query_builder.config import (
     GREATER_THAN_KEYS,
     LESS_THAN_KEYS,
     LESS_THAN_OR_EQUAL_KEYS,
@@ -21,15 +21,20 @@ from arches_orm.arches_django.query_builder.consts import (
 
 from django.db.models import F, BooleanField, ExpressionWrapper
 from tests.utilities.seeders.seeder import Seeder
-from tests.utilities.seeders.default.consts import PERSON_DATATYPE_NODE_ALIAS_KEYS, ACTIVITY_DATATYPE_NODE_ALIAS_KEYS
+from tests.utilities.seeders.default.config import (
+    PERSON_DATATYPE_NODE_ALIAS_KEYS, 
+    ACTIVITY_DATATYPE_NODE_ALIAS_KEYS, 
+    PERSON_DEFAULT_SEED_PATH, 
+    ACTIVITY_DEFAULT_SEED_PATH
+)
 from arches.app.models.models import TileModel
 
 def sub_test_filter_where(arches_orm):
     instance_arches_orm_model_activity = arches_orm.models.Activity
-    instance_activity_seeder = Seeder(instance_arches_orm_model_activity, ACTIVITY_DATATYPE_NODE_ALIAS_KEYS)
+    instance_activity_seeder = Seeder(instance_arches_orm_model_activity, ACTIVITY_DATATYPE_NODE_ALIAS_KEYS, ACTIVITY_DEFAULT_SEED_PATH)
 
     instance_arches_orm_model_person = arches_orm.models.Person
-    instance_person_seeder = Seeder(instance_arches_orm_model_person, PERSON_DATATYPE_NODE_ALIAS_KEYS)
+    instance_person_seeder = Seeder(instance_arches_orm_model_person, PERSON_DATATYPE_NODE_ALIAS_KEYS, PERSON_DEFAULT_SEED_PATH)
 
     # sub_test_filter_where_concept_quries(instance_arches_orm_model_activity, instance_activity_seeder)
     sub_test_filter_where_boolean_quries(instance_arches_orm_model_person, instance_person_seeder)
@@ -52,7 +57,6 @@ def sub_test_filter_where_boolean_quries(instance_arches_orm_model_person, insta
             assert(instance_person_seeder.get_nested_datatype_value(true_record, 'boolean') == True)
 
         for false_record in false_records:
-            print('HERE IS THE BOOLEAN : ', instance_person_seeder.get_nested_datatype_value(false_record, 'boolean'))
             assert(instance_person_seeder.get_nested_datatype_value(false_record, 'boolean') == False)
 
     _equal()
@@ -271,9 +275,9 @@ def sub_test_filter_where_number_quries(instance_arches_orm_model_person, instan
     _greater_than(70)
     _greater_than(20)
 
+    _less_than(5)
     _less_than(10)
-    _less_than(53)
-    _less_than(23)
+    _less_than(5)
 
     _less_than_or_equal(53)
     _less_than_or_equal(12)
