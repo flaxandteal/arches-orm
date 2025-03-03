@@ -1337,8 +1337,6 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
             else:
                 value = node_value
 
-        print('RETURNING VALUE HERE : _make_pseudo_node_cls')
-
         return value
 
     def __init_subclass__(cls, well_known_resource_model=None, proxy=None, adapter=None):
