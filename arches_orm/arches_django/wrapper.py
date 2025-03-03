@@ -527,17 +527,21 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
         if context is None: # Context-free, no restrictions
             return list(cls._nodegroup_objects())
 
-        if (permitted_nodegroups := context.get("user_graphs", {}).get(str(cls))):
-            return permitted_nodegroups
+        if (permitted_nodegroups := context.get("user_graphs", {}).get(cls._model_name)):
+            permitted_nodegroups = permitted_nodegroups
+        else:
+            user = context.get("user")
+            if user is None:
+                return list(cls._nodegroup_objects())
 
-        user = context.get("user")
-        png = get_permitted_nodegroups(user)
-        permitted_nodegroups = [
-            key for key in cls._nodegroup_objects()
-            if key in png
-        ] + [None]
+            png = get_permitted_nodegroups(user)
+            permitted_nodegroups = [
+                key for key in cls._nodegroup_objects()
+                if key in png or str(key) in png
+            ] + [None]
+
         context.setdefault("user_graphs", {})
-        context["user_graphs"][str(cls)] = permitted_nodegroups
+        context["user_graphs"][cls._model_name] = permitted_nodegroups
         return permitted_nodegroups
 
     @classmethod
@@ -1332,6 +1336,8 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
                 value.append(node_value)
             else:
                 value = node_value
+
+        print('RETURNING VALUE HERE : _make_pseudo_node_cls')
 
         return value
 

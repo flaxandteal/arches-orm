@@ -241,7 +241,7 @@ class QueryBuilder:
                     )
 
                     # ? Here we state that the tile can be converted from a resource to a Tile Datatype Class as again this slows the process
-                    pseudo_node._convert_tile_resource = True;
+                    # pseudo_node._convert_tile_resource = True;
 
                     # * Append on the wkri values and update the WKRI within our return value list
                     wkri._._values.__setitem__(node.alias, [pseudo_node])
