@@ -4,8 +4,15 @@ from typing import Dict, List
 from arches.app.models.models import Node
 from django.db import connection
 from datetime import datetime
+from django.conf import settings
+
+from .expressions_postgresql import _postgresql_expression_string_datatype
 
 # users = User.objects.annotate(fake_value=Value("FakeData", output_field=CharField()))
+
+
+postgresql_database_keys = ['postgresql', 'postgis']
+postgresql_database_keys = ['postgresql', 'postgis']
 
 def _figure_out_field_instance_type(value: str):
     try:
@@ -22,26 +29,20 @@ def _figure_out_field_instance_type(value: str):
 
     return CharField
 
-def expression_string_datatype(nodeid: str, addional_keys: List[str] = None) -> ExpressionWrapper:
+
+
+def expression_string_datatype(database_engine: str, nodeid: str, addional_keys: List[str] = None) -> ExpressionWrapper | F:
     """
-    Method gets the experssion for a string datatype. This is mainaly used for the tiles JSON column that is stored within the database so we can use
-    annotations around the expressions
-
-    Args:
-        nodeid (str): The node id
-        addional_keys (List[str], optional): The addional keys are used towards the user input for example firstname__en='Harry'. Defaults to None.
-
-    Returns:
-        ExpressionWrapper: This is the expression wrapper that is returned and should be mainly used for annotations
+    Method handles using the correct method depending on the database engine
     """
+    from .expressions_postgresql import _postgresql_expression_string_datatype
+    from .expressions_sqlite import _sqlite_expression_string_datatype
 
-    key_lang = addional_keys[0] if len(addional_keys) >= 1 else 'en'
-    value_lang = addional_keys[1] if len(addional_keys) >= 2 else 'value'
+    if 'postgresql' in database_engine:
+        return _postgresql_expression_string_datatype(nodeid, addional_keys)
 
-    return ExpressionWrapper(
-        F(f'data__{nodeid}__{key_lang}__{value_lang}'),
-        output_field=CharField()
-    )
+    elif 'sqlite' in database_engine :
+        return _sqlite_expression_string_datatype(nodeid, addional_keys)
 
 # * If I just return the key, the query works as expected where(old_enough=True), however if I return a ExpressionWrapper, this stops working, therefore
 # * the return type is F (Just the key)
