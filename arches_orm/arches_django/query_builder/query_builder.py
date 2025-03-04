@@ -7,8 +7,9 @@ from django.db.models import ExpressionWrapper
 from .children_classes.filters import QueryBuilderFilters
 from .children_classes.selectors import QueryBuilderSelectors
 from .children_classes.modifiers import QueryBuilderModifier
+from django.conf import settings
 
-from .expressions import (
+from .expressions.expressions import (
     expression_string_datatype, 
     expression_number_datatype, 
     expression_date_datatype, 
@@ -16,6 +17,7 @@ from .expressions import (
     expression_boolean_value
 )
 
+import re
 from .utilities import annotation_key
 from collections import defaultdict
 from typing import TypedDict
@@ -48,6 +50,12 @@ class QueryBuilder:
     _annotations: Dict[str, ExpressionWrapper] = {};
     _order_by: List[str] = [];
     _lazy_mode: bool = False
+    _database_engine : str = None;
+    _database_keys: Dict[str, List] = {
+        'postgresql': ['postgresql', 'postgis'],
+        'sqlite': ['spatialite']
+    }
+    
 
     def __init__(self, parent_wrapper_instance):
         self._parent_wrapper_instance = parent_wrapper_instance;
@@ -72,6 +80,22 @@ class QueryBuilder:
             return getattr(self._instance_selectors, name)
  
         raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{name}'")    
+
+    @property
+    def database_engine(self) -> str:
+        if not self._database_engine: 
+            temp_database_engine = settings.DATABASES['default']['ENGINE']
+            
+            for db_type, subkeys in self._database_keys.items():
+                pattern = '|'.join(subkeys)
+                if re.search(pattern, temp_database_engine):
+                    self._database_engine = db_type
+                    return self._database_engine
+            
+            return self._database_engine
+
+
+        return self._database_engine
 
     # ? Some strange reason if I call Person.where(age=30) and then Person.where(age=50), it will still have the previous filters age=30, thus this method
     # ? is born
@@ -101,11 +125,14 @@ class QueryBuilder:
             node (Node): The node
             addiontal_keys (List[str], optional): Addional keys allowed for example firstname__en__value='Harry'
         """
+
+        current_database_engine = self.database_engine
+
         if (node_alias in self._annotations):
             return;
 
         if (node.datatype == 'string'):
-            self._annotations[annotation_key(node_alias)] = expression_string_datatype(node.nodeid, addiontal_keys)
+            self._annotations[annotation_key(node_alias)] = expression_string_datatype(current_database_engine, node.nodeid, addiontal_keys)
 
         elif (node.datatype == 'number'):
             self._annotations[annotation_key(node_alias)] = expression_number_datatype(node.nodeid)
