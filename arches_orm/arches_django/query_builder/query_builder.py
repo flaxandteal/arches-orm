@@ -135,7 +135,7 @@ class QueryBuilder:
             self._annotations[annotation_key(node_alias)] = expression_string_datatype(current_database_engine, node.nodeid, addiontal_keys)
 
         elif (node.datatype == 'number'):
-            self._annotations[annotation_key(node_alias)] = expression_number_datatype(node.nodeid)
+            self._annotations[annotation_key(node_alias)] = expression_number_datatype(current_database_engine, node.nodeid)
 
         elif (node.datatype == 'date'):
             self._annotations[annotation_key(node_alias)] = expression_date_datatype(node.nodeid)

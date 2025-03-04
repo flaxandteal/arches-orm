@@ -6,7 +6,7 @@ from django.db import connection
 from datetime import datetime
 from django.conf import settings
 
-def _postgresql_expression_string_datatype(nodeid: str, addional_keys: List[str] = None) -> F:
+def postgresql_expression_string_datatype(nodeid: str, addional_keys: List[str] = None) -> F:
     """
     Method gets the experssion for a string datatype. This is mainaly used for the tiles JSON column that is stored within the database so we can use
     annotations around the expressions
@@ -23,3 +23,17 @@ def _postgresql_expression_string_datatype(nodeid: str, addional_keys: List[str]
     value_lang = addional_keys[1] if len(addional_keys) >= 2 else 'value'
 
     return  F(f'data__{nodeid}__{key_lang}__{value_lang}')
+
+def postgresql_expression_number_datatype(nodeid: str) -> F:
+    """
+    Method gets the experssion for a number datatype. This is mainaly used for the tiles JSON column that is stored within the database so we can use
+    annotations around the expressions
+
+    Args:
+        nodeid (str): The node id
+
+    Returns:
+        F: This is the function used to get the value
+    """
+
+    return F(f'data__{nodeid}')
