@@ -7,7 +7,7 @@ from datetime import datetime
 from django.conf import settings
 
 
-def _sqlite_expression_string_datatype(nodeid: str, addional_keys: List[str] = None) -> ExpressionWrapper:
+def sqlite_expression_string_datatype(nodeid: str, addional_keys: List[str] = None) -> ExpressionWrapper:
     """
     Method gets the experssion for a string datatype. This is mainaly used for the tiles JSON column that is stored within the database so we can use
     annotations around the expressions
@@ -26,4 +26,21 @@ def _sqlite_expression_string_datatype(nodeid: str, addional_keys: List[str] = N
     return ExpressionWrapper(
         F(f'data__{nodeid}__{key_lang}__{value_lang}'),
         output_field=CharField()
+    )
+
+def sqlite_expression_number_datatype(nodeid: str) -> ExpressionWrapper:
+    """
+    Method gets the experssion for a number datatype. This is mainaly used for the tiles JSON column that is stored within the database so we can use
+    annotations around the expressions
+
+    Args:
+        nodeid (str): The node id
+
+    Returns:
+        ExpressionWrapper: This is the expression wrapper that is returned and should be mainly used for annotations
+    """
+
+    return ExpressionWrapper(
+        F(f'data__{nodeid}'),
+        output_field=FloatField()
     )
