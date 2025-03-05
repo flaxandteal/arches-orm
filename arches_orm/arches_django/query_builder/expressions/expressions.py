@@ -21,6 +21,31 @@ def _figure_out_field_instance_type(value: str):
 
     return CharField
 
+def expression_generic_default_fallback(database_engine: str, nodeid: str) -> ExpressionWrapper | F:
+    """
+    Method handles using the correct method depending on the database engine
+    """
+    from .expressions_postgresql import postgresql_default_fallback_expression_generic
+    from .expressions_sqlite import sqlite_default_fallback_expression_generic
+
+    if 'postgresql' in database_engine:
+        return postgresql_default_fallback_expression_generic(nodeid)
+
+    elif 'sqlite' in database_engine :
+        return sqlite_default_fallback_expression_generic(nodeid)
+    
+def expression_resource_instance_list_datatype(database_engine: str, nodeid: str) -> ExpressionWrapper | F:
+    """
+    Method handles using the correct method depending on the database engine
+    """
+    from .expressions_postgresql import postgresql_expression_resource_instance_list_datatype
+    from .expressions_sqlite import sqlite_expression_resource_instance_list_datatype
+
+    if 'postgresql' in database_engine:
+        return postgresql_expression_resource_instance_list_datatype(nodeid)
+
+    elif 'sqlite' in database_engine :
+        return sqlite_expression_resource_instance_list_datatype(nodeid)
 
 
 def expression_string_datatype(database_engine: str, nodeid: str, addional_keys: List[str] = None) -> ExpressionWrapper | F:
