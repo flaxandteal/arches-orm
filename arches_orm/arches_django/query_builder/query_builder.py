@@ -16,7 +16,7 @@ from .expressions.expressions import (
     expression_concept_value, 
     expression_boolean_value,
     expression_resource_instance_list_datatype, 
-    expression_generic
+    expression_generic_default_fallback
 )
 
 import re
@@ -152,7 +152,7 @@ class QueryBuilder:
             self._annotations[annotation_key(node_alias)] = expression_resource_instance_list_datatype(current_database_engine, node.nodeid)
 
         else:
-            self._annotations[annotation_key(node_alias)] = expression_generic(current_database_engine, node.nodeid)
+            self._annotations[annotation_key(node_alias)] = expression_generic_default_fallback(current_database_engine, node.nodeid)
     
 
     def create_wkri_with_datatype_values(
