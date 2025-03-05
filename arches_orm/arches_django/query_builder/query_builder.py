@@ -14,7 +14,9 @@ from .expressions.expressions import (
     expression_number_datatype, 
     expression_date_datatype, 
     expression_concept_value, 
-    expression_boolean_value
+    expression_boolean_value,
+    expression_resource_instance_list_datatype, 
+    expression_generic
 )
 
 import re
@@ -145,6 +147,12 @@ class QueryBuilder:
 
         elif (node.datatype == 'concept'):
             self._annotations[annotation_key(node_alias)] = expression_concept_value(node)
+
+        elif (node.datatype == 'resource-instance-list'):
+            self._annotations[annotation_key(node_alias)] = expression_resource_instance_list_datatype(current_database_engine, node.nodeid)
+
+        else:
+            self._annotations[annotation_key(node_alias)] = expression_generic(current_database_engine, node.nodeid)
     
 
     def create_wkri_with_datatype_values(
