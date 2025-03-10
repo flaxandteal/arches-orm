@@ -76,7 +76,6 @@ def expression_boolean_value(nodeid: str) -> F:
     return F(f'data__{nodeid}')
 
 def expression_domain_value(node: Node, addional_keys: List[str] = None) -> ExpressionWrapper:
-    print(node.config.get("dateFormat"))
     key_lang = addional_keys[0] if len(addional_keys) >= 1 else 'en'
     value_lang = addional_keys[1] if len(addional_keys) >= 2 else 'value'
 
@@ -94,7 +93,6 @@ def expression_concept_value(node: Node):
     from arches.app.models.concept import Concept
 
     concept_id = node.config.get('rdmCollection')
-    print('ABOVE : ', ValuesModel.objects.filter(concept_id=concept_id))
     # print('INSIDE NODE ID : ', node.nodeid)    
     # collection = Concept().get(id=)
 

@@ -75,7 +75,10 @@ def test_can_save_with_county_value(arches_orm, lazy):
     person.location_data.append().addresses.county.county_value = "Antrim"
     person.save()
 
-    reloaded_person = arches_orm.models.Person.find(person.id, lazy=lazy)
+    if (lazy):
+        reloaded_person = arches_orm.models.Person.lazy().find(person.id)
+    else:
+        reloaded_person = arches_orm.models.Person.find(person.id)
     assert reloaded_person.location_data[0].addresses.county.county_value == "Antrim"
 
 @context_free
@@ -90,32 +93,51 @@ def test_can_remove_name(arches_orm, lazy):
     person.name.append().full_name = "Asha"
     person.save()
 
-    reloaded_person = arches_orm.models.Person.find(person.id, lazy=lazy)
+    if (lazy):
+        reloaded_person = arches_orm.models.Person.lazy().find(person.id)
+    else:
+        reloaded_person = arches_orm.models.Person.find(person.id)
+
     assert reloaded_person.name[0].full_name == "Asha"
 
     reloaded_person.name.clear()
     reloaded_person.save()
-    reloaded_person = arches_orm.models.Person.find(person.id, lazy=lazy)
+    if (lazy):
+        reloaded_person = arches_orm.models.Person.lazy().find(person.id)
+    else:
+        reloaded_person = arches_orm.models.Person.find(person.id)
     assert len(reloaded_person.name) == 0
 
     reloaded_person.name.append().full_name = "Asha"
     reloaded_person.save()
-    reloaded_person = arches_orm.models.Person.find(person.id, lazy=lazy)
+    if (lazy):
+        reloaded_person = arches_orm.models.Person.lazy().find(person.id)
+    else:
+        reloaded_person = arches_orm.models.Person.find(person.id)
     assert reloaded_person.name[0].full_name == "Asha"
 
     reloaded_person.name.remove(reloaded_person.name[0])
     reloaded_person.save()
-    reloaded_person = arches_orm.models.Person.find(person.id, lazy=lazy)
+    if (lazy):
+        reloaded_person = arches_orm.models.Person.lazy().find(person.id)
+    else:
+        reloaded_person = arches_orm.models.Person.find(person.id)
     assert len(reloaded_person.name) == 0
 
     reloaded_person.name.append().full_name = "Asha"
     reloaded_person.save()
-    reloaded_person = arches_orm.models.Person.find(person.id, lazy=lazy)
+    if (lazy):
+        reloaded_person = arches_orm.models.Person.lazy().find(person.id)
+    else:
+        reloaded_person = arches_orm.models.Person.find(person.id)
     assert reloaded_person.name[0].full_name == "Asha"
 
     reloaded_person.name.pop(0)
     reloaded_person.save()
-    reloaded_person = arches_orm.models.Person.find(person.id, lazy=lazy)
+    if (lazy):
+        reloaded_person = arches_orm.models.Person.lazy().find(person.id)
+    else:
+        reloaded_person = arches_orm.models.Person.find(person.id)
     assert len(reloaded_person.name) == 0
 
 @context_free
@@ -195,8 +217,10 @@ def test_can_save_with_concept(arches_orm, lazy):
     activity.record_status_assignment.record_status = StatusEnum.BacklogDashSkeleton
     assert activity.record_status_assignment.record_status == StatusEnum.BacklogDashSkeleton
     activity.save()
-
-    reloaded_activity = arches_orm.models.Activity.find(activity.id, lazy=lazy)
+    if (lazy):
+        reloaded_activity = arches_orm.models.Activity.lazy().find(activity.id)
+    else:
+        reloaded_activity = arches_orm.models.Activity.find(activity.id)
     assert reloaded_activity.record_status_assignment.record_status == StatusEnum.BacklogDashSkeleton
 
 @context_free
@@ -242,8 +266,10 @@ def test_can_remap_and_set(arches_orm, lazy):
     person.name.append("Ash")
     person.surname.append("Ash2")
     person.save()
-    reloaded_person = arches_orm.models.Person.find(person.id, lazy=lazy)
-    assert reloaded_person.name[1].surnames.surname == "Ash2"
+    if (lazy):
+        reloaded_person = arches_orm.models.Person.lazy().find(person.id)
+    else:
+        reloaded_person = arches_orm.models.Person.find(person.id)
     reloaded_person._model_remapping = remapping
     assert reloaded_person.name == ["Ash", None]
     assert reloaded_person.surname == [None, "Ash2"]
@@ -272,7 +298,10 @@ def test_can_save_two_names(arches_orm, person_ashs, lazy):
     person_ashs.save()
     assert len(person_ashs.name) == 2
 
-    reloaded_person = arches_orm.models.Person.find(person_ashs.id, lazy=lazy)
+    if (lazy):
+        reloaded_person = arches_orm.models.Person.lazy().find(person_ashs.id)
+    else:
+        reloaded_person = arches_orm.models.Person.find(person_ashs.id)
     assert len(reloaded_person.name) == 2
     full_names = {name.full_name for name in reloaded_person.name}
     assert full_names == {"Ash", "Asha"}
@@ -284,7 +313,10 @@ def test_can_save_a_surname(arches_orm, person_ashs, lazy):
     asha.surnames.surname = "Ashb"
     person_ashs.save()
 
-    reloaded_person = arches_orm.models.Person.find(person_ashs.id, lazy=lazy)
+    if (lazy):
+        reloaded_person = arches_orm.models.Person.lazy().find(person_ashs.id)
+    else:
+        reloaded_person = arches_orm.models.Person.find(person_ashs.id)
     assert reloaded_person.name[1].surnames.surname == "Ashb"
 
 @context_free
@@ -296,7 +328,10 @@ def test_can_save_two_related_resources_singly(arches_orm, person_ashs, lazy):
     person_ashs.save()
     assert person_ashs.favourite_activity.id == act_1.id
 
-    reloaded_person = arches_orm.models.Person.find(person_ashs.id, lazy=lazy)
+    if (lazy):
+        reloaded_person = arches_orm.models.Person.lazy().find(person_ashs.id)
+    else:
+        reloaded_person = arches_orm.models.Person.find(person_ashs.id)
     # FIXME: Arches itself treats single resource instances as lists, so will require
     # work either here or upstream to mitigate this on load.
     assert reloaded_person.favourite_activity[0].id == act_1.id
@@ -309,14 +344,20 @@ def test_can_save_two_related_resources(arches_orm, person_ashs, lazy):
     person_ashs.save()
     assert len(person_ashs.associated_activities) == 1
 
-    reloaded_person = arches_orm.models.Person.find(person_ashs.id, lazy=lazy)
+    if (lazy):
+        reloaded_person = arches_orm.models.Person.lazy().find(person_ashs.id)
+    else:
+        reloaded_person = arches_orm.models.Person.find(person_ashs.id)
     assert len(reloaded_person.name) == 1
     act_2 = arches_orm.models.Activity()
     reloaded_person.associated_activities.append(act_2)
     reloaded_person.save()
     assert len(reloaded_person.associated_activities) == 2
 
-    reloaded_person = arches_orm.models.Person.find(person_ashs.id, lazy=lazy)
+    if (lazy):
+        reloaded_person = arches_orm.models.Person.lazy().find(person_ashs.id)
+    else:
+        reloaded_person = arches_orm.models.Person.find(person_ashs.id)
     assert len(reloaded_person.associated_activities) == 2
 
 @context_free
@@ -335,14 +376,20 @@ def test_can_save_two_related_resources_many_times(arches_orm, lazy):
         person.save()
         assert len(person.associated_activities) == 1
 
-        reloaded_person = arches_orm.models.Person.find(person.id, lazy=lazy)
+        if (lazy):
+            reloaded_person = arches_orm.models.Person.lazy().find(person.id)
+        else:
+            reloaded_person = arches_orm.models.Person.find(person.id)
         assert len(reloaded_person.name) == 1
         act_2 = arches_orm.models.Activity()
         reloaded_person.associated_activities.append(act_2)
         reloaded_person.save()
         assert len(reloaded_person.associated_activities) == 2
 
-        reloaded_person = arches_orm.models.Person.find(person.id, lazy=lazy)
+        if (lazy):
+            reloaded_person = arches_orm.models.Person.lazy().find(person.id)
+        else:
+            reloaded_person = arches_orm.models.Person.find(person.id)
         assert len(reloaded_person.name) == 1
         assert len(reloaded_person.associated_activities) == 2
 
@@ -355,7 +402,10 @@ def test_unsaved_json(person_ash, lazy):
 @context_free
 @pytest.mark.parametrize("lazy", [False, True])
 def test_find(arches_orm, person_ashs, lazy):
-    reloaded_person = arches_orm.models.Person.find(person_ashs.id, lazy=lazy)
+    if (lazy):
+        reloaded_person = arches_orm.models.Person.lazy().find(person_ashs.id)
+    else:
+        reloaded_person = arches_orm.models.Person.find(person_ashs.id)
     assert reloaded_person.name[0].full_name == "Ash"
 
 @context_free
@@ -374,7 +424,10 @@ def test_user_account(arches_orm, person_ashs, lazy):
 
     person_ashs.save()
 
-    reloaded_person = arches_orm.models.Person.find(person_ashs.id, lazy=lazy)
+    if (lazy):
+        reloaded_person = arches_orm.models.Person.lazy().find(person_ashs.id)
+    else:
+        reloaded_person = arches_orm.models.Person.find(person_ashs.id)
     assert reloaded_person.user_account.email == "ash@example.com"
 
     reloaded_person = arches_orm.models.Person.first(user_account=user_account.id, lazy=lazy, case_i=True)
@@ -385,7 +438,10 @@ def test_user_account(arches_orm, person_ashs, lazy):
 def test_django_group(arches_orm, person_ashs, lazy):
     from django.contrib.auth.models import Group
 
-    reloaded_person = arches_orm.models.Person.find(person_ashs.id, lazy=lazy)
+    if (lazy):
+        reloaded_person = arches_orm.models.Person.lazy().find(person_ashs.id)
+    else:
+        reloaded_person = arches_orm.models.Person.find(person_ashs.id)
     assert len(reloaded_person.django_group) == 0
 
     group = Group(name="my_group")
@@ -395,7 +451,10 @@ def test_django_group(arches_orm, person_ashs, lazy):
 
     person_ashs.save()
 
-    reloaded_person = arches_orm.models.Person.find(person_ashs.id, lazy=lazy)
+    if (lazy):
+        reloaded_person = arches_orm.models.Person.lazy().find(person_ashs.id)
+    else:
+        reloaded_person = arches_orm.models.Person.find(person_ashs.id)
     assert reloaded_person.django_group[0].name == "my_group"
 
 @context_free
@@ -433,6 +492,9 @@ def test_can_attach_related_then_save(arches_orm, person_ashs, lazy):
     assert len(person_ashs.associated_activities) == 1
     person_ashs.save()
     assert len(person_ashs.associated_activities) == 1
-    reloaded_person = arches_orm.models.Person.find(person_ashs.id)
+    if (lazy):
+        reloaded_person = arches_orm.models.Person.lazy().find(person_ashs.id)
+    else:
+        reloaded_person = arches_orm.models.Person.find(person_ashs.id)
     assert len(reloaded_person.associated_activities) == 1
     assert isinstance(reloaded_person.associated_activities[0], arches_orm.models.Activity)
