@@ -19,10 +19,6 @@ from ._register import REGISTER
 _COLLECTIONS: dict[str, type[Enum]] = {}
 
 def invalidate_collection(concept_id):
-
-    print('invalidate_collection | concept_id | ', concept_id)
-    print('invalidate_collection | _COLLECTIONS | ', _COLLECTIONS)
-
     if concept_id in _COLLECTIONS:
         del _COLLECTIONS[concept_id]
 
@@ -51,10 +47,6 @@ def retrieve_children(concept_id: uuid.UUID, language: str | None, datatype) -> 
     ]
 
 def retrieve_collection(collection_id: uuid.UUID, datatype=None) -> type[Enum]:
-    print('retrieve_collection | collection_id | ', collection_id)
-    print('retrieve_collection | datatype | ', datatype)
-
-
     if collection_id in _COLLECTIONS:
         return _COLLECTIONS[str(collection_id)]
     collection = Concept().get(id=collection_id, include=["label"])
@@ -129,8 +121,6 @@ def make_concept_value(value: uuid.UUID | None, collection_id: uuid.UUID | None,
             value = value._concept_value_id
         return datatype.get_value(value)
     
-    print('HERE IS THE VALUE : ', value)
-
     if value is None or isinstance(value, EmptyConceptValueViewModel):
         if collection_id:
             return EmptyConceptValueViewModel(
@@ -150,5 +140,4 @@ def make_concept_value(value: uuid.UUID | None, collection_id: uuid.UUID | None,
 
 @concept_value.as_tile_data
 def cv_as_tile_data(concept_value):
-    print('cv_as_tile_data | concept_value | ', concept_value)
     return None if isinstance(concept_value, EmptyConceptValueViewModel) else str(concept_value._concept_value_id)

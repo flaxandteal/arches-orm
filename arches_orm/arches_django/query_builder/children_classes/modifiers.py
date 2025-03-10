@@ -1,4 +1,4 @@
-from ..utilities import annotation_key
+from ..utilities import annotation_key, split_query_key
 from typing import List, TYPE_CHECKING
 from arches.app.models.models import Node
 
@@ -26,22 +26,27 @@ class QueryBuilderModifier:
 
         # * Loops through arguments
         for index in range(len(args)):
+            query = split_query_key(args[index])
             node_alias: str = args[index].replace('-', '');
             node: Node = nodes.get(node_alias)
 
-            # * Sets annotation if the key hasn't been setup for annotation
-            self._instance_query_builder.set_annotation(
-                node_alias, 
-                node
-            )
+            if (not query['additional_keys'] or len(query['additional_keys']) == 0):
+                # * Sets annotation if the key hasn't been setup for annotation
+                self._instance_query_builder.set_annotation(
+                    node_alias, 
+                    node
+                )
 
-            # * Using annotation provided, then orders by the annotation with appending the annotation onto the orders by from our parent
-            self._instance_query_builder._order_by.append(annotation_key(args[index]))
+                # * Using annotation provided, then orders by the annotation with appending the annotation onto the orders by from our parent
+                self._instance_query_builder._order_by.append(annotation_key(args[index]))
 
-            self._instance_query_builder._exclude_structures.append({
-                'logical_operator': 'AND',
-                'conditions': { annotation_key(node_alias) + "__isnull": True }
-            })
+            else:
+                self._instance_query_builder._order_by.append(args[index])
+
+            # self._instance_query_builder._exclude_structures.append({
+            #     'logical_operator': 'AND',
+            #     'conditions': { annotation_key(node_alias) + "__isnull": True }
+            # })
         return self._instance_query_builder
     
     def lazy(self) -> "QueryBuilder":

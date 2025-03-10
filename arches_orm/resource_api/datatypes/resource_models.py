@@ -198,7 +198,6 @@ def load_models() -> WKRM:
             graph = StaticGraph(**graph_body_json["graph"])
         _GRAPHS[graph.graphid] = graph
 
-        print(graph.name)
         wkrms.append(
             {
                 "model_name": _(graph.name),

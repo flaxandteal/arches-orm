@@ -54,6 +54,7 @@ Modifiers are used to adjust query results by altering data in specific columns,
 
 - `order_by('age')`: Applies the order by of the tile data based on the column name provided. We can control the ASC of data by just including the column name `order_by('age')` and the DESC of the data by including a '-', infront of the column name `order_by('-age')`. We can have mutplie order bys for example `order_by('age', '-bod')`.
 - `lazy()`: Only loads the tile data UUID and maps this data, therefore it's faster speed as we don't have to apply a pseudo node class as this only gets converted if the user tries to access the pseudo node class.
+- `order_by('-resourceinstance__createdtime')` & `order_by('-resourceinstance__createdtime')`: As tile data doesn't have a timestamp within the datatable. I also created a way to order the tile data based on the resourceinstance, in this example I'm using the resource instance timestamp to order the tile data
 
 
 ### Filters
