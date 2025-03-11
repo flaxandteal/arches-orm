@@ -4,6 +4,7 @@ from arches.app.models.models import Node
 import uuid
 from typing import TYPE_CHECKING, Dict, List
 from arches_orm.arches_django.query_builder.config import NOT_EQUAL_KEYS
+from arches_orm.arches_django.query_builder.annotations.annotations import set_annotation
 
 class QueryBuilderFilters:
     _instance_query_builder = None;
@@ -67,8 +68,9 @@ class QueryBuilderFilters:
             query = split_query_key(key)
             node: Node = nodes.get(query['field_key'])
 
-            self._instance_query_builder.set_annotation(
-                query['field_key'], 
+            set_annotation(
+                self._instance_query_builder,
+                query['field_key'],
                 node,
                 query['additional_keys']
             )
