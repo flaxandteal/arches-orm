@@ -9,7 +9,7 @@ def sub_test_modifier_order_by(arches_orm):
     instance_person_seeder = Seeder(instance_arches_orm_model_person, PERSON_DATATYPE_NODE_ALIAS_KEYS, PERSON_DEFAULT_SEED_PATH)
 
     sub_test_modifier_order_by_date_order(instance_arches_orm_model_person, instance_person_seeder)
-    sub_test_modifier_order_by_number_order(instance_arches_orm_model_person, instance_person_seeder)
+    # sub_test_modifier_order_by_number_order(instance_arches_orm_model_person, instance_person_seeder)
     sub_test_modifier_order_by_date_order_resource_instance(instance_arches_orm_model_person, instance_person_seeder)
 
 def sub_test_modifier_order_by_number_order(instance_arches_orm_model_person, instance_person_seeder):

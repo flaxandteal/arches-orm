@@ -1,6 +1,7 @@
 from ..utilities import annotation_key, split_query_key
 from typing import List, TYPE_CHECKING
 from arches.app.models.models import Node
+from arches_orm.arches_django.query_builder.annotations.annotations import set_annotation
 
 class QueryBuilderModifier:
     _instance_query_builder = None;
@@ -32,7 +33,8 @@ class QueryBuilderModifier:
 
             if (not query['additional_keys'] or len(query['additional_keys']) == 0):
                 # * Sets annotation if the key hasn't been setup for annotation
-                self._instance_query_builder.set_annotation(
+                set_annotation(
+                    self._instance_query_builder,
                     node_alias, 
                     node
                 )

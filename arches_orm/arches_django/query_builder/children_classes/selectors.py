@@ -2,6 +2,8 @@ from arches.app.models.models import TileModel
 from arches_orm.arches_django.query_builder.utilities import transform_filter_exclude_structure_towards_query
 from typing import Dict, List, TYPE_CHECKING, TypedDict
 from django.db.models import ExpressionWrapper, QuerySet
+from arches_orm.arches_django.query_builder.annotations.annotations import annotation_resource_merge_tile_data
+from django.db.models import Case, When, Value, IntegerField
 
 if TYPE_CHECKING:
     from arches_orm.arches_django.query_builder.query_builder import FilterStructure, ExcludeStructure
@@ -46,48 +48,58 @@ class QueryBuilderSelectors:
 
 
         def _callback_get_tiles(**defaultFilterTileAgrs):
-            queryset_tiles = TileModel.objects
+            queryset_tiles = TileModel.objects.values('resourceinstance_id')
 
             def _apply_annotations():
                 nonlocal queryset_tiles
-                
-                if (annotations):
-                    queryset_tiles = queryset_tiles.annotate(**annotations)
 
-            if (filter_structures):
+                queryset_tiles = queryset_tiles.annotate(
+                    **annotation_resource_merge_tile_data(self._instance_query_builder._database_engine)
+                ).annotate(**annotations)
+
+            def _get_valid_resource_instance_ids():
+                nonlocal queryset_tiles
                 _apply_annotations()
-                queryset_tiles = queryset_tiles.filter(
-                    transform_filter_exclude_structure_towards_query(filter_structures), 
-                    **defaultFilterTileAgrs
-                )
 
-            else:
-                queryset_tiles = queryset_tiles.filter(**defaultFilterTileAgrs)
+                if (filter_structures):
+                    queryset_tiles = queryset_tiles.filter(
+                        transform_filter_exclude_structure_towards_query(filter_structures), 
+                        **defaultFilterTileAgrs
+                    )
 
-            if (exclude_structures):
-                # * When you use .annotate(), the annotated fields exist only within that specific query chain. 
-                # * This means that if you need to use an annotation in both .filter() and .exclude(), you might have to reapply the annotation 
-                # * before using .exclude().
-                _apply_annotations()
-                queryset_tiles = queryset_tiles.exclude(
-                    transform_filter_exclude_structure_towards_query(exclude_structures)
-                )
-
-            if (order_by):
-                _apply_annotations()
-                queryset_tiles = queryset_tiles.order_by(*order_by) 
-
-            if offset and (offset['limit'] is not None or offset['offset'] is not None):
-                limit_value = offset.get('limit')
-                offset_value = offset.get('offset', 0) or 0
-
-                if limit_value is not None:
-                    return queryset_tiles.select_related('resourceinstance', 'nodegroup')[offset_value:offset_value + limit_value]
                 else:
-                    return queryset_tiles.select_related('resourceinstance', 'nodegroup')[offset_value:]
+                    queryset_tiles = queryset_tiles.filter(**defaultFilterTileAgrs)
+
+                if (exclude_structures):
+                    # * When you use .annotate(), the annotated fields exist only within that specific query chain. 
+                    # * This means that if you need to use an annotation in both .filter() and .exclude(), you might have to reapply the annotation 
+                    # * before using .exclude().
+                    _apply_annotations()
+                    queryset_tiles = queryset_tiles.exclude(
+                        transform_filter_exclude_structure_towards_query(exclude_structures)
+                    )
+
+                if (order_by):
+                    _apply_annotations()
+                    queryset_tiles = queryset_tiles.order_by(*order_by) 
+
+                if offset and (offset['limit'] is not None or offset['offset'] is not None):
+                    limit_value = offset.get('limit')
+                    offset_value = offset.get('offset', 0) or 0
+
+                    if limit_value is not None:
+                        return list(queryset_tiles.values_list('resourceinstance_id', flat=True)[offset_value:offset_value + limit_value])
+                    else:
+                        return list(queryset_tiles.values_list('resourceinstance_id', flat=True)[offset_value:])
+                    
+                else:
+                    return list(queryset_tiles.values_list('resourceinstance_id', flat=True))
                 
-            else:
-                return queryset_tiles.select_related('resourceinstance', 'nodegroup')
+            resourceinstances_ids = _get_valid_resource_instance_ids()
+
+            return TileModel.objects.filter(resourceinstance_id__in=resourceinstances_ids).order_by(
+                Case(*[When(resourceinstance_id=pk, then=Value(index)) for index, pk in enumerate(resourceinstances_ids)], output_field=IntegerField())
+            )
             
         return _callback_get_tiles
 
