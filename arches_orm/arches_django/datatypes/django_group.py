@@ -20,9 +20,11 @@ class DjangoGroupViewModel(Group, GroupViewModelMixin):
         # We have to do this as we do not have a concept of an empty node
         return bool(self.pk)
 
-class MissingDjangoGroupViewModel(Group, GroupViewModelMixin):
+class MissingDjangoGroupViewModel(DjangoGroupViewModel):
     class Meta:
+        proxy = True
         app_label = "arches-orm"
+        db_table = Group.objects.model._meta.db_table
 
 @REGISTER("django-group")
 def django_group(tile, node, value, _, __, ___, group) -> GroupProtocol:
@@ -44,7 +46,7 @@ def django_group(tile, node, value, _, __, ___, group) -> GroupProtocol:
                 logger.warning("Django Group is missing for pk value %s", str(value))
     if not group:
         group = MissingDjangoGroupViewModel()
-        group.pk = pk
+        # group.pk = pk
     return group
 
 
