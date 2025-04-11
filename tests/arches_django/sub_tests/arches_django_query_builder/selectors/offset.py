@@ -20,9 +20,11 @@ def sub_test_selector_offset_amount(instance_arches_orm_model_person, instance_p
         return index + 1;
 
     instance_person_seeder.seed(30, seed_datatypes={ 'number': _custom_number_handle })
+    target_node_alias = PERSON_DATATYPE_NODE_ALIAS_KEYS['number'][-1];
 
     def _assert_limit_offset_query_results(offset: int, limit: int):
-        records = instance_arches_orm_model_person.offset(offset, limit);
+   
+        records = instance_arches_orm_model_person.order_by(target_node_alias).offset(offset, limit);
         assert(len(records) == limit)
         for index, record in enumerate(records):
             assert(instance_person_seeder.get_nested_datatype_value(record, 'number') == offset + _custom_number_handle(index))
@@ -32,7 +34,7 @@ def sub_test_selector_offset_amount(instance_arches_orm_model_person, instance_p
     _assert_limit_offset_query_results(10, 8)
 
     def _assert_limit_query_results(limit: int):
-        records = instance_arches_orm_model_person.offset(limit=limit);
+        records = instance_arches_orm_model_person.order_by(target_node_alias).offset(limit=limit);
         assert(len(records) == limit)
 
     _assert_limit_query_results(5)
@@ -40,7 +42,7 @@ def sub_test_selector_offset_amount(instance_arches_orm_model_person, instance_p
     _assert_limit_query_results(15)
 
     def _assert_offset_query_results(offset: int):
-        records = instance_arches_orm_model_person.offset(offset=offset);
+        records = instance_arches_orm_model_person.order_by(target_node_alias).offset(offset=offset);
         for index, record in enumerate(records):
             assert(instance_person_seeder.get_nested_datatype_value(record, 'number') == offset + _custom_number_handle(index))
 

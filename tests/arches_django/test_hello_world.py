@@ -15,8 +15,6 @@ def printTables():
 
 @context_free
 def test_can_save_with_name(arches_orm):
-    print('HELLO WORLD!')
-    print('BELOW!')
     with connection.cursor() as cursor:
         cursor.execute("SELECT * FROM graphs LIMIT 5;")  # Show data
         # print(cursor.fetchall())

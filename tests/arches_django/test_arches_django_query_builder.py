@@ -1,15 +1,15 @@
 from arches_orm.adapter import context_free
 
-from tests.arches_django.sub_tests.arches_django_query_builder.read.selectors import (
+from tests.arches_django.sub_tests.arches_django_query_builder.selectors import (
     sub_test_selector_offset, 
     sub_test_selector_first, 
     sub_test_selector_find,
     sub_test_selector_all
 )
-from tests.arches_django.sub_tests.arches_django_query_builder.read.filters import sub_test_filter_where
-from tests.arches_django.sub_tests.arches_django_query_builder.read.modifiers import sub_test_modifier_order_by, sub_test_modifier_lazy
+from tests.arches_django.sub_tests.arches_django_query_builder.filters import sub_test_filter_where
+from tests.arches_django.sub_tests.arches_django_query_builder.modifiers import sub_test_modifier_order_by, sub_test_modifier_lazy
 
-# * Modifiers
+#* Modifiers
 @context_free
 def test_modifier_lazy(arches_orm):
     sub_test_modifier_lazy(arches_orm)

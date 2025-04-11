@@ -1,10 +1,11 @@
-from django.db.models import Func, F, ExpressionWrapper, FloatField, CharField, DateTimeField, OuterRef, Subquery, BooleanField
+from django.db.models import Func, F, ExpressionWrapper, FloatField, CharField, DateTimeField, OuterRef, Subquery, Case, Value, When, Q
 from arches.app.models.models import Value as ValuesModel
 from typing import Dict, List
 from arches.app.models.models import Node
 from django.db import connection
 from datetime import datetime
 from django.conf import settings
+from arches_orm.arches_django.query_builder.config import RESOURCE_MERGED_TILE_DATA_KEY
 
 def _figure_out_field_instance_type(value: str):
     try:
@@ -21,6 +22,19 @@ def _figure_out_field_instance_type(value: str):
 
     return CharField
 
+def expresion_merge_tile_json_data(database_engine: str):
+    """
+    Method handles using the correct method depending on the database engine
+    """
+    from .expressions_postgresql import postgresql_expression_merge_tile_json_data
+    from .expressions_sqlite import sqlite_expression_after_merge_extract_json
+
+    if database_engine and 'sqlite' in database_engine:
+        return sqlite_expression_after_merge_extract_json()
+    
+    else:
+        return postgresql_expression_merge_tile_json_data()
+
 def expression_generic_default_fallback(database_engine: str, nodeid: str) -> ExpressionWrapper | F:
     """
     Method handles using the correct method depending on the database engine
@@ -33,7 +47,7 @@ def expression_generic_default_fallback(database_engine: str, nodeid: str) -> Ex
 
     elif 'sqlite' in database_engine :
         return sqlite_default_fallback_expression_generic(nodeid)
-    
+
 def expression_resource_instance_list_datatype(database_engine: str, nodeid: str) -> ExpressionWrapper | F:
     """
     Method handles using the correct method depending on the database engine
@@ -73,20 +87,33 @@ def expression_boolean_value(nodeid: str) -> F:
     Returns:
         F: This is the Field which represents a reference into the database and this is used for annotations
     """
-    return F(f'data__{nodeid}')
+    return F(f'{RESOURCE_MERGED_TILE_DATA_KEY}__{nodeid}')
 
 def expression_domain_value(node: Node, addional_keys: List[str] = None) -> ExpressionWrapper:
-    print(node.config.get("dateFormat"))
     key_lang = addional_keys[0] if len(addional_keys) >= 1 else 'en'
-    value_lang = addional_keys[1] if len(addional_keys) >= 2 else 'value'
+    options = node.config.get('options');
+
+    # Create a list of When conditions dynamically based on the options
+    when_conditions = [
+        When(Q(**{f"{RESOURCE_MERGED_TILE_DATA_KEY}__{node.nodeid}": option.get("id")}), then=Value(option.get("text", {}).get("en", "")))
+        for option in options
+    ]
+    
+    # Add the default condition (return None if no condition matches)
+    case_expression = Case(*when_conditions, default=Value(None))
+
+    return ExpressionWrapper(
+        case_expression,
+        output_field=CharField()  # You can adjust the output field type if needed
+    )
 
 def expression_date_datatype(nodeid: str) -> ExpressionWrapper:
     """
-    Converts a string-based date stored in `data__{nodeid}` into a proper DateTimeField 
+    Converts a string-based date stored in `resource_merged_tile_data__{nodeid}` into a proper DateTimeField 
     for sorting, based on the database backend.
     """
     return ExpressionWrapper(
-        F(f'data__{nodeid}'),
+        F(f'{RESOURCE_MERGED_TILE_DATA_KEY}__{nodeid}'),
         output_field=DateTimeField()
     )
 
@@ -94,13 +121,12 @@ def expression_concept_value(node: Node):
     from arches.app.models.concept import Concept
 
     concept_id = node.config.get('rdmCollection')
-    print('ABOVE : ', ValuesModel.objects.filter(concept_id=concept_id))
     # print('INSIDE NODE ID : ', node.nodeid)    
     # collection = Concept().get(id=)
 
     return ExpressionWrapper(
         Subquery(
-            ValuesModel.objects.filter(valueid=OuterRef(f'data__{node.nodeid}')).values('value')[:1]
+            ValuesModel.objects.filter(valueid=OuterRef(f'{RESOURCE_MERGED_TILE_DATA_KEY}__{node.nodeid}')).values('value')[:1]
         ),
         output_field=CharField()
     )

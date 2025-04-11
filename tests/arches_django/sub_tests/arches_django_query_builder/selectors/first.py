@@ -14,5 +14,5 @@ def sub_test_selector_first_amount(instance_arches_orm_model_person, instance_pe
     instance_person_seeder.seed(1, { 'string': 'RABBIT' })
     instance_person_seeder.seed(2, { 'string': 'MOLE' })
 
-    record = instance_arches_orm_model_person.where(**{f"{target_node_alias}": 'RABBIT' }).or_where(**{f"{target_node_alias}": 'MOLE' }).first()
-    assert(instance_person_seeder.get_nested_datatype_value(record, 'string') == 'RABBIT')
+    record = instance_arches_orm_model_person.where(**{f"{target_node_alias}": 'RABBIT' }).or_where(**{f"{target_node_alias}": 'MOLE' }).order_by(target_node_alias).first()    
+    assert(instance_person_seeder.get_nested_datatype_value(record, 'string') == 'MOLE')

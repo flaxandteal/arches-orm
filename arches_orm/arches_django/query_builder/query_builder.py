@@ -8,16 +8,8 @@ from .children_classes.filters import QueryBuilderFilters
 from .children_classes.selectors import QueryBuilderSelectors
 from .children_classes.modifiers import QueryBuilderModifier
 from django.conf import settings
+from arches.app.models.models import Node
 
-from .expressions.expressions import (
-    expression_string_datatype, 
-    expression_number_datatype, 
-    expression_date_datatype, 
-    expression_concept_value, 
-    expression_boolean_value,
-    expression_resource_instance_list_datatype, 
-    expression_generic_default_fallback
-)
 
 import re
 from .utilities import annotation_key
@@ -111,49 +103,6 @@ class QueryBuilder:
         self._order_by = []
         self._lazy_mode = False 
         self._current_build_stage = None
-
-    def set_annotation(
-        self,
-        node_alias: str, 
-        node: Node,
-        addiontal_keys: List[str] = None 
-    ):
-        """
-        Method adds a annoitation to the _annotations variable, if its not already contained. This gets the expressions by using the methods inside
-        expressions.py for each datatype class. Then this _annotations variable is used within the selectors
-
-        Args:
-            key (str): The node alias
-            node (Node): The node
-            addiontal_keys (List[str], optional): Addional keys allowed for example firstname__en__value='Harry'
-        """
-
-        current_database_engine = self.database_engine
-
-        if (node_alias in self._annotations):
-            return;
-
-        if (node.datatype == 'string'):
-            self._annotations[annotation_key(node_alias)] = expression_string_datatype(current_database_engine, node.nodeid, addiontal_keys)
-
-        elif (node.datatype == 'number'):
-            self._annotations[annotation_key(node_alias)] = expression_number_datatype(current_database_engine, node.nodeid)
-
-        elif (node.datatype == 'date'):
-            self._annotations[annotation_key(node_alias)] = expression_date_datatype(node.nodeid)
-
-        elif (node.datatype == 'boolean'):
-             self._annotations[annotation_key(node_alias)] = expression_boolean_value(node.nodeid)
-
-        elif (node.datatype == 'concept'):
-            self._annotations[annotation_key(node_alias)] = expression_concept_value(node)
-
-        elif (node.datatype == 'resource-instance-list'):
-            self._annotations[annotation_key(node_alias)] = expression_resource_instance_list_datatype(current_database_engine, node.nodeid)
-
-        else:
-            self._annotations[annotation_key(node_alias)] = expression_generic_default_fallback(current_database_engine, node.nodeid)
-    
 
     def create_wkri_with_datatype_values(
             self, 
