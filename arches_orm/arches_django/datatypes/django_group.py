@@ -46,7 +46,7 @@ def django_group(tile, node, value, _, __, ___, group) -> GroupProtocol:
                 logger.warning("Django Group is missing for pk value %s", str(value))
     if not group:
         group = MissingDjangoGroupViewModel()
-        # group.pk = pk
+        group.pk = pk
     return group
 
 
