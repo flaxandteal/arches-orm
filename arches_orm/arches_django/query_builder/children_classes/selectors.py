@@ -48,6 +48,40 @@ class QueryBuilderSelectors:
 
 
         def _callback_get_tiles(**defaultFilterTileAgrs):
+            # class JsonbObjectAggFromLateral(Func):
+            #     function = 'jsonb_object_agg'
+            #     output_field = JSONField()
+            #     template = """
+            #     (SELECT jsonb_object_agg(kv.key, kv.value)
+            #     FROM jsonb_each(%(expressions)s) AS kv
+            #     )"""
+
+            # testTiles = TileModel.objects.filter(
+            #     resourceinstance_id='bb6cffff-9947-443d-9a82-16b35a417213'
+            # ).annotate(
+            #     merged_tiledata=JsonbObjectAggFromLateral('data')
+            # ).values('resourceinstance_id', 'merged_tiledata')
+                
+            # testTiles = TileModel.objects.values('resourceinstance_id').annotate(
+            #     resource_merged_tile_data=RawSQL(
+            #         """
+            #         (
+            #             SELECT jsonb_object_agg(kv.key, kv.value)
+            #             FROM tiles AS t
+            #             JOIN jsonb_each(t.tiledata) AS kv ON true
+            #             WHERE t.resourceinstanceid = tiles.resourceinstanceid
+            #         )
+            #         """, 
+            #         [],
+            #         output_field=JSONField()  # This is the key fix
+            #     )
+            # ).distinct().annotate(**annotations)
+
+            # print(annotations)
+
+            # print('WORKS?', testTiles.filter(resourceinstance_id="bb6cffff-9947-443d-9a82-16b35a417213"))
+
+
             queryset_tiles = TileModel.objects.values('resourceinstance_id')
 
             def _apply_annotations():
@@ -55,7 +89,7 @@ class QueryBuilderSelectors:
 
                 queryset_tiles = queryset_tiles.annotate(
                     **annotation_resource_merge_tile_data(self._instance_query_builder._database_engine)
-                ).annotate(**annotations)
+                ).distinct().annotate(**annotations)
 
             def _get_valid_resource_instance_ids():
                 nonlocal queryset_tiles
@@ -81,7 +115,7 @@ class QueryBuilderSelectors:
 
                 if (order_by):
                     _apply_annotations()
-                    queryset_tiles = queryset_tiles.order_by(*order_by) 
+                    queryset_tiles = queryset_tiles.order_by(*order_by)
 
                 if offset and (offset['limit'] is not None or offset['offset'] is not None):
                     limit_value = offset.get('limit')
@@ -96,6 +130,8 @@ class QueryBuilderSelectors:
                     return list(queryset_tiles.values_list('resourceinstance_id', flat=True))
                 
             resourceinstances_ids = _get_valid_resource_instance_ids()
+
+            print('resourceinstances_ids', resourceinstances_ids)
 
             return TileModel.objects.filter(resourceinstance_id__in=resourceinstances_ids).order_by(
                 Case(*[When(resourceinstance_id=pk, then=Value(index)) for index, pk in enumerate(resourceinstances_ids)], output_field=IntegerField())

@@ -15,19 +15,10 @@ from .expressions.expressions import (
     expresion_merge_tile_json_data
 )
 
-from .expressions.expressions_sqlite import (
-     sqlite_expression_merge_tile_json_data,
-     merged_json_data_key
-)
-
 from arches_orm.arches_django.query_builder.config import RESOURCE_MERGED_TILE_DATA_KEY
 
 def annotation_resource_merge_tile_data(current_database_engine: str) -> Dict[str, ExpressionWrapper | F]:
         annotations = {}
-
-        if 'sqlite' in current_database_engine:
-            annotations[merged_json_data_key] = sqlite_expression_merge_tile_json_data();
-
         annotations[RESOURCE_MERGED_TILE_DATA_KEY] = expresion_merge_tile_json_data(current_database_engine)
 
         return annotations

@@ -9,7 +9,7 @@ from tests.arches_django.sub_tests.arches_django_query_builder.selectors import 
 from tests.arches_django.sub_tests.arches_django_query_builder.filters import sub_test_filter_where
 from tests.arches_django.sub_tests.arches_django_query_builder.modifiers import sub_test_modifier_order_by, sub_test_modifier_lazy
 
-# * Modifiers
+#* Modifiers
 @context_free
 def test_modifier_lazy(arches_orm):
     sub_test_modifier_lazy(arches_orm)
