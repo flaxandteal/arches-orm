@@ -8,7 +8,7 @@ from .children_classes.filters import QueryBuilderFilters
 from .children_classes.selectors import QueryBuilderSelectors
 from .children_classes.modifiers import QueryBuilderModifier
 from django.conf import settings
-
+from arches.app.models.models import Node
 
 
 import re

@@ -1,4 +1,5 @@
 from django.db.models import Func, F, ExpressionWrapper, FloatField, CharField, DateTimeField, OuterRef, Subquery, BooleanField, JSONField
+from django.contrib.postgres.fields import JSONField as PostgreSQLJSONField
 from arches.app.models.models import Value as ValuesModel
 from typing import Dict, List
 from arches.app.models.models import Node
@@ -7,6 +8,13 @@ from datetime import datetime
 from django.conf import settings
 from django.contrib.postgres.aggregates import JSONBAgg
 from arches_orm.arches_django.query_builder.config import RESOURCE_MERGED_TILE_DATA_KEY
+from django.db.models.aggregates import Aggregate
+from django.db.models.expressions import RawSQL
+
+class JsonBAgg(Aggregate):
+    function = 'jsonb_agg'
+    output_field = JSONField()
+    template = '%(function)s(%(distinct)s%(expressions)s)'
 
 def postgresql_expression_resource_instance_list_datatype(nodeid: str) -> ExpressionWrapper:
     """
@@ -26,7 +34,18 @@ def postgresql_expression_resource_instance_list_datatype(nodeid: str) -> Expres
     )
 
 def postgresql_expression_merge_tile_json_data():
-    return JSONBAgg('data');      
+    return RawSQL(
+        """
+        (
+            SELECT jsonb_object_agg(kv.key, kv.value)
+            FROM tiles AS t
+            JOIN jsonb_each(t.tiledata) AS kv ON true
+            WHERE t.resourceinstanceid = tiles.resourceinstanceid
+        )
+        """, 
+        [],
+        output_field=PostgreSQLJSONField()  # This is the key fix
+    )
 
 def postgresql_default_fallback_expression_generic(nodeid: str) -> F:
     """

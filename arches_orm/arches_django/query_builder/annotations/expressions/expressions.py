@@ -29,11 +29,11 @@ def expresion_merge_tile_json_data(database_engine: str):
     from .expressions_postgresql import postgresql_expression_merge_tile_json_data
     from .expressions_sqlite import sqlite_expression_after_merge_extract_json
 
-    if 'postgresql' in database_engine:
-        return postgresql_expression_merge_tile_json_data()
-
-    elif 'sqlite' in database_engine:
+    if database_engine and 'sqlite' in database_engine:
         return sqlite_expression_after_merge_extract_json()
+    
+    else:
+        return postgresql_expression_merge_tile_json_data()
 
 def expression_generic_default_fallback(database_engine: str, nodeid: str) -> ExpressionWrapper | F:
     """
