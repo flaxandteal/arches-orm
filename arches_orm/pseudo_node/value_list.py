@@ -26,6 +26,7 @@ class ValueList(UserDict):
 
     def _get(self, key, default=None, raise_error=False):
         result = self._values.get(key, default)
+        # TODO: what is default is False?
         if result is False:
             if self._wrapper.resource:
                 # Will KeyError if we do not have it.

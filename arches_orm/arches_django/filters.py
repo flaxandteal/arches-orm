@@ -136,8 +136,8 @@ class SearchMixin:
     def search(cls, text: str | list[str]=None, term: str | list[str]=None, concept: str | list[str]=None, fields=None, _total=None):
         """Search ES for resources of this model, and return as well-known resources."""
 
-        if not cls ._can_read_graph():
-            raise WKRMPermissionDenied()
+        #if not cls ._can_read_graph():
+        #    raise WKRMPermissionDenied()
 
         from arches.app.search.search_engine_factory import SearchEngineFactory
         from arches.app.views.search import RESOURCES_INDEX

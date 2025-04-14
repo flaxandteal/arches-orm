@@ -98,7 +98,7 @@ def semantic(
         try:
             svm.update(value)
         except Exception as exc:
-            _tile_loading_error("Suppressed a tile loading error: {}: {} {} (tile: {}; node: {})", exc, type(exc), exc.message if hasattr(exc, "message") else "", str(tile), str(node))
+            _tile_loading_error("Suppressed a tile loading error: %s: %s %s (tile: %s; node: %s) - %s", exc, str(type(exc)), exc.message if hasattr(exc, "message") else "", str(tile), str(node), str(value))
     svm.get_children()
 
     return svm

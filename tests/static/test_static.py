@@ -305,6 +305,28 @@ def test_can_use_edtf_interval(arches_orm):
     _compare_exported_json(resource_json, reference_dict)
 
 @context_free
+def test_can_save_with_domain(arches_orm):
+    from arches_orm.models import Group
+    group = Group.create()
+    ConsentEnum = group.consent.__domain__
+
+    assert group.consent == ConsentEnum.Returned.value
+
+    group.save()
+    resource_json = json.loads(group._.resource.model_dump_json())
+    assert resource_json["tiles"][0]["data"] == {
+        "82c9eef6-2d5a-11ef-8722-0242ac120006": "7c10f127-3358-4cc9-b4df-75cd6c5f7cd7"
+    }
+
+    group.consent = ConsentEnum.Accepted
+    group.save()
+    resource_json = json.loads(group._.resource.model_dump_json())
+    assert resource_json["tiles"][0]["data"] == {
+        "82c9eef6-2d5a-11ef-8722-0242ac120006": "6dbde4c3-eeab-4fab-9106-718af3bba238"
+    }
+    group.save()
+
+@context_free
 def test_can_save_with_concept(arches_orm):
     from arches_orm.models import Group
     group = Group.create()
@@ -330,3 +352,12 @@ def test_can_make_consistent_uuids(arches_orm):
     group.save()
     resource_json = json.loads(group._.resource.model_dump_json())
     assert resource_json["resourceinstance"]["resourceinstanceid"] == "d181337f-8efa-4de4-1c7c-91592010a44d"
+
+@context_free
+def test_can_export_simplified_collections_for_model(arches_orm):
+    from arches_orm.models import Group
+    rdm = get_adapter().get_rdm()
+    StatusEnum = get_adapter().get_collection("cfe3d404-7461-433a-a6fd-05697d5ad0ca")
+    for cid, collection in Group.collections().items():
+        simplified = rdm.export_simplified_collection(collection.__identifier__)
+        print(json.dumps(simplified, indent=2))

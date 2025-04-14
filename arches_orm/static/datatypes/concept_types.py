@@ -66,7 +66,7 @@ def concept_value(tile, node, value: uuid.UUID | str | None | CollectionEnum | C
                 # print(collection._member_map_, "CV")
                 # print(collection.__members__, "CV")
                 if value not in collection._member_map_:
-                    logging.error("Missing collection value: {} in node {} tile {}", value, node.nodeid, str(tile))
+                    logging.error("Missing collection value: %s in node %s tile %s", value, node.nodeid, str(tile))
                 return collection[value].value
             else:
                 raise

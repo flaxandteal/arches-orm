@@ -98,4 +98,5 @@ class SemanticViewModel(ViewModel, Mapping[str, ViewModel]):
                 child = self._make_child(self, key)
             self._child_values[key] = child
             child._parent_node = self
+            child.set_accessed(tree=False)
         self._child_values[key].value = value

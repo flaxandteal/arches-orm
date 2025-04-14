@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 import uuid
-from abc import abstractmethod, ABC
+from abc import abstractmethod, ABC, abstractclassmethod
 from collections.abc import Callable
 from collections import UserList
 from arches_orm.adapter import Adapter
@@ -364,3 +364,7 @@ class ResourceWrapper(ABC):
     @abstractmethod
     def get_root(self):
         """Get the root value."""
+
+    @abstractclassmethod
+    def collections(cls):
+        """Get all collections in the model."""

@@ -155,7 +155,17 @@ class CollectionChild:
             return None
         return self._collection_cb(self._collection_id)
 
-class EmptyConceptValueViewModel(CollectionChild, ViewModel):
+class EmptyConceptValueViewModel(str, CollectionChild, ViewModel):
+    def __new__(
+        cls,
+        collection_id: UUID | None,
+        retrieve_collection_cb: Callable[[UUID], type[Enum]],
+    ) -> "EmptyConceptValueViewModel":
+        mystr = super(EmptyConceptValueViewModel, cls).__new__(cls, "")
+        mystr._collection_id = collection_id
+        mystr._collection_cb = retrieve_collection_cb
+        return mystr
+
     def __bool__(self) -> bool:
         return False
 
@@ -164,6 +174,12 @@ class EmptyConceptValueViewModel(CollectionChild, ViewModel):
 
     def __eq__(self, other: Any) -> bool:
         return other is None or isinstance(other, EmptyConceptValueViewModel)
+
+    def __repr__(self) -> str:
+        return ""
+
+    def __str__(self) -> str:
+        return ""
 
 class ConceptValueViewModel(str, CollectionChild, ViewModel):
     """Wraps a concept value, allowing interrogation.
@@ -192,6 +208,12 @@ class ConceptValueViewModel(str, CollectionChild, ViewModel):
     def __eq__(self, other):
         if isinstance(other, Enum):
             other = other.value
+
+        if isinstance(other, UUID):
+            return self._concept_value_id == other
+
+        if not isinstance(other, ConceptValueViewModel):
+            return None
 
         # Avoids unnecessarily serializing UUIDs.
         if type(self._concept_value_id) == type(other._concept_value_id):
@@ -255,6 +277,8 @@ class ConceptValueViewModel(str, CollectionChild, ViewModel):
 
     @property
     def text(self):
+        if isinstance(self.value, UUID):
+            return str(self.value)
         return self.value.value
 
     @property
@@ -269,6 +293,8 @@ class ConceptValueViewModel(str, CollectionChild, ViewModel):
         return self.text
 
     def __repr__(self):
+        if isinstance(self.value, UUID):
+            return f"[{self.value}?]"
         return f"{self.value.concept_id}>{self._concept_value_id}[{self.text}]"
 
 

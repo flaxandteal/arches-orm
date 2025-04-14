@@ -64,6 +64,7 @@ class ViewModelRegister(UserDict):
         if self._datatype_factory is None:
             raise RuntimeError("Datatype register requires a datatype factory")
 
+        datatype_name = self._datatype_factory.get_final_datatype(datatype_name)
         datatype = self._datatype_factory.get_instance(datatype_name)
 
         if datatype_name in self:
