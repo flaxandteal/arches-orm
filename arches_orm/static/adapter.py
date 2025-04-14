@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import os
 import logging
+import pickle
+from hashlib import blake2b
 from pathlib import Path
 from enum import Enum
 from uuid import UUID
@@ -20,6 +23,8 @@ from .datatypes.concepts import (
     build_collection,
     get_collections_by_label,
     get_concepts_by_label,
+    load_from_cache_file,
+    save_cache_file
 )
 from .datatypes.resource_models import load_model_path
 from .datatypes.resource_instances import STATIC_STORE, scan_resource_path
@@ -32,6 +37,15 @@ LOAD_ALL_NODES = True
 
 WKRM_DEFINITIONS = []
 
+def get_hash(file_list: list[str]) -> str:
+    string_list = sorted(map(str, file_list))
+    for filename in list(string_list):
+        string_list.append(str(os.path.getmtime(filename)))
+    k = blake2b(digest_size=20)
+    for item in string_list:
+        k.update(item.encode("utf-8"))
+    return k.hexdigest()
+
 class StaticAdapter(Adapter, PseudoNodeAdapterMixin):
 
     key = "static"
@@ -40,9 +54,20 @@ class StaticAdapter(Adapter, PseudoNodeAdapterMixin):
 
     def _check_collections_loaded(self):
         if not self._collections_loaded:
-            for concept_path in self.config["concept_paths"]:
-                load_concept_path(concept_path)
-                load_collection_path(concept_path)
+            cache_dir = self.config.get("concept_cache_dir")
+            cache_file = None
+            if cache_dir:
+                cache_hash = get_hash(self.config["concept_paths"])
+                cache_file = Path(cache_dir) / f"concept_hash_{cache_hash}.pkl"
+            if cache_file and cache_file.exists():
+                print("Using collections cache")
+                load_from_cache_file(cache_file)
+            else:
+                for concept_path in self.config["concept_paths"]:
+                    load_concept_path(concept_path)
+                    load_collection_path(concept_path)
+                if cache_file:
+                    save_cache_file(cache_file)
             self._collections_loaded = True
 
     def get_wrapper(self):
