@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from enum import Enum
+import pickle
 from lxml import etree as ET
 from functools import lru_cache
 import json
@@ -466,3 +467,17 @@ def get_collections_by_label(label: str, pref_only: bool=False, language: str | 
         if collection.title.value == label:
             collections.append(collection.id)
     return [retrieve_collection(cid, language=language) for cid in collections]
+
+def load_from_cache_file(cache_file):
+    global _RAW_COLLECTIONS, _CONCEPTS
+    with cache_file.open("rb") as f:
+        cache = pickle.load(f)
+        _RAW_COLLECTIONS.update(cache["_RAW_COLLECTIONS"])
+        _CONCEPTS.update(cache["_CONCEPTS"])
+
+def save_cache_file(cache_file):
+    with cache_file.open("wb") as f:
+        pickle.dump({
+            "_RAW_COLLECTIONS": _RAW_COLLECTIONS,
+            "_CONCEPTS": _CONCEPTS,
+        }, f)
