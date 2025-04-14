@@ -25,7 +25,7 @@ class StaticDataType:
             data = tile["data"]
         else:
             data = tile.data
-        return data[node.nodeid]
+        return data[str(node.nodeid)]
 
     def transform_value_for_tile(self, value: Any, *args, **kwargs) -> Any:
         return value
@@ -84,6 +84,12 @@ class StaticDataTypeFactory:
         else:
             datatype_name = DataTypeNames(datatype)
         return (FACTORIES.get(datatype_name) or StaticDataType)(datatype_name)
+
+    def get_final_datatype(self, datatype):
+        if datatype in CASTING:
+            return CASTING[datatype].value
+        else:
+            return DataTypeNames(datatype).value
 
 REGISTER = ViewModelRegister.create_with_factory(StaticDataTypeFactory())
 

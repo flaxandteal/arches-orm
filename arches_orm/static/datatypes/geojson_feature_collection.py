@@ -22,7 +22,10 @@ def geojson_feature_collection(tile, node, value: dict | None, _, __, ___, geojs
 
     if not tile or tile.data[str(node.nodeid)] is None:
         return None
-    return GeoJSONFeatureCollectionViewModel(tile.data[str(node.nodeid)])
+    data = tile.data[str(node.nodeid)]
+    if isinstance(data, str):
+        data = json.loads(data)
+    return GeoJSONFeatureCollectionViewModel(data)
 
 
 @geojson_feature_collection.as_tile_data

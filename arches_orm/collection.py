@@ -106,3 +106,34 @@ class ReferenceDataManager:
 
     def update_collections(self, concept: ConceptValueViewModel, output_file: Path) -> None:
         return self.adapter.update_collections(concept, output_file)
+
+    def export_simplified_collection(self, collection_id: str | UUID):
+        collection = self.get_collection(collection_id)
+        def _concept(concept):
+            simplified_concept = {
+                    "id": str(concept.conceptid),
+                    "prefLabels": {
+                        value.language: {
+                            "id": str(value.id),
+                            "value": value.value
+                        # TODO address the fact that this assumes static (concept.concept.value)
+                        } for value in concept.concept.values.values() if value.__type__ == SKOS.prefLabel
+                    },
+                    "source": None,
+                    "sortOrder": None
+                }
+            children = list(concept.children)
+            if children:
+                simplified_concept["children"] = [_concept(c) for c in children]
+            return simplified_concept
+        return {
+            "id": str(collection_id),
+            "prefLabels": {
+                "": {
+                    "value": str(collection.__identifier__), # TODO: make proper values
+                }
+            },
+            "concepts": {
+                str(concept.conceptid): _concept(concept) for concept in collection.__top_members__
+            }
+        }

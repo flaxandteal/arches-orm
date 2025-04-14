@@ -26,6 +26,9 @@ def _datatype_factory():
                 ]
             return super().get_instance(datatype)
 
+        def get_final_datatype(self, datatype):
+            return datatype
+
     return DataTypeFactoryWithResourceInstanceList()
 
 REGISTER = ViewModelRegister.create_with_factory(_datatype_factory())

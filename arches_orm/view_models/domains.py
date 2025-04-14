@@ -82,7 +82,10 @@ class EmptyDomainValueViewModel(DomainValue, ViewModel):
     def __eq__(self, other: Any) -> bool:
         return other is None or isinstance(other, EmptyDomainValueViewModel)
 
-class DomainValueViewModel(DomainValue, ViewModel):
+    def __repr__(self) -> str:
+        return ""
+
+class DomainValueViewModel(str, DomainValue, ViewModel):
     """
     This class is an ORM to handle a node which is a domain-value datatype. 
     """
@@ -102,6 +105,26 @@ class DomainValueViewModel(DomainValue, ViewModel):
         self._domain_id = domain_id
         self._domain_option = domain_option
         self._lang = lang
+
+    def __new__(
+        cls,
+        domain_id: UUID,
+        domain_option: DomainOption,
+        lang: str = 'en'
+    ) -> "DomainValueViewModel":
+        text = domain_option.get('text')
+        if isinstance(text, dict):
+            if lang in text:
+                text = text.get(lang)
+            elif text:
+                text = list(text.values())[0]
+            else:
+                text = ""
+        mystr = super(DomainValueViewModel, cls).__new__(cls, text)
+        mystr._domain_id = domain_id
+        mystr._domain_option = domain_option
+        mystr._lang = lang
+        return mystr
 
     @property
     def enum(self):

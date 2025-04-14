@@ -178,6 +178,8 @@ def load_model_path(model_root: Path) -> WKRM:
         with model_root.open() as f:
             model_file = json.load(f)
 
+        if "graph" not in model_file:
+            return wkrms
         for graph_json in model_file["graph"]:
             graph = StaticGraph(**graph_json)
             _GRAPHS[graph.graphid] = graph

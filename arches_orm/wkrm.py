@@ -42,7 +42,10 @@ for key, adapter in ADAPTER_MANAGER.adapters.items():
         WKRM(**model) for model in adapter.get_wkrm_definitions()
     ]
 
-WELL_KNOWN_RESOURCE_MODELS = WELL_KNOWN_RESOURCE_MODELS_BY_ADAPTER[get_adapter().key]
+try:
+    WELL_KNOWN_RESOURCE_MODELS = WELL_KNOWN_RESOURCE_MODELS_BY_ADAPTER[get_adapter().key]
+except RuntimeError:
+    WELL_KNOWN_RESOURCE_MODELS = None
 
 
 def _make_wkrm(wkrm_definition, adapter):
@@ -128,4 +131,19 @@ def attempt_well_known_resource_model(
         resource_id=resource_id, from_prefetch=from_prefetch, lazy=lazy
     )
 
-get_resource_models_for_adapter()
+def reload(adapter: str | None=None) -> None:
+    if adapter:
+        WELL_KNOWN_RESOURCE_MODELS_BY_ADAPTER[adapter] = [
+            WKRM(**model) for model in get_adapter(adapter).get_wkrm_definitions()
+        ]
+        if adapter in resource_models:
+            del resource_models[adapter]
+        get_resource_models_for_adapter(adapter)
+    else:
+        for key, _ in ADAPTER_MANAGER.adapters.items():
+            reload(key)
+
+try:
+    get_resource_models_for_adapter()
+except RuntimeError:
+    ...

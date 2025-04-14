@@ -1,4 +1,5 @@
 from __future__ import annotations
+from collections.abc import Mapping, Sequence
 import copy
 import logging
 from uuid import uuid4, UUID
@@ -410,6 +411,24 @@ class StaticResourceWrapper(PseudoNodeWrapperMixin, ResourceWrapper, proxy=True)
     def get_fields(self):
         return self._get_fields(self.get_root())
 
+    def to_dict(self):
+        fields = self.get_fields()
+        def to_dict(node):
+            if isinstance(node, PseudoNodeList):
+                return [to_dict(v) for v in node]
+            if isinstance(node, PseudoNodeValue):
+                value = node.value
+            else:
+                value = node
+            if isinstance(value, Mapping):
+                return {k: to_dict(v) for k, v in value.items()}
+            return None if value == None else value # This checks for Empty values
+
+        return {
+            k: to_dict(val["node"])
+            for k, val in fields.items()
+        }
+
     @classmethod
     def _get_fields(cls, root):
         root_fields = cls.get_model_fields(root)
@@ -494,7 +513,7 @@ class StaticResourceWrapper(PseudoNodeWrapperMixin, ResourceWrapper, proxy=True)
             nodes = [node for node in nodes.values() if node.nodegroup_id == nodegroup]
             del kwargs["nodegroup_id"]
         if resourceinstance := kwargs.get("resourceinstance", []):
-            resourceid = resourceinstance.resource_id
+            resourceid = resourceinstance.resourceinstance.resourceinstanceid
             del kwargs["resourceinstance"]
         else:
             if resourceinstance is None:
@@ -594,6 +613,9 @@ class StaticResourceWrapper(PseudoNodeWrapperMixin, ResourceWrapper, proxy=True)
         nodes = []
         for field, value in values.items():
             node = fields[field]["node"]
+            if isinstance(node, PseudoNodeList) and (not isinstance(value, Sequence) or isinstance(value, str)):
+                logger.warn("Found an entry that should be a list, but is not - making a length one list for backwards compatibility (deprecated) - {} for {}", field, str(value))
+                value = [value]
             node.value = value
             node.get_tile()
             nodes.append(node)
@@ -601,10 +623,10 @@ class StaticResourceWrapper(PseudoNodeWrapperMixin, ResourceWrapper, proxy=True)
         def _children(children):
             nonlocal tiles
             for node in children:
-                if isinstance(node, PseudoNodeList):
-                    tiles += [n.tile for n in node]
-                else:
+                if not isinstance(node, PseudoNodeList):
                     tiles.append(node.tile)
+                # else: This should be covered below.
+                #     tiles += [n.tile for n in node]
                 _children(node.get_children(direct=False))
         _children(nodes)
 
@@ -689,7 +711,7 @@ class StaticResourceWrapper(PseudoNodeWrapperMixin, ResourceWrapper, proxy=True)
             # be included below.
             # if tile.parenttile_id:
             for domain, ranges in edges.items():
-                if node.nodegroup_id in ranges:
+                if node.nodegroup_id in ranges: # RMV Should this not be nodeid? See JS
                     implied_nodegroups.add(
                         node_objs[domain].nodegroup_id
                         if node_objs[domain].nodegroup_id
@@ -1016,3 +1038,19 @@ class StaticResourceWrapper(PseudoNodeWrapperMixin, ResourceWrapper, proxy=True)
             if key is not None:
                 return cuuid(f"{self.graphid}:{key}")
         return uuid4()
+
+    @classmethod
+    @lru_cache
+    def collections(cls, skip_broken=False):
+        # TODO: move upwards
+        collections = {}
+        for name, field in cls.all_fields().items():
+            if field["type"] in (DataTypeNames.CONCEPT, DataTypeNames.CONCEPT_LIST):
+                try:
+                    collections[name] = field["node"].value.__collection__ 
+                except KeyError:
+                    logging.warn("Could not find collection for {}", field)
+                    logging.warn("  config: %s", str(field["node"].node.config))
+                    if not skip_broken:
+                        raise
+        return collections

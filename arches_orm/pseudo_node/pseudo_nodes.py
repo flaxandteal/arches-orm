@@ -125,6 +125,10 @@ class PseudoNodeList(UserList):
 
         return entry
 
+    def set_accessed(self, tree: bool = True):
+        for child in self.get_children():
+            child.set_accessed(tree)
+
     def clear(self):
         self._ghost_children |= {
             entry for entry in self if entry.node.nodegroup_id == self.node.nodeid
@@ -266,7 +270,7 @@ class PseudoNodeValue:
             self.tile.data[
                 str(self.node.nodeid)
             ] = tile_value  # TODO: ensure this works for any value
-        tile = self.tile if self.node.is_collector else None
+        tile = self.tile if self.node.is_collector else None # RMV: is this the correct interpretation of is_collector?
 
         return tile, relationships
 
@@ -278,6 +282,12 @@ class PseudoNodeValue:
     @property
     def accessed(self) -> bool:
         return self._accessed
+
+    def set_accessed(self, tree=False) -> bool:
+        self._accessed = True
+        if tree:
+            for child in self.get_children():
+                child.set_accessed(tree)
 
     def _update_value(self):
         self._accessed = True
@@ -374,6 +384,9 @@ class PseudoNodeUnavailable:
         self._parent_node = None
         self._child_nodes = child_nodes
 
+    def set_accessed(self, tree: bool = True):
+        ...
+
     def __str__(self):
         return "[UNAVAILABLE]"
 
@@ -392,6 +405,7 @@ class PseudoNodeUnavailable:
 
     @property
     def value(self):
+        # TODO: should this be instantiated?
         return UnavailableViewModel
 
     def __len__(self):
