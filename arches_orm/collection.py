@@ -79,8 +79,10 @@ class ReferenceDataManager:
         if len(concepts) == 1:
             return concepts[0]
         elif concepts:
+            print(f"Multiple collections found for '{title}': {' '.join([str(c) for c in concepts])}")
             raise ValueError(f"Multiple collections found for '{title}': {' '.join([str(c) for c in concepts])}")
         else:
+            print(f"Collection {title} not found")
             raise KeyError(f"Collection {title} not found")
 
     def find_collection_by_label(self, title: str, pref_label_only=True) -> type[Enum]:
@@ -88,8 +90,10 @@ class ReferenceDataManager:
         if len(collections) == 1:
             return collections[0]
         elif collections:
+            print(f"Multiple collections found for '{title}': {' '.join([str(c) for c in collections])}")
             raise ValueError(f"Multiple collections found for '{title}': {' '.join([str(c) for c in collections])}")
         else:
+            print(f"Collection {title} not found")
             raise KeyError(f"Collection {title} not found")
 
     def get_collection(self, collection_id: str | UUID) -> type[Enum]:

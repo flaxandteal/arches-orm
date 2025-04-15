@@ -191,6 +191,7 @@ class DataTypes:
                     else:
                         graph = graphs[0]
                 elif graph not in graphs:
+                    print(f"Could not match a valid type for this subgraph {field} of {model._model_name}: {graph} not in {graphs}")
                     raise RuntimeError(f"Could not match a valid type for this subgraph {field} of {model._model_name}: {graph} not in {graphs}")
                 model = self.graphs[graphs[graph]]
                 resources = [await _build_resource(model, **v) for v in vs]
@@ -548,6 +549,7 @@ with get_adapter().context_free() as _:
         ri_loader = get_loader("ResourceInstance")
         if only_one:
             if len(all_ids) != 1:
+                print("Only one ID expected")
                 raise RuntimeError("Only one ID expected")
             return (await ri_loader.load_many(all_ids))[0]
         return await ri_loader.load_many(all_ids)

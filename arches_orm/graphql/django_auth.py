@@ -34,9 +34,11 @@ class BasicAuthBackend(AuthenticationBackend):
         try:
             scheme, token = auth.split()
             if scheme.lower() not in ('basic', 'bearer'):
+                print('Invalid basic auth credentials')
                 raise AuthenticationError('Invalid basic/bearer auth credentials')
 
         except (ValueError, UnicodeDecodeError, binascii.Error):
+            print('Invalid basic auth credentials')
             raise AuthenticationError('Invalid basic auth credentials')
 
         uri = conn.url.path
@@ -45,6 +47,7 @@ class BasicAuthBackend(AuthenticationBackend):
         )
         if scheme.lower() == "basic":
             if not await sync_to_async(authenticator)(oauth_request):
+                print('Invalid basic auth credentials')
                 raise AuthenticationError('Incorrect basic auth credentials found')
 
             def get_user(request):
@@ -60,5 +63,6 @@ class BasicAuthBackend(AuthenticationBackend):
             context.data["is_anonymous"] = False
             return AuthCredentials(["authenticated"]), SimpleUser(user.username)
 
+        print('Invalid basic auth credentials')
         raise AuthenticationError('Incorrect auth credentials')
 

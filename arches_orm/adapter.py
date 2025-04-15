@@ -164,9 +164,11 @@ class AdapterManager:
         if key in self.adapters:
             raise RuntimeError("Cannot register same adapter multiple times")
         if len(self.adapters) and not self.default_adapter:
-            raise RuntimeError(
-                "Must set a default adapter, if registering multiple in one process"
-            )
+            print('NO DEFAULT ADAPTER!')
+            # raise RuntimeError(
+            #     "Must set a default adapter, if registering multiple in one process"
+            # )
+            self.set_default_adapter(adapter_cls(key=key))
         adapter = adapter_cls(key=key)
         adapter_cls._singleton = adapter
         self.adapters[key] = adapter
