@@ -46,24 +46,24 @@ class PseudoNodeList(UserList):
         entry = self._find(x)[1]
         super().remove(entry)
 
-        if str(entry.node.nodegroup_id) == str(self.node.nodeid):
+        if entry.node.nodegroup_id == self.node.nodeid:
             self._ghost_children.add(entry)
 
     def pop(self, i=-1):
         entry = super().pop(i)
 
-        if str(entry.node.nodegroup_id) == str(self.node.nodeid):
+        if entry.node.nodegroup_id == self.node.nodeid:
             self._ghost_children.add(entry)
 
         return entry
 
     def clear(self):
         self._ghost_children |= {
-            entry for entry in self if str(entry.node.nodegroup_id) == str(self.node.nodeid)
+            entry for entry in self if entry.node.nodegroup_id == self.node.nodeid
         }
         super().clear()
-        if self.tile and str(self.node.nodeid) in self.tile.data:
-            del self.tile.data[str(self.node.nodeid)]
+        if self.tile and self.node.nodeid in self.tile.data:
+            del self.tile.data[self.node.nodeid]
 
     @value.setter
     def value(self, iterable):
@@ -175,7 +175,7 @@ class PseudoNodeValue:
             relationships = [
                 relationship
                 if isinstance(relationship, tuple)
-                else (str(self.tile.nodegroup_id), str(self.node.nodeid), relationship)
+                else ((self.tile.nodegroup_id, self.node.nodeid), relationship)
                 for relationship in tile_value[1]
             ]
             tile_value = tile_value[0]
@@ -183,7 +183,7 @@ class PseudoNodeValue:
             self.tile.data.pop(self.node.nodeid, None)
         else:
             self.tile.data[
-                str(self.node.nodeid)
+                self.node.nodeid
             ] = tile_value  # TODO: ensure this works for any value
         tile = self.tile if self.node.is_collector else None
 
@@ -191,8 +191,8 @@ class PseudoNodeValue:
 
     def clear(self):
         self._value = None
-        if self.tile and self.tile.data and str(self.node.nodeid) in self.tile.data:
-            del self.tile.data[str(self.node.nodeid)]
+        if self.tile and self.tile.data and self.node.nodeid in self.tile.data:
+            del self.tile.data[self.node.nodeid]
 
     @property
     def accessed(self) -> bool:
@@ -212,9 +212,9 @@ class PseudoNodeValue:
             if (
                 self._value is None
                 and self.tile.data is not None
-                and str(self.node.nodeid) in self.tile.data
+                and self.node.nodeid in self.tile.data
             ):
-                data = self.tile.data[str(self.node.nodeid)]
+                data = self.tile.data[self.node.nodeid]
             else:
                 data = self._value
 

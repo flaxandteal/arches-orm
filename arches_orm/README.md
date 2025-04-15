@@ -89,4 +89,4 @@ their work on which this builds. Particular thanks to Historic England's team
 for the underlying resource models used in the test-cases.
 
 
-last_commit = "037deb517c77c746b91d84939963f48c8111eb66"
+last_commit = "test-0.2.2-037deb517c77c746b91d84939963f48c8111eb66-with-datatype-update"
