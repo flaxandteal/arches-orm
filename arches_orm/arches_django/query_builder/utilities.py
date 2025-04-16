@@ -79,7 +79,7 @@ def handle_operatortion(raw_operator: str | None) -> str:
     return 'equal'
         
 
-def transform_filter_exclude_structure_towards_query(structures: List["FilterStructure"] | List["ExcludeStructure"]) -> Q:
+def transform_exclude_structure_towards_query(excludeStructure: List["ExcludeStructure"]) -> Q:
     """
     Method for transforming a filter structure towrads a query, basically the filter or exclude is structured in a way for the purpose towards this method.
     The reason being as before we had filter(**kwargs), however this could not handle OR & AND statement properly, therefore this method was developed.
@@ -88,6 +88,46 @@ def transform_filter_exclude_structure_towards_query(structures: List["FilterStr
 
     Args:
         structures (List[&quot;FilterStructure&quot;] | List["ExcludeStructure"]): This is the filter structure which is contained within query_builder.py and set within filters.py
+
+    Returns:
+        Q: This is the Query object return and suitable for filter() or exclude()
+    """
+    query: Q = Q()
+    
+    # * Loop through the filtered structures
+    for structure in excludeStructure:
+        # * Get the operators and filters from this structure
+        operator = structure.get('logical_operator', 'AND')
+        conditions = structure.get('conditions', {})
+        
+        # ? In Django, using .exclude() with a condition like field=value will exclude records where field equals value. 
+        # ? However, if the field contains None (i.e., SQL NULL), these records are not returned by default when using .exclude().​
+        # ? https://www.atlassian.com/data/databases/how-to-filter-for-empty-or-null-values-in-a-django-queryset 
+        isnullconditions = {}
+        for field, value in conditions.items():
+            if value is not None:
+                isnullconditions[f'{field}__isnull'] = False
+
+        condition_query = Q(**isnullconditions, **conditions)
+        
+        # * Append & or | towards the query
+        if operator.upper() == 'OR':
+            query |= condition_query
+        else:   
+            query &= condition_query
+    
+    return query
+
+
+def transform_filter_structure_towards_query(structures: List["FilterStructure"]) -> Q:
+    """
+    Method for transforming a filter structure towrads a query, basically the filter or exclude is structured in a way for the purpose towards this method.
+    The reason being as before we had filter(**kwargs), however this could not handle OR & AND statement properly, therefore this method was developed.
+    This method should take this structure and convert it to a Q object, stating ANDs & ORs so the return value for this method is compatlile with
+    filter(transform_filter_exclude_structure_towards_query()) or exclude(transform_filter_exclude_structure_towards_query()), towards Django
+
+    Args:
+        structures (List[&quot;FilterStructure&quot;]): This is the filter structure which is contained within query_builder.py and set within filters.py
 
     Returns:
         Q: This is the Query object return and suitable for filter() or exclude()
