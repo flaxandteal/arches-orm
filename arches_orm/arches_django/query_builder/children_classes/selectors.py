@@ -1,9 +1,12 @@
 from arches.app.models.models import TileModel
-from arches_orm.arches_django.query_builder.utilities import transform_filter_exclude_structure_towards_query
+from arches_orm.arches_django.query_builder.utilities import transform_filter_structure_towards_query, transform_exclude_structure_towards_query
 from typing import Dict, List, TYPE_CHECKING, TypedDict
 from django.db.models import ExpressionWrapper, QuerySet
 from arches_orm.arches_django.query_builder.annotations.annotations import annotation_resource_merge_tile_data
 from django.db.models import Case, When, Value, IntegerField
+
+from django.contrib.postgres.fields import JSONField as PostgreSQLJSONField
+from django.db.models.expressions import RawSQL
 
 if TYPE_CHECKING:
     from arches_orm.arches_django.query_builder.query_builder import FilterStructure, ExcludeStructure
@@ -73,11 +76,11 @@ class QueryBuilderSelectors:
             #         )
             #         """, 
             #         [],
-            #         output_field=JSONField()  # This is the key fix
+            #         output_field=PostgreSQLJSONField()  # This is the key fix
             #     )
             # ).distinct().annotate(**annotations)
 
-            # print(annotations)
+            # print(testTiles)
 
             # print('WORKS?', testTiles.filter(resourceinstance_id="bb6cffff-9947-443d-9a82-16b35a417213"))
 
@@ -97,9 +100,11 @@ class QueryBuilderSelectors:
 
                 if (filter_structures):
                     queryset_tiles = queryset_tiles.filter(
-                        transform_filter_exclude_structure_towards_query(filter_structures), 
+                        transform_filter_structure_towards_query(filter_structures), 
                         **defaultFilterTileAgrs
                     )
+
+                    print('queryset_tiles : ', queryset_tiles)
 
                 else:
                     queryset_tiles = queryset_tiles.filter(**defaultFilterTileAgrs)
@@ -109,9 +114,30 @@ class QueryBuilderSelectors:
                     # * This means that if you need to use an annotation in both .filter() and .exclude(), you might have to reapply the annotation 
                     # * before using .exclude().
                     _apply_annotations()
+                  
+                    print('before_queryset_tiles : ', queryset_tiles)
+
+                    key = "status_type_n1_annotation"
+                    value = "294f38d0-e391-4f7d-af83-72fbf7fcdfcb"
+
+
+                    queryset_tiles[0]["status_type_n1_annotation"] = value
+                    
+                    print('status_type_n1_annotation', queryset_tiles[0]["status_type_n1_annotation"])
+
+                    # # First, filter for null values
+                    # queryset_tiles = queryset_tiles.filter(status_type_n1_annotation__isnull=True)
+
+                    # _apply_annotations()
+
+                    # Then, exclude records where the field matches the specific value
+                    # queryset_tiles = queryset_tiles.exclude(**{key: value}, status_type_n1_annotation__isnull=False)
+
                     queryset_tiles = queryset_tiles.exclude(
-                        transform_filter_exclude_structure_towards_query(exclude_structures)
+                        transform_exclude_structure_towards_query(exclude_structures)
                     )
+                    print('after_   queryset_tiles : ', queryset_tiles)
+                    print('exclude_structures : ', exclude_structures)
 
                 if (order_by):
                     _apply_annotations()
