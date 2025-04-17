@@ -63,7 +63,7 @@ def set_annotation(
         query_builder_instance._annotations[annotation_key(node_alias)] = expression_resource_instance_list_datatype(current_database_engine, node.nodeid)
 
     elif (node.datatype == 'domain-value'):
-        query_builder_instance._annotations[annotation_key(node_alias)] = expression_domain_value(node, addiontal_keys)
+        query_builder_instance._annotations[annotation_key(node_alias)] = expression_domain_value(current_database_engine, node, addiontal_keys)
 
     else:
         query_builder_instance._annotations[annotation_key(node_alias)] = expression_generic_default_fallback(current_database_engine, node.nodeid)

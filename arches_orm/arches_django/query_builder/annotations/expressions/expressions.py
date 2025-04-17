@@ -89,24 +89,56 @@ def expression_boolean_value(nodeid: str) -> F:
     """
     return F(f'{RESOURCE_MERGED_TILE_DATA_KEY}__{nodeid}')
 
-def expression_domain_value(node: Node, addional_keys: List[str] = None) -> ExpressionWrapper:
-    key_lang = addional_keys[0] if len(addional_keys) >= 1 else 'en'
-    options = node.config.get('options');
+def expression_domain_value(database_engine: str, node: Node, additional_keys: List[str] = None) -> ExpressionWrapper:
+    from django.db.models import F, Func, Value, Case, When
 
-    # Create a list of When conditions dynamically based on the options
-    when_conditions = [
-        When(Q(**{f"{RESOURCE_MERGED_TILE_DATA_KEY}__{node.nodeid}": option.get("id")}), then=Value(option.get("text", {}).get("en", "")))
-        for option in options
-    ]
-    
-    # Add the default condition (return None if no condition matches)
+    key_lang = additional_keys[0] if additional_keys and len(additional_keys) >= 1 else 'en'
+    options = node.config.get('options', [])
+
+    print("\n--- Debug: expression_domain_value ---")
+    print("Language key:", key_lang)
+    print("Node ID:", node.nodeid)
+    print("Options:")
+    for opt in options:
+        print("  ID:", opt.get("id"), "| Text:", opt.get("text", {}).get(key_lang))
+
+    when_conditions = []
+    for option in options:
+        node_id = option.get("id")
+        label = option.get("text", {}).get(key_lang, "")
+
+
+        # Reference the actual field (e.g., "tiledata") in the model directly
+        # tile_value = Func(
+        #     F('tiledata'),  # The field in your model (tiledata or whatever field name you're using)
+        #     Value(node_id),  # The key you want to extract from the JSON
+        #     function='jsonb_extract_path_text',
+        #     template="%(function)s(%(expressions)s)"  # Custom template to extract the path text
+        # )
+
+        # print('tile_value', tile_value)
+        field_name = f'{RESOURCE_MERGED_TILE_DATA_KEY}__{node.nodeid}'
+        print(f"Field_Name : ", field_name)
+        print(f"NODE_ID : ", node_id)
+
+        # Directly use the tile_value expression in the When clause
+      # Correcting the comparison in the When clause
+
+        # Create the condition
+        when_conditions.append(
+            When(
+                Q(**{field_name: node_id}),
+                then=Value("FOUND")
+            )
+        )
+
     case_expression = Case(*when_conditions, default=Value(None))
 
+    print("--- End Debug ---\n")
     return ExpressionWrapper(
         case_expression,
-        output_field=CharField()  # You can adjust the output field type if needed
+        output_field=CharField()
     )
-
 def expression_date_datatype(nodeid: str) -> ExpressionWrapper:
     """
     Converts a string-based date stored in `resource_merged_tile_data__{nodeid}` into a proper DateTimeField 
