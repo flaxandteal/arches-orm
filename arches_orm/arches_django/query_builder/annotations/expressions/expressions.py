@@ -95,12 +95,12 @@ def expression_domain_value(database_engine: str, node: Node, additional_keys: L
     key_lang = additional_keys[0] if additional_keys and len(additional_keys) >= 1 else 'en'
     options = node.config.get('options', [])
 
-    print("\n--- Debug: expression_domain_value ---")
-    print("Language key:", key_lang)
-    print("Node ID:", node.nodeid)
-    print("Options:")
-    for opt in options:
-        print("  ID:", opt.get("id"), "| Text:", opt.get("text", {}).get(key_lang))
+    # print("\n--- Debug: expression_domain_value ---")
+    # print("Language key:", key_lang)
+    # print("Node ID:", node.nodeid)
+    # print("Options:")
+    # for opt in options:
+    #     print("  ID:", opt.get("id"), "| Text:", opt.get("text", {}).get(key_lang))
 
     when_conditions = []
     for option in options:
@@ -118,8 +118,8 @@ def expression_domain_value(database_engine: str, node: Node, additional_keys: L
 
         # print('tile_value', tile_value)
         field_name = f'{RESOURCE_MERGED_TILE_DATA_KEY}__{node.nodeid}'
-        print(f"Field_Name : ", field_name)
-        print(f"NODE_ID : ", node_id)
+        # print(f"Field_Name : ", field_name)
+        # print(f"NODE_ID : ", node_id)
 
         # Directly use the tile_value expression in the When clause
       # Correcting the comparison in the When clause
