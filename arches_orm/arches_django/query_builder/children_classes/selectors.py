@@ -105,7 +105,6 @@ class QueryBuilderSelectors:
                         transform_filter_structure_towards_query(filter_structures), 
                         **defaultFilterTileAgrs
                     )
-                    print('RAN FILTERS --------- : ')
 
                 else:
                     queryset_tiles = queryset_tiles.filter(**defaultFilterTileAgrs)
@@ -119,17 +118,14 @@ class QueryBuilderSelectors:
                     queryset_tiles = queryset_tiles.exclude(
                         transform_exclude_structure_towards_query(exclude_structures)
                     )
-                    print('RAN EXCLUDES STRUCTURES --------- : ')
 
                 if (order_by):
                     _apply_annotations()
                     queryset_tiles = queryset_tiles.order_by(*order_by)
-                    print('RAN ORDER BY STRUCTURES --------- : ')
 
                 if offset and (offset['limit'] is not None or offset['offset'] is not None):
                     limit_value = offset.get('limit')
                     offset_value = offset.get('offset', 0) or 0
-                    print('RAN OFFSET STRUCTURES --------- : ')
 
                     if limit_value is not None:
                         return list(queryset_tiles.values_list('resourceinstance_id', flat=True)[offset_value:offset_value + limit_value])
@@ -140,7 +136,6 @@ class QueryBuilderSelectors:
                     return list(queryset_tiles.values_list('resourceinstance_id', flat=True))
                 
             self._resourceinstances_ids = _get_valid_resource_instance_ids() # ? We put this in a global variable for count()
-            print('_resourceinstances_ids : ', self._resourceinstances_ids)
 
             return TileModel.objects.filter(resourceinstance_id__in=self._resourceinstances_ids).order_by(
                 Case(*[When(resourceinstance_id=pk, then=Value(index)) for index, pk in enumerate(self._resourceinstances_ids)], output_field=IntegerField())
