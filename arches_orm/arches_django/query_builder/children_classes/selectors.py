@@ -18,6 +18,7 @@ class QuerysetOffset(TypedDict):
 class QueryBuilderSelectors:
     _instance_query_builder = None;
     _wrapper_instance = None;
+    _resourceinstances_ids = []
 
     def __init__(self, instance_query_builder):
         self._instance_query_builder = instance_query_builder;
@@ -86,6 +87,7 @@ class QueryBuilderSelectors:
 
 
             queryset_tiles = TileModel.objects.values('resourceinstance_id')
+            self._resourceinstances_ids = []
 
             def _apply_annotations():
                 nonlocal queryset_tiles
@@ -103,8 +105,7 @@ class QueryBuilderSelectors:
                         transform_filter_structure_towards_query(filter_structures), 
                         **defaultFilterTileAgrs
                     )
-
-                    print('queryset_tiles : ', queryset_tiles)
+                    print('RAN FILTERS --------- : ')
 
                 else:
                     queryset_tiles = queryset_tiles.filter(**defaultFilterTileAgrs)
@@ -118,14 +119,17 @@ class QueryBuilderSelectors:
                     queryset_tiles = queryset_tiles.exclude(
                         transform_exclude_structure_towards_query(exclude_structures)
                     )
+                    print('RAN EXCLUDES STRUCTURES --------- : ')
 
                 if (order_by):
                     _apply_annotations()
                     queryset_tiles = queryset_tiles.order_by(*order_by)
+                    print('RAN ORDER BY STRUCTURES --------- : ')
 
                 if offset and (offset['limit'] is not None or offset['offset'] is not None):
                     limit_value = offset.get('limit')
                     offset_value = offset.get('offset', 0) or 0
+                    print('RAN OFFSET STRUCTURES --------- : ')
 
                     if limit_value is not None:
                         return list(queryset_tiles.values_list('resourceinstance_id', flat=True)[offset_value:offset_value + limit_value])
@@ -135,12 +139,11 @@ class QueryBuilderSelectors:
                 else:
                     return list(queryset_tiles.values_list('resourceinstance_id', flat=True))
                 
-            resourceinstances_ids = _get_valid_resource_instance_ids()
+            self._resourceinstances_ids = _get_valid_resource_instance_ids() # ? We put this in a global variable for count()
+            print('_resourceinstances_ids : ', self._resourceinstances_ids)
 
-            print('resourceinstances_ids', resourceinstances_ids)
-
-            return TileModel.objects.filter(resourceinstance_id__in=resourceinstances_ids).order_by(
-                Case(*[When(resourceinstance_id=pk, then=Value(index)) for index, pk in enumerate(resourceinstances_ids)], output_field=IntegerField())
+            return TileModel.objects.filter(resourceinstance_id__in=self._resourceinstances_ids).order_by(
+                Case(*[When(resourceinstance_id=pk, then=Value(index)) for index, pk in enumerate(self._resourceinstances_ids)], output_field=IntegerField())
             )
             
         return _callback_get_tiles
@@ -185,6 +188,32 @@ class QueryBuilderSelectors:
         )
         
         return self._default_handle_selector_return(callback_get_tiles=callback_get_tiles)
+    
+    def count(self) -> List[type]:
+        """
+        Method returns the count of the resources within the model, we can filter and exclude this
+        
+        Returns:
+            List[WKRI]: This is the list of WKRI's
+        """
+        annotations = self._instance_query_builder._annotations;
+        filter_structures = self._instance_query_builder._filter_structures;
+        exclude_structures = self._instance_query_builder._exclude_structures;
+
+        callback_get_tiles = self._default_get_tiles(
+            annotations=annotations,
+            filter_structures=filter_structures,
+            exclude_structures=exclude_structures,
+        )
+
+        permittedNodegroupIds: List[str | None] = self._wrapper_instance._permitted_nodegroups()
+        defaultFilterTileAgrs: Dict[str, any] = {
+            'nodegroup_id__in': permittedNodegroupIds
+        }
+
+        callback_get_tiles(**defaultFilterTileAgrs)
+
+        return len(self._resourceinstances_ids)
 
     
     def offset(self, offset: None | int = None, limit: None | int = None) -> List[type]:

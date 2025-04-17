@@ -85,6 +85,9 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
     def all(cls):
         return cls.get_query_builder().all()
 
+    @classmethod
+    def count(cls):
+        return cls.get_query_builder().count()
     
     @classmethod
     def find(cls, resource_instance_id: str): 
