@@ -115,29 +115,9 @@ class QueryBuilderSelectors:
                     # * before using .exclude().
                     _apply_annotations()
                   
-                    print('before_queryset_tiles : ', queryset_tiles)
-
-                    key = "status_type_n1_annotation"
-                    value = "294f38d0-e391-4f7d-af83-72fbf7fcdfcb"
-
-
-                    queryset_tiles[0]["status_type_n1_annotation"] = value
-                    
-                    print('status_type_n1_annotation', queryset_tiles[0]["status_type_n1_annotation"])
-
-                    # # First, filter for null values
-                    # queryset_tiles = queryset_tiles.filter(status_type_n1_annotation__isnull=True)
-
-                    # _apply_annotations()
-
-                    # Then, exclude records where the field matches the specific value
-                    # queryset_tiles = queryset_tiles.exclude(**{key: value}, status_type_n1_annotation__isnull=False)
-
                     queryset_tiles = queryset_tiles.exclude(
                         transform_exclude_structure_towards_query(exclude_structures)
                     )
-                    print('after_   queryset_tiles : ', queryset_tiles)
-                    print('exclude_structures : ', exclude_structures)
 
                 if (order_by):
                     _apply_annotations()
