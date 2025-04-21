@@ -309,7 +309,7 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
 
         crosses = {}
         for cross in ResourceXResource.objects.filter(
-            resourceinstanceidfrom=resource
+            from_resource=resource
         ):
             crosses.setdefault(str(cross.tileid), [])
             crosses[str(cross.tileid)].append(cross)
@@ -327,15 +327,15 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
             if tileid in crosses:
                 for cross in crosses[tileid]:
                     if (
-                        str(cross.resourceinstanceidto_id) == str(related.id) and
-                        str(cross.resourceinstanceidfrom_id) == str(resource.id)
+                        str(cross.to_resource_id) == str(related.id) and
+                        str(cross.from_resource_id) == str(resource.id)
                     ):
                         need_cross = False
                         cross_resourcexid = str(cross.resourcexid)
             if need_cross:
                 cross = ResourceXResource(
-                    resourceinstanceidfrom=resource,
-                    resourceinstanceidto_id=related.id,
+                    from_resource=resource,
+                    to_resource_id=related.id,
                 )
                 if _no_save:
                     self._pending_relationships.append((value, related, self))
@@ -344,7 +344,7 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
                     cross_resourcexid = str(cross.resourcexid)
 
             cross_value = {
-                "resourceId": str(cross.resourceinstanceidto_id),
+                "resourceId": str(cross.to_resource_id),
                 "ontologyProperty": "",
                 "resourceXresourceId": cross_resourcexid,
                 "inverseOntologyProperty": "",
@@ -766,8 +766,8 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
         for tile in resource.tiles:
             if nodegroupid == str(tile.nodegroup_id):
                 cross = ResourceXResource(
-                    resourceinstanceidfrom=wkfm.resource,
-                    resourceinstanceidto=self.resource,
+                    from_resource=wkfm.resource,
+                    to_resource=self.resource,
                 )
                 cross.save()
                 value = (tile.data or {}).get(nodeid, [])

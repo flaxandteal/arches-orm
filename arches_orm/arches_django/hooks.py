@@ -51,23 +51,23 @@ def check_resource_instance_on_tile_save(sender, instance, **kwargs):
                                 if rto:
                                     relationship = ResourceXResource(
                                         resourcexid=rXr_id,
-                                        resourceinstanceidfrom=instance.resourceinstance,
-                                        resourceinstanceidto=rto,
-                                        resourceinstancefrom_graphid=instance.resourceinstance.graph,
-                                        resourceinstanceto_graphid=rto.graph
+                                        from_resource=instance.resourceinstance,
+                                        to_resource=rto,
+                                        from_resource_graph=instance.resourceinstance.graph,
+                                        to_resource_graph=rto.graph
                                     )
-                                    if relationship.resourceinstanceto_graphid:
+                                    if relationship.to_resource_graph:
                                         check_related_to(sender, relationship, "relationship saved", tile=instance, nodeid=key, **kwargs)
         for key, rto_id in seen:
             rto = ResourceInstance.objects.get(resourceinstanceid=rto_id)
             if rto:
                 relationship = ResourceXResource(
-                    resourceinstanceidfrom=instance.resourceinstance,
-                    resourceinstanceidto=rto,
-                    resourceinstancefrom_graphid=instance.resourceinstance.graph,
-                    resourceinstanceto_graphid=rto.graph
+                    from_resource=instance.resourceinstance,
+                    to_resource=rto,
+                    from_resource_graph=instance.resourceinstance.graph,
+                    to_resource_graph=rto.graph
                 )
-                if relationship.resourceinstanceto_graphid:
+                if relationship.to_resource_graph:
                     check_related_to(sender, relationship, "relationship deleted", tile=instance, nodeid=key, **kwargs)
     if instance.resourceinstance and instance.resourceinstance.resourceinstanceid:
         check_resource_instance(sender, instance, "tile saved", **kwargs)
@@ -83,19 +83,19 @@ def check_resource_instance_on_tile_delete(sender, instance, **kwargs):
 @receiver(post_delete, sender=ResourceXResource)
 def check_resource_instance_on_related_to_delete(sender, instance, **kwargs):
     """Catch deletions on tiles for resources."""
-    if instance.resourceinstanceto_graphid:
+    if instance.to_resource_graph:
         check_related_to(sender, instance, "relationship deleted", **kwargs)
 
 def check_related_to(sender: type[ResourceInstance], instance: ResourceXResource, reason: str, tile = None, nodeid = None, **kwargs: Any) -> None:
     graph_id_from = (
-        instance.resourceinstancefrom_graphid.graphid
-        if isinstance(instance.resourceinstancefrom_graphid, GraphModel) else
-        instance.resourceinstancefrom_graphid.graphid
+        instance.from_resource_graph.graphid
+        if isinstance(instance.from_resource_graph, GraphModel) else
+        instance.from_resource_graph_id
     )
     graph_id_to = (
-        instance.resourceinstanceto_graphid.graphid
-        if isinstance(instance.resourceinstanceto_graphid, GraphModel) else
-        instance.resourceinstanceto_graphid.graphid
+        instance.to_resource_graph.graphid
+        if isinstance(instance.to_resource_graph, GraphModel) else
+        instance.to_resource_graph_id
     )
     model_cls_from = None
     model_cls_to = None
@@ -110,10 +110,10 @@ def check_related_to(sender: type[ResourceInstance], instance: ResourceXResource
     if (model_cls_to and model_cls_to.post_related_to.has_listeners()) or (model_cls_from and model_cls_from.post_related_from.has_listeners()):
         resource_instance_from = None
         resource_instance_to = None
-        if model_cls_from and instance.resourceinstanceidfrom:
-            resource_instance_from = model_cls_from.from_resource_instance(instance.resourceinstanceidfrom)
-        if model_cls_to and instance.resourceinstanceidto:
-            resource_instance_to = model_cls_to.from_resource_instance(instance.resourceinstanceidto)
+        if model_cls_from and instance.from_resource:
+            resource_instance_from = model_cls_from.from_resource_instance(instance.from_resource)
+        if model_cls_to and instance.to_resource:
+            resource_instance_to = model_cls_to.from_resource_instance(instance.to_resource)
 
         if model_cls_to and resource_instance_to:
             model_cls_to.post_related_to.send(
