@@ -311,8 +311,8 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
         for cross in ResourceXResource.objects.filter(
             from_resource=resource
         ):
-            crosses.setdefault(str(cross.tileid), [])
-            crosses[str(cross.tileid)].append(cross)
+            crosses.setdefault(str(cross.tile_id), [])
+            crosses[str(cross.tile_id)].append(cross)
         for tile_ix, nodegroup_id, nodeid, related in relationships:
             value = tiles[nodegroup_id][tile_ix].data[nodeid]
             tileid = str(tiles[nodegroup_id][tile_ix].tileid)
