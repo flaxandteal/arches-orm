@@ -8,6 +8,8 @@ from django.db.models import Case, When, Value, IntegerField
 from django.contrib.postgres.fields import JSONField as PostgreSQLJSONField
 from django.db.models.expressions import RawSQL
 
+from arches_orm.arches_django.query_builder.config import RESOURCE_MERGED_TILE_DATA_KEY
+
 if TYPE_CHECKING:
     from arches_orm.arches_django.query_builder.query_builder import FilterStructure, ExcludeStructure
 
@@ -49,7 +51,6 @@ class QueryBuilderSelectors:
         Return:
             QuerySet[TileModel]: The tiles which are returned
         """
-
 
         def _callback_get_tiles(**defaultFilterTileAgrs):
             # class JsonbObjectAggFromLateral(Func):
@@ -93,8 +94,12 @@ class QueryBuilderSelectors:
                 nonlocal queryset_tiles
 
                 queryset_tiles = queryset_tiles.annotate(
-                    **annotation_resource_merge_tile_data(self._instance_query_builder._database_engine)
-                ).distinct().annotate(**annotations)
+                    **{RESOURCE_MERGED_TILE_DATA_KEY: annotation_resource_merge_tile_data(self._instance_query_builder._database_engine)}
+                ).distinct().annotate(
+                    **self._instance_query_builder._before_annotations
+                ).annotate(
+                    **annotations
+                )
 
             def _get_valid_resource_instance_ids():
                 nonlocal queryset_tiles

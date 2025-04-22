@@ -41,7 +41,9 @@ class QueryBuilder:
     _filter_structures: List[FilterStructure] = [];
     _exclude_structures: List[ExcludeStructure] = [];
 
+    _before_annotations: Dict[str, ExpressionWrapper] = {}; # * These are ran before the annotations
     _annotations: Dict[str, ExpressionWrapper] = {};
+    
     _order_by: List[str] = [];
     _lazy_mode: bool = False
     _database_engine : str = None;

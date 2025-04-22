@@ -6,6 +6,11 @@ from django.db import connection
 from datetime import datetime
 from django.conf import settings
 from arches_orm.arches_django.query_builder.config import RESOURCE_MERGED_TILE_DATA_KEY
+from typing import TypedDict
+
+class ExpressionDomainValueReturnType(TypedDict):
+    default: F
+    annotation: ExpressionWrapper
 
 def _figure_out_field_instance_type(value: str):
     try:
@@ -89,56 +94,39 @@ def expression_boolean_value(nodeid: str) -> F:
     """
     return F(f'{RESOURCE_MERGED_TILE_DATA_KEY}__{nodeid}')
 
-def expression_domain_value(database_engine: str, node: Node, additional_keys: List[str] = None) -> ExpressionWrapper:
-    from django.db.models import F, Func, Value, Case, When
+def expression_domain_value(database_engine: str, node: Node, addional_keys: List[str] = None) -> ExpressionDomainValueReturnType:
+    from .expressions_postgresql import postgresql_expression_domain_value
 
-    key_lang = additional_keys[0] if additional_keys and len(additional_keys) >= 1 else 'en'
-    options = node.config.get('options', [])
+    if 'postgresql' in database_engine:
+        return postgresql_expression_domain_value(node, addional_keys)
 
-    # print("\n--- Debug: expression_domain_value ---")
-    # print("Language key:", key_lang)
-    # print("Node ID:", node.nodeid)
-    # print("Options:")
-    # for opt in options:
-    #     print("  ID:", opt.get("id"), "| Text:", opt.get("text", {}).get(key_lang))
+    elif 'sqlite' in database_engine :
+        raise Exception("There is no domain value expression setup towards SQLite database")
 
-    when_conditions = []
-    for option in options:
-        node_id = option.get("id")
-        label = option.get("text", {}).get(key_lang, "")
+    # key_lang = addional_keys[0] if addional_keys and len(addional_keys) >= 1 else 'en'
+    # options = node.config.get('options', [])
+    # dynamic_annotation_key = domain_value_annotation_key(node.alias)
+
+    # when_conditions = []
+    # for option in options:
+    #     node_id = option.get("id")
+    #     selected_option = option['text'][key_lang]
+
+    #     when_conditions.append(
+    #         When(**{dynamic_annotation_key: node_id}, then=Value(selected_option))
+    #     )
+
+    # case_expression = Case(*when_conditions, default=Value(None))
+
+    # return {
+    #     "default": F(f'{RESOURCE_MERGED_TILE_DATA_KEY}__{node.nodeid}'),
+    #     "annotation": ExpressionWrapper(
+    #         case_expression,
+    #         output_field=CharField()
+    #     )
+    # }
 
 
-        # Reference the actual field (e.g., "tiledata") in the model directly
-        # tile_value = Func(
-        #     F('tiledata'),  # The field in your model (tiledata or whatever field name you're using)
-        #     Value(node_id),  # The key you want to extract from the JSON
-        #     function='jsonb_extract_path_text',
-        #     template="%(function)s(%(expressions)s)"  # Custom template to extract the path text
-        # )
-
-        # print('tile_value', tile_value)
-        field_name = f'{RESOURCE_MERGED_TILE_DATA_KEY}__{node.nodeid}'
-        # print(f"Field_Name : ", field_name)
-        # print(f"NODE_ID : ", node_id)
-
-        # Directly use the tile_value expression in the When clause
-      # Correcting the comparison in the When clause
-
-        # Create the condition
-        when_conditions.append(
-            When(
-                Q(**{field_name: node_id}),
-                then=Value("FOUND")
-            )
-        )
-
-    case_expression = Case(*when_conditions, default=Value(None))
-
-    print("--- End Debug ---\n")
-    return ExpressionWrapper(
-        case_expression,
-        output_field=CharField()
-    )
 def expression_date_datatype(nodeid: str) -> ExpressionWrapper:
     """
     Converts a string-based date stored in `resource_merged_tile_data__{nodeid}` into a proper DateTimeField 
