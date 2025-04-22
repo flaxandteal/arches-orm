@@ -2,6 +2,7 @@ from ..utilities import annotation_key
 from arches.app.models.models import Node
 from typing import List, Dict
 from django.db.models import F, Func, ExpressionWrapper, CharField, JSONField, Value
+from arches_orm.arches_django.query_builder.utilities import domain_value_annotation_key
 
 from .expressions.expressions import (
     expression_string_datatype, 
@@ -15,13 +16,9 @@ from .expressions.expressions import (
     expresion_merge_tile_json_data
 )
 
-from arches_orm.arches_django.query_builder.config import RESOURCE_MERGED_TILE_DATA_KEY
 
-def annotation_resource_merge_tile_data(current_database_engine: str) -> Dict[str, ExpressionWrapper | F]:
-        annotations = {}
-        annotations[RESOURCE_MERGED_TILE_DATA_KEY] = expresion_merge_tile_json_data(current_database_engine)
-
-        return annotations
+def annotation_resource_merge_tile_data(current_database_engine: str) -> Dict[str, ExpressionWrapper | F]: 
+    return expresion_merge_tile_json_data(current_database_engine)
 
 def set_annotation(
     query_builder_instance,
@@ -63,7 +60,10 @@ def set_annotation(
         query_builder_instance._annotations[annotation_key(node_alias)] = expression_resource_instance_list_datatype(current_database_engine, node.nodeid)
 
     elif (node.datatype == 'domain-value'):
-        query_builder_instance._annotations[annotation_key(node_alias)] = expression_domain_value(current_database_engine, node, addiontal_keys)
+        expressions = expression_domain_value(current_database_engine, node, addiontal_keys)
+
+        query_builder_instance._before_annotations[domain_value_annotation_key(node_alias)] = expressions["default"]
+        query_builder_instance._annotations[annotation_key(node_alias)] = expressions["annotation"]
 
     else:
         query_builder_instance._annotations[annotation_key(node_alias)] = expression_generic_default_fallback(current_database_engine, node.nodeid)

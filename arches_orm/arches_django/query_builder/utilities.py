@@ -22,6 +22,9 @@ class SplitQueryKeyReturn(TypedDict):
     additional_keys: List[str]
     operator: str
 
+def domain_value_annotation_key(node_alias: str):
+    return f'{annotation_key(node_alias)}_domain_value'
+
 def annotation_key(node_alias: str) -> str:
     """
     Method handles returning the annotation key. We are just keeping structure towards the annotation key
