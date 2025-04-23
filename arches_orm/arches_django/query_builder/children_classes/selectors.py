@@ -110,6 +110,7 @@ class QueryBuilderSelectors:
                         transform_filter_structure_towards_query(filter_structures), 
                         **defaultFilterTileAgrs
                     )
+                    print('filter_structures : ', queryset_tiles)
 
                 else:
                     queryset_tiles = queryset_tiles.filter(**defaultFilterTileAgrs)
