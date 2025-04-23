@@ -57,7 +57,7 @@ def set_annotation(
         query_builder_instance._annotations[annotation_key(node_alias)] = expression_concept_value(node)
 
     elif (node.datatype == 'resource-instance-list'):
-        query_builder_instance._annotations[annotation_key(node_alias)] = expression_resource_instance_list_datatype(current_database_engine, node.nodeid)
+        query_builder_instance._annotations[annotation_key(node_alias)] = expression_resource_instance_list_datatype(current_database_engine, node.nodeid, addiontal_keys)
 
     elif (node.datatype == 'domain-value'):
         expressions = expression_domain_value(current_database_engine, node, addiontal_keys)

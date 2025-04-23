@@ -53,7 +53,7 @@ def expression_generic_default_fallback(database_engine: str, nodeid: str) -> Ex
     elif 'sqlite' in database_engine :
         return sqlite_default_fallback_expression_generic(nodeid)
 
-def expression_resource_instance_list_datatype(database_engine: str, nodeid: str) -> ExpressionWrapper | F:
+def expression_resource_instance_list_datatype(database_engine: str, nodeid: str, additional_keys: List[str] = None) -> ExpressionWrapper | F:
     """
     Method handles using the correct method depending on the database engine
     """
@@ -61,13 +61,13 @@ def expression_resource_instance_list_datatype(database_engine: str, nodeid: str
     from .expressions_sqlite import sqlite_expression_resource_instance_list_datatype
 
     if 'postgresql' in database_engine:
-        return postgresql_expression_resource_instance_list_datatype(nodeid)
+        return postgresql_expression_resource_instance_list_datatype(nodeid, additional_keys)
 
     elif 'sqlite' in database_engine :
         return sqlite_expression_resource_instance_list_datatype(nodeid)
 
 
-def expression_string_datatype(database_engine: str, nodeid: str, addional_keys: List[str] = None) -> ExpressionWrapper | F:
+def expression_string_datatype(database_engine: str, nodeid: str, additional_keys: List[str] = None) -> ExpressionWrapper | F:
     """
     Method handles using the correct method depending on the database engine
     """
@@ -75,10 +75,10 @@ def expression_string_datatype(database_engine: str, nodeid: str, addional_keys:
     from .expressions_sqlite import sqlite_expression_string_datatype
 
     if 'postgresql' in database_engine:
-        return postgresql_expression_string_datatype(nodeid, addional_keys)
+        return postgresql_expression_string_datatype(nodeid, additional_keys)
 
     elif 'sqlite' in database_engine :
-        return sqlite_expression_string_datatype(nodeid, addional_keys)
+        return sqlite_expression_string_datatype(nodeid, additional_keys)
 
 # * If I just return the key, the query works as expected where(old_enough=True), however if I return a ExpressionWrapper, this stops working, therefore
 # * the return type is F (Just the key)
@@ -94,16 +94,16 @@ def expression_boolean_value(nodeid: str) -> F:
     """
     return F(f'{RESOURCE_MERGED_TILE_DATA_KEY}__{nodeid}')
 
-def expression_domain_value(database_engine: str, node: Node, addional_keys: List[str] = None) -> ExpressionDomainValueReturnType:
+def expression_domain_value(database_engine: str, node: Node, additional_keys: List[str] = None) -> ExpressionDomainValueReturnType:
     from .expressions_postgresql import postgresql_expression_domain_value
 
     if 'postgresql' in database_engine:
-        return postgresql_expression_domain_value(node, addional_keys)
+        return postgresql_expression_domain_value(node, additional_keys)
 
     elif 'sqlite' in database_engine :
         raise Exception("There is no domain value expression setup towards SQLite database")
 
-    # key_lang = addional_keys[0] if addional_keys and len(addional_keys) >= 1 else 'en'
+    # key_lang = additional_keys[0] if additional_keys and len(additional_keys) >= 1 else 'en'
     # options = node.config.get('options', [])
     # dynamic_annotation_key = domain_value_annotation_key(node.alias)
 

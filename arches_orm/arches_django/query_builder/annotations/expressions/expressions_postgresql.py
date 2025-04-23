@@ -18,7 +18,23 @@ class JsonBAgg(Aggregate):
     output_field = JSONField()
     template = '%(function)s(%(distinct)s%(expressions)s)'
 
-def postgresql_expression_resource_instance_list_datatype(nodeid: str) -> ExpressionWrapper:
+class ExtractKeyFromResourceInstanceList(Func):
+    function = None  # Custom SQL
+    template = """
+    (
+        SELECT jsonb_agg(elem ->> '%(key)s')
+        FROM jsonb_each(%(expressions)s) AS e(key, val),
+             jsonb_array_elements(val) AS elem
+        WHERE jsonb_typeof(val) = 'array'
+            AND elem ? '%(key)s'
+    )
+    """
+    output_field = JSONField()
+
+    def __init__(self, expression, key='resourceId', **extra):
+        super().__init__(expression, key=key, **extra)
+
+def postgresql_expression_resource_instance_list_datatype(nodeid: str, additional_keys: List[str] = None) -> ExpressionWrapper:
     """
     Method gets the experssion for a resource-instance-list datatype. This is mainaly used for the tiles JSON column that is stored within the database so we can use
     annotations around the expressions
@@ -30,10 +46,8 @@ def postgresql_expression_resource_instance_list_datatype(nodeid: str) -> Expres
         ExpressionWrapper: This is the expression wrapper that is returned and should be mainly used for annotations
     """
 
-    return ExpressionWrapper(
-        F(f'{RESOURCE_MERGED_TILE_DATA_KEY}__{nodeid}'),
-        output_field=JSONField()
-    )
+    key = additional_keys[0] if additional_keys and len(additional_keys) >= 1 else 'resourceId'
+    return ExtractKeyFromResourceInstanceList(F(RESOURCE_MERGED_TILE_DATA_KEY), key=key)
 
 def postgresql_expression_merge_tile_json_data():
     return RawSQL(
@@ -62,21 +76,21 @@ def postgresql_default_fallback_expression_generic(nodeid: str) -> F:
     """
     return F(f'{RESOURCE_MERGED_TILE_DATA_KEY}__{nodeid}')
 
-def postgresql_expression_string_datatype(nodeid: str, addional_keys: List[str] = None) -> F:
+def postgresql_expression_string_datatype(nodeid: str, additional_keys: List[str] = None) -> F:
     """
     Method gets the experssion for a string datatype. This is mainaly used for the tiles JSON column that is stored within the database so we can use
     annotations around the expressions
 
     Args:
         nodeid (str): The node id
-        addional_keys (List[str], optional): The addional keys are used towards the user input for example firstname__en='Harry'. Defaults to None.
+        additional_keys (List[str], optional): The addional keys are used towards the user input for example firstname__en='Harry'. Defaults to None.
 
     Returns:
         F: This is the function used to get the value
     """
 
-    key_lang = addional_keys[0] if addional_keys and len(addional_keys) >= 1 else 'en'
-    value_lang = addional_keys[1] if addional_keys and len(addional_keys) >= 2 else 'value'
+    key_lang = additional_keys[0] if additional_keys and len(additional_keys) >= 1 else 'en'
+    value_lang = additional_keys[1] if additional_keys and len(additional_keys) >= 2 else 'value'
 
     return  F(f'{RESOURCE_MERGED_TILE_DATA_KEY}__{nodeid}__{key_lang}__{value_lang}')
 
@@ -94,8 +108,8 @@ def postgresql_expression_number_datatype(nodeid: str) -> F:
 
     return F(f'{RESOURCE_MERGED_TILE_DATA_KEY}__{nodeid}')
 
-def postgresql_expression_domain_value(node: Node, addional_keys: List[str] = None) -> ExpressionDomainValueReturnType:
-    key_lang = addional_keys[0] if addional_keys and len(addional_keys) >= 1 else 'en'
+def postgresql_expression_domain_value(node: Node, additional_keys: List[str] = None) -> ExpressionDomainValueReturnType:
+    key_lang = additional_keys[0] if additional_keys and len(additional_keys) >= 1 else 'en'
     options = node.config.get('options', [])
     dynamic_annotation_key = domain_value_annotation_key(node.alias)
 
