@@ -101,6 +101,14 @@ class QueryBuilderSelectors:
                     **annotations
                 )
 
+                # for tile in queryset_tiles:
+                #     if 'assigned_to_n1_annotation' in tile:
+                #         print('==============================================================================')
+                #         print('FOUND : ', tile['assigned_to_n1_annotation'])
+                #         print('FOUND : ', tile['resourceinstance_id'])
+                #         print('filter : ', filter_structures)
+                #         print('==============================================================================')
+
             def _get_valid_resource_instance_ids():
                 nonlocal queryset_tiles
                 _apply_annotations()
@@ -110,7 +118,7 @@ class QueryBuilderSelectors:
                         transform_filter_structure_towards_query(filter_structures), 
                         **defaultFilterTileAgrs
                     )
-                    print('filter_structures : ', queryset_tiles)
+                    # print('filter_structures : ', queryset_tiles)
 
                 else:
                     queryset_tiles = queryset_tiles.filter(**defaultFilterTileAgrs)
