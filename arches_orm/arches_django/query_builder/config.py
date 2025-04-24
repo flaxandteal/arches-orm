@@ -11,4 +11,6 @@ INSENSITIVE_STARTS_WITH_KEYS = ['istartswith', 'isw']
 STARTS_WITH_KEYS = ['startswith', 'sw']
 CONTAINS_KEYS = ['ct', 'contains']
 
+ISNULL_KEYS = ['isnull', 'isnone']
+
 RESOURCE_MERGED_TILE_DATA_KEY = 'resource_merged_tile_data'

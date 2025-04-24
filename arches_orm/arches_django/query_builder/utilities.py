@@ -8,7 +8,8 @@ from .config import (
     CONTAINS_KEYS, 
     INSENSITIVE_CONTAINS_KEYS,
     STARTS_WITH_KEYS,
-    INSENSITIVE_STARTS_WITH_KEYS
+    INSENSITIVE_STARTS_WITH_KEYS,
+    ISNULL_KEYS
 )
 from typing import List, TYPE_CHECKING
 from django.db.models import Q
@@ -56,6 +57,9 @@ def handle_operatortion(raw_operator: str | None) -> str:
     
     if raw_operator in INSENSITIVE_STARTS_WITH_KEYS:
         return 'istartswith'
+    
+    if raw_operator in ISNULL_KEYS:
+        return 'isnull'
 
     if raw_operator in INSENSITIVE_CONTAINS_KEYS:
         return 'icontains'
