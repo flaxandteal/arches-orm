@@ -32,13 +32,13 @@ class QueryBuilderFilters:
         """
 
         if field_lookup == 'equal':
-            self._filters[annotation_key(field_key)] = value
+            self._filters[field_key] = value
 
         elif field_lookup in NOT_EQUAL_KEYS:
-            self._excludes[annotation_key(field_key)] = value
+            self._excludes[field_key] = value
         
         else:
-            self._filters[annotation_key(field_key) + "__" + field_lookup] = value
+            self._filters[field_key + "__" + field_lookup] = value
 
     def _reset_previous_filtering_excluding(self):
         """
@@ -68,16 +68,23 @@ class QueryBuilderFilters:
             query = split_query_key(key)
             node: Node = nodes.get(query['field_key'])
 
-            set_annotation(
-                self._instance_query_builder,
-                query['field_key'],
-                node,
-                query['additional_keys']
-            )
+            # print('key : ', key)
+            # print('field_key : ', query['field_key'])
+            # print('additional_keys : ', query['additional_keys'])
 
-            # * We do use the annotation_key as the filter field_key as within set_annotation it setups the annotation with the key as annotation_key(query['field_key'])
-            # * and the value as the expression wrapper, therefore we have to use the same key to filter with
-            self._handle_setting_excludes_filters(query['field_key'], query['operator'], value)
+            if (query['field_key'] == 'resourceinstance' and len(query['additional_keys']) > 0):
+                self._handle_setting_excludes_filters(query['field_key'], query['operator'], value)
+
+            else:
+                set_annotation(
+                    self._instance_query_builder,
+                    query['field_key'],
+                    node,
+                    query['additional_keys']
+                )
+                # * We do use the annotation_key as the filter field_key as within set_annotation it setups the annotation with the key as annotation_key(query['field_key'])
+                # * and the value as the expression wrapper, therefore we have to use the same key to filter with
+                self._handle_setting_excludes_filters(annotation_key(query['field_key']), query['operator'], value)
 
         # * Attach the filters and the logical operator (AND | OR) to the parent query builder for future use within selectors.py
         if self._filters:
