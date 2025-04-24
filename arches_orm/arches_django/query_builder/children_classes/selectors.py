@@ -4,6 +4,7 @@ from typing import Dict, List, TYPE_CHECKING, TypedDict
 from django.db.models import ExpressionWrapper, QuerySet
 from arches_orm.arches_django.query_builder.annotations.annotations import annotation_resource_merge_tile_data
 from django.db.models import Case, When, Value, IntegerField
+from django.db.models import F
 
 from django.contrib.postgres.fields import JSONField as PostgreSQLJSONField
 from django.db.models.expressions import RawSQL
@@ -135,7 +136,30 @@ class QueryBuilderSelectors:
 
                 if (order_by):
                     _apply_annotations()
-                    queryset_tiles = queryset_tiles.order_by(*order_by)
+
+                    annotatnions = {}
+                    transformed_order_by_null = []
+
+                    # * The issue here is that if we use order by and the value is None, then that record where is None stays in it's order posistion,
+                    # * whilist the rest of the records are sorted. There is an option to null is first or last 
+                    # * (https://docs.djangoproject.com/en/4.2/ref/models/expressions/#using-f-to-sort-null-values), however this F("last_contacted") only accounts for
+                    # * field names within the database, not custom annotations, therefore we have to preform this work around for this system.
+                    # ! It would be better for this to be defined within annotations instead, however with the time limit on Emerald and the performance impact, it's 
+                    # ! completely find to define this here as order by is unnatural to be above length of 3 
+                    for field in order_by:
+                        is_desc = { 'isnull': 1, 'notnull': 0 } if (field.startswith('-')) else { 'isnull': 0, 'notnull': 1 }
+                        field_name = field.lstrip('-')
+                        null_order_field = f'{field_name}_null_order'
+
+                        annotatnions[null_order_field] = Case(
+                            When(**{f"{field_name}__isnull": True}, then=Value(is_desc['isnull'])),
+                            default=Value(is_desc['notnull']),
+                            output_field=IntegerField()
+                        )
+
+                        transformed_order_by_null.append(null_order_field)
+
+                    queryset_tiles = queryset_tiles.annotate(**annotatnions).order_by(*transformed_order_by_null, *order_by)
 
                 if offset and (offset['limit'] is not None or offset['offset'] is not None):
                     limit_value = offset.get('limit')
