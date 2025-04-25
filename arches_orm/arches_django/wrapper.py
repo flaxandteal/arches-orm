@@ -23,6 +23,7 @@ from arches.app.utils.permission_backend import (
     user_can_read_graph
 )
 from arches_orm.datatypes import DataTypeNames
+from .datatypes import get_view_model_for_datatype
 
 from arches_orm.wrapper import ResourceWrapper
 from arches_orm.utils import snake
@@ -1328,6 +1329,8 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
             else:
                 node_value = PseudoNodeValue(
                     tile=tile,
+                    TileProxyModel=cls.TileProxyModel,
+                    get_view_model_for_datatype=get_view_model_for_datatype,
                     node=node_obj,
                     value=None,
                     parent=wkri,

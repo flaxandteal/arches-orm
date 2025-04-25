@@ -1,0 +1,1000 @@
+ 4329  27/03/25 10:11:37 code .
+ 4330  27/03/25 10:16:59 ./gradlew assembleRelease bundleRelease
+ 4331  27/03/25 10:45:27 cd #
+ 4332  27/03/25 10:45:32 cd git/biographer-bot/poc/frontend/
+ 4333  27/03/25 10:45:33 code .
+ 4334  27/03/25 10:46:24 cd #
+ 4335  27/03/25 10:46:27 cd git/my-flex/proof-of-concept/
+ 4336  27/03/25 10:46:59 git checkout -b "feat/update-pipelines-signed-release"
+ 4337  27/03/25 10:47:12 git quick "feat: updated pipelines and changed the exmaple to dark_red_design"
+ 4338  27/03/25 10:47:19 git push origin feat/update-pipelines-signed-release 
+ 4339  27/03/25 10:51:42 git quick "feat: updated pipeline"
+ 4340  27/03/25 11:01:38 java --version
+ 4341  27/03/25 11:07:10 ./gradlew assembleRelease bundleRelease
+ 4342  27/03/25 11:08:29 git quick "feat: test version code"
+ 4343  27/03/25 11:09:14 git pull origin feat/update-pipelines-signed-release 
+ 4344  27/03/25 11:10:52 git quick "test: fixed"
+ 4345  27/03/25 11:11:11 base64 -w 0 -i ./my-flex.keystore > keystore.txt
+ 4346  27/03/25 11:12:14 echo "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" | base64 --decode > test-my-flex.keystore
+ 4347  27/03/25 11:12:25 ./gradlew assembleRelease bundleRelease
+ 4348  27/03/25 11:13:40 versionCode=$(grep versionCode app/build.gradle.kts | awk '{print $2}')
+ 4349  27/03/25 11:13:51 echo $(grep versionCode app/build.gradle.kts | awk '{print $2}')
+ 4350  27/03/25 11:13:55 echo $(grep versionCode app/build.gradle.kts | awk '{print $3}')
+ 4351  27/03/25 11:25:53 git quick "feat: update"
+ 4352  27/03/25 11:30:12 java --version
+ 4353  27/03/25 11:31:00 git quick "feat: changed image"
+ 4354  27/03/25 11:34:33 echo $(echo $LATEST_TAG | sed -E 's/.*\+([0-9]+)/\1/')
+ 4355  27/03/25 11:35:15 $LATEST_VERSION_CODE=$(echo $LATEST_TAG | sed -E 's/.*\+([0-9]+)/\1/')
+ 4356  27/03/25 11:35:20 $LATEST_VERSION_CODE: $(echo $LATEST_TAG | sed -E 's/.*\+([0-9]+)/\1/')
+ 4357  27/03/25 11:35:23 echo $(echo $LATEST_TAG | sed -E 's/.*\+([0-9]+)/\1/')
+ 4358  27/03/25 11:35:35 LATEST_VERSION_CODE=$(echo $LATEST_TAG | sed -E 's/.*\+([0-9]+)/\1/')
+ 4359  27/03/25 11:35:42 LATEST_TAG=$(git describe --tags --abbrev=0)
+ 4360  27/03/25 11:35:44 LATEST_VERSION_CODE=$(echo $LATEST_TAG | sed -E 's/.*\+([0-9]+)/\1/')
+ 4361  27/03/25 11:35:47 echo $(echo $LATEST_TAG | sed -E 's/.*\+([0-9]+)/\1/')
+ 4362  27/03/25 11:37:36 if echo "$LATEST_TAG" | grep -q "+"; then
+ 4363  25/04/25 09:03:07         LATEST_VERSION_CODE=$(echo $LATEST_TAG | sed -E 's/.*\+([0-9]+)/\1/');       else
+ 4364  25/04/25 09:03:07         LATEST_VERSION_CODE="";       fi
+ 4365  27/03/25 11:37:41 if echo "$LATEST_TAG" | grep -q "+"; then         LATEST_VERSION_CODE=$(echo $LATEST_TAG | sed -E 's/.*\+([0-9]+)/\1/');       else         LATEST_VERSION_CODE="";       fi
+ 4366  27/03/25 11:37:53 echo $LATEST_VERSION_CODE
+ 4367  27/03/25 11:38:17 LATEST_TAG=2.6.0+5
+ 4368  27/03/25 11:38:19 if echo "$LATEST_TAG" | grep -q "+"; then         LATEST_VERSION_CODE=$(echo $LATEST_TAG | sed -E 's/.*\+([0-9]+)/\1/');       else         LATEST_VERSION_CODE="";       fi
+ 4369  27/03/25 11:38:20 echo $LATEST_VERSION_CODE
+ 4370  27/03/25 11:39:49 git quick "feat: updated"
+ 4371  27/03/25 11:48:20 git add .
+ 4372  27/03/25 11:48:27 git commit -m "feat: final push"
+ 4373  27/03/25 11:48:31 git push origin feat/update-pipelines-signed-release 
+ 4374  27/03/25 11:49:20 git quick "chore: version bump"
+ 4375  27/03/25 11:54:11 git quick "fix: issue with normal build"
+ 4376  27/03/25 14:00:50 git switch main 
+ 4377  27/03/25 14:00:52 git pull origin main 
+ 4378  27/03/25 14:31:17 adb install -r /home/aidan/git/my-flex/proof-of-concept/app/build/intermediates/apk/debug/app-debug.apk
+ 4379  27/03/25 16:35:17 git checkout -b "fix/17_35_33_31_30-connection-issues"
+ 4380  27/03/25 16:36:14 git add .
+ 4381  27/03/25 16:37:17 git commit -m "fix(#17 | #35 | #33 | #31 | #30): added a refresh button towards the list, handled life cycle for disconnects better and added in if the connected bluetooth device is turned off, then disconnect"
+ 4382  27/03/25 16:37:21 git push origin fix/17_35_33_31_30-connection-issues 
+ 4383  27/03/25 16:37:51 code .
+ 4384  27/03/25 16:38:14 git quick "chore: version bump"
+ 4385  27/03/25 16:48:53 git switch main 
+ 4386  27/03/25 16:48:56 git pull origin main 
+ 4387  27/03/25 16:56:53 git checkout -b "fix/4_connect-bluetooth-page"
+ 4388  27/03/25 16:57:00 git checkout -b "fix/46_connect-bluetooth-page"
+ 4389  27/03/25 16:57:02 git add .
+ 4390  27/03/25 16:57:19 git commit -m "chore(#46): fixed file naming con"
+ 4391  27/03/25 17:09:45 git quick "fix(#46): disabled visability when on the bluetooth connection for connect"
+ 4392  27/03/25 17:10:35 git quick "chore(#46): version bump"
+ 4393  28/03/25 09:07:42 cd Downloads/android-studio/bin/
+ 4394  28/03/25 09:07:45 ./studio
+ 4395  28/03/25 09:07:48 ./studio.sh 
+ 4396  28/03/25 12:14:00 cd /etc/ssl/certs/
+ 4397  28/03/25 12:14:01 ls
+ 4398  28/03/25 09:08:28 cd #
+ 4399  28/03/25 09:08:30 cd git/my-flex/proof-of-concept/
+ 4400  28/03/25 09:08:47 git switch main 
+ 4401  28/03/25 09:08:51 git pull origin main 
+ 4402  28/03/25 11:11:26 git checkout -b "fix/44_41-issue-exercise-session-theme-colour-design"
+ 4403  28/03/25 11:11:28 git add .
+ 4404  28/03/25 11:11:46 git commit -m "fix(#41): added theme design and fixed issue with exercise session on fragments, expect for rest"
+ 4405  28/03/25 11:12:04 git switch main 
+ 4406  28/03/25 11:12:07 git pull origin main 
+ 4407  28/03/25 11:12:30 git switch fix/44_41-issue-exercise-session-theme-colour-design 
+ 4408  28/03/25 11:12:35 git push origin fix/44_41-issue-exercise-session-theme-colour-design 
+ 4409  28/03/25 11:12:41 git switch main 
+ 4410  28/03/25 11:15:52 git stash
+ 4411  28/03/25 11:15:58 git switch fix/44_41-issue-exercise-session-theme-colour-design 
+ 4412  28/03/25 11:40:23 git quick "fix(#41): fixed issue with rest page"
+ 4413  28/03/25 11:50:41 ssh -i ~/keys/biographer-bot-server.pem admin@54.154.162.25
+ 4414  28/03/25 14:22:10 git add .
+ 4415  28/03/25 14:22:49 git quick "fix(#44): finished"
+ 4416  28/03/25 14:23:55 git quick "chore(#44): versoin bump"
+ 4417  28/03/25 15:05:26 code .
+ 4418  28/03/25 17:27:31 git checkout "feat/56_chart-of-data"
+ 4419  28/03/25 17:27:36 git checkout -b "feat/56_chart-of-data"
+ 4420  28/03/25 17:27:44 git quick "feat(#56): addded chart"
+ 4421  31/03/25 16:40:54 cd #
+ 4422  31/03/25 16:40:58 cd Downloads/android-studio/bin/
+ 4423  31/03/25 16:41:02 ./studio
+ 4424  31/03/25 09:02:54 cd Downloads/android-studio/bin/
+ 4425  31/03/25 09:02:57 ./studio
+ 4426  31/03/25 16:05:51 cd #
+ 4427  31/03/25 16:06:05 ls
+ 4428  31/03/25 16:06:12 cd git/my-flex/proof-of-concept/
+ 4429  31/03/25 16:06:15 code .
+ 4430  31/03/25 16:06:47 git quick "feat(#56): added charts"
+ 4431  31/03/25 16:07:21 git pull origin main 
+ 4432  31/03/25 16:07:33 git config pull.rebase false
+ 4433  31/03/25 16:07:33 git pull origin main 
+ 4434  31/03/25 16:07:41 git push origin feat/56_chart-of-data 
+ 4435  31/03/25 16:41:50 git checkout -b "feat/58_calibrate-exercise"
+ 4436  01/04/25 12:21:57 cd Downloads/android-studio/bin/
+ 4437  01/04/25 12:21:59 ./studio
+ 4438  02/04/25 13:54:45 cd ..
+ 4439  02/04/25 13:54:49 ls
+ 4440  02/04/25 13:54:50 cd git/
+ 4441  02/04/25 13:54:50 ls
+ 4442  02/04/25 13:54:55 cd my-flex/proof-of-concept/
+ 4443  02/04/25 13:54:59 git add .
+ 4444  02/04/25 13:55:23 git quick "feat(#58): calibrated exercises created interface"
+ 4445  02/04/25 13:55:33 code .
+ 4446  02/04/25 13:55:43 git add .
+ 4447  02/04/25 13:55:58 git commit -m "chore(#58): version bump"
+ 4448  02/04/25 13:56:07 git push origin feat/58_calibrate-exercise 
+ 4449  02/04/25 13:56:18 git pull origin main 
+ 4450  02/04/25 13:56:26 git push origin feat/58_calibrate-exercise 
+ 4451  02/04/25 13:57:48 clear
+ 4452  02/04/25 13:57:49 code .
+ 4453  02/04/25 13:59:51 git quick "fix(#58): fixed issue with exercise session navigation"
+ 4454  02/04/25 14:03:06 git quick "feat(#58): made text view text smaller
+ 4455  25/04/25 09:03:07 "
+ 4456  02/04/25 14:06:15 git checkout -b "feat/57_record-bluetooth-data-towards-csv"
+ 4457  02/04/25 15:16:49 git switch main 
+ 4458  02/04/25 15:16:51 git pull origin
+ 4459  02/04/25 09:23:31 cd Downloads/
+ 4460  02/04/25 09:23:32 cd g
+ 4461  02/04/25 09:34:32 cd android-studio/
+ 4462  02/04/25 09:34:34 cd bin/
+ 4463  02/04/25 09:34:36 ./studio
+ 4464  03/04/25 09:02:23 cd #
+ 4465  03/04/25 09:02:31 cd Downloads/
+ 4466  03/04/25 09:02:33 cd android-studio/
+ 4467  03/04/25 09:02:33 ls
+ 4468  03/04/25 09:02:35 cd bin/
+ 4469  03/04/25 09:02:36 ls
+ 4470  03/04/25 09:02:39 ./studio.sh 
+ 4471  03/04/25 09:01:40 cd git/my-flex/proof-of-concept/
+ 4472  03/04/25 09:01:43 code .
+ 4473  03/04/25 14:27:34 git checkout -b "feat/59_cal-weight-on-bar"
+ 4474  03/04/25 14:27:51 git quick "feat(#59): added pages to calulate weight on bar"
+ 4475  03/04/25 14:45:11 git quick "fix(#59): fixed a couple of issues with the cal page"
+ 4476  03/04/25 14:59:14 git quick "chore(#59): commented code and fixed colour issue"
+ 4477  03/04/25 16:18:09 grep -r "currentTimerSeconds"
+ 4478  03/04/25 17:08:45 git checkout -b "feat/60_split-up-exercise-session"
+ 4479  03/04/25 17:08:55 git quick "feat(#60): exercise session split up"
+ 4480  04/04/25 09:41:46 btop
+ 4481  04/04/25 10:30:43 cd #
+ 4482  04/04/25 10:30:49 cd git/my-flex/proof-of-concept/
+ 4483  04/04/25 10:30:59 git quick "feat(#60): fixed progress bar"
+ 4484  04/04/25 10:32:22 git quick "chore(#60): version bump"
+ 4485  04/04/25 10:32:29 git pull origin main 
+ 4486  04/04/25 10:32:38 git push origin feat/60_split-up-exercise-session 
+ 4487  04/04/25 09:07:36 cd  Downloads/android-studio/bin/
+ 4488  04/04/25 09:07:38 ./studio
+ 4489  07/04/25 14:13:39 cd #
+ 4490  07/04/25 14:13:43 cd Downloads/android-studio/bin/
+ 4491  07/04/25 14:13:44 ./studio
+ 4492  07/04/25 14:11:27 cd git/my-flex/proof-of-concept/
+ 4493  07/04/25 14:12:01 git checkout -b "feat/workouts"
+ 4494  07/04/25 14:12:08 git quick "feat: added workouts"
+ 4495  07/04/25 14:12:13 code .
+ 4496  07/04/25 14:12:31 git quick "chore: version bump"
+ 4497  07/04/25 14:12:36 git pull origin main 
+ 4498  07/04/25 14:12:43 git push origin feat/workouts 
+ 4499  07/04/25 14:13:10 git checkout -b "feat/calulations"
+ 4500  07/04/25 09:10:18 cd Downloads/android-studio/bin/
+ 4501  07/04/25 09:10:20 ./studio
+ 4502  09/04/25 09:13:28 cd Downloads/android-studio/bin/
+ 4503  09/04/25 09:13:30 ./studio
+ 4504  09/04/25 10:57:30 cd #
+ 4505  09/04/25 10:57:36 cd git/my-flex/proof-of-concept/
+ 4506  09/04/25 10:58:35 git checkout -b "fix/66_68_70_69_60-issue-clean-up"
+ 4507  09/04/25 10:59:00 git quick "fix(#66 | #68 | #70 | #69 | #60): fixed and cleaned up small issues"
+ 4508  09/04/25 10:59:08 git pull origin main 
+ 4509  09/04/25 10:59:15 code .
+ 4510  09/04/25 10:59:41 git quick "chore(#66): added version bump"
+ 4511  09/04/25 12:08:59 grep -r "selectedExercise = null"
+ 4512  09/04/25 12:15:12 grep -r "workoutViewModel.selectedWorkout ="
+ 4513  09/04/25 12:15:30 grep -r "availableExercises"
+ 4514  09/04/25 12:15:33 grep -r "availableExercises = "
+ 4515  09/04/25 14:17:26 code .
+ 4516  09/04/25 14:33:58 git checkout -b "feat/49_read-me"
+ 4517  09/04/25 14:34:01 git pull origin main 
+ 4518  09/04/25 14:34:04 code .
+ 4519  09/04/25 14:34:43 git quick "feat(#49): updated readme and added liences"
+ 4520  09/04/25 15:15:59 git stash
+ 4521  09/04/25 16:09:12 git checkout -b "feat/updated-lineces"
+ 4522  09/04/25 16:09:19 git quick "added liences"
+ 4523  09/04/25 16:09:46 code .
+ 4524  09/04/25 16:09:54 git pull origin main 
+ 4525  09/04/25 16:10:22 git quick "added liences"
+ 4526  09/04/25 16:38:28 git checkout -b "fix/rep-issue"
+ 4527  09/04/25 16:38:37 git quick "fix: fixed issues"
+ 4528  09/04/25 16:39:09 git quick "chore: version bump"
+ 4529  09/04/25 16:39:13 git pull origin main 
+ 4530  09/04/25 16:39:24 git push origin fix/rep-issue 
+ 4531  10/04/25 09:36:05 cd git/emerald2/coral-arches/
+ 4532  10/04/25 09:36:11 make run
+ 4533  10/04/25 09:36:17 sudo systemctl stop postgresql
+ 4534  10/04/25 09:36:20 make run
+ 4535  10/04/25 10:34:12 /usr/local/bin/python2.7 /home/aidan/.vscode/extensions/ms-python.python-2025.4.0-linux-x64/python_files/printEnvVariablesToFile.py /home/aidan/.vscode/extensions/ms-python.python-2025.4.0-linux-x64/python_files/deactivate/bash/envVars.txt
+ 4536  10/04/25 10:51:25 code .
+ 4537  10/04/25 10:38:29 make run
+ 4538  10/04/25 10:58:08 make run
+ 4539  10/04/25 14:04:28 MAKE RUN
+ 4540  10/04/25 14:04:33 make run
+ 4541  10/04/25 16:31:36 make un
+ 4542  10/04/25 16:31:38 make run
+ 4543  10/04/25 16:49:09 make run]
+ 4544  10/04/25 16:49:11 make run
+ 4545  10/04/25 09:37:03 code .
+ 4546  10/04/25 09:37:10 cd ..
+ 4547  10/04/25 09:37:11 code .
+ 4548  10/04/25 10:33:09 cd coral-arches/
+ 4549  10/04/25 10:33:53 cd ..
+ 4550  10/04/25 10:34:04 cd arches-orm/
+ 4551  10/04/25 10:34:08 code .
+ 4552  10/04/25 10:42:12 history
+ 4553  10/04/25 10:43:03 history | grep pytest
+ 4554  10/04/25 10:43:11 pytest ./tests/arches_django/test_arches_django_query_builder.py -s -p no:warnings --log-level=ERROR
+ 4555  10/04/25 10:43:16 . ../ENV/bin/activate
+ 4556  10/04/25 10:43:17 pytest ./tests/arches_django/test_arches_django_query_builder.py -s -p no:warnings --log-level=ERROR
+ 4557  10/04/25 10:43:52 code .
+ 4558  10/04/25 10:44:55 pytest ./tests/arches_django/test_arches_django_query_builder.py -s -p no:warnings --log-level=ERROR
+ 4559  10/04/25 15:11:16 make run
+ 4560  10/04/25 10:55:42 /home/aidan/git/emerald2/coral-python/bin/python
+ 4561  10/04/25 09:37:15 /usr/local/bin/python2.7 /home/aidan/.vscode/extensions/ms-python.python-2025.4.0-linux-x64/python_files/printEnvVariablesToFile.py /home/aidan/.vscode/extensions/ms-python.python-2025.4.0-linux-x64/python_files/deactivate/bash/envVars.txt
+ 4562  11/04/25 09:01:04 cd git/my-flex/proof-of-concept/
+ 4563  11/04/25 09:01:06 cd ..
+ 4564  11/04/25 09:01:09 clear
+ 4565  11/04/25 09:01:15 cd emerald2/coral-arches/
+ 4566  11/04/25 09:01:20 sudo systemctl stop postgresql
+ 4567  11/04/25 09:01:25 make run
+ 4568  11/04/25 09:34:42 git pull
+ 4569  11/04/25 09:34:51 git switch release/sprint_28 
+ 4570  11/04/25 09:34:54 git stash
+ 4571  11/04/25 09:34:55 git switch release/sprint_28 
+ 4572  11/04/25 09:35:03 make run
+ 4573  11/04/25 09:01:28 cd ..
+ 4574  11/04/25 09:01:29 code .
+ 4575  11/04/25 09:25:42 cd arches-orm/
+ 4576  11/04/25 09:25:43 history
+ 4577  11/04/25 09:25:48 pytest ./tests/arches_django/test_arches_django_query_builder.py -s -p no:warnings --log-level=ERROR
+ 4578  11/04/25 09:25:55 . ../ENV/bin/activate
+ 4579  11/04/25 09:25:56 pytest ./tests/arches_django/test_arches_django_query_builder.py -s -p no:warnings --log-level=ERROR
+ 4580  11/04/25 09:30:24 git checkout -b "feat/127_tiledata-merged-based-on-resource-instance-id-postgresql"
+ 4581  11/04/25 09:30:37 git quick "feat(#127): fixed issue with postgresql"
+ 4582  11/04/25 09:30:42 git push origin feat/127_tiledata-merged-based-on-resource-instance-id-postgresql 
+ 4583  11/04/25 09:55:19 /usr/local/bin/python2.7 /home/aidan/.vscode/extensions/ms-python.python-2025.4.0-linux-x64/python_files/printEnvVariablesToFile.py /home/aidan/.vscode/extensions/ms-python.python-2025.4.0-linux-x64/python_files/deactivate/bash/envVars.txt
+ 4584  11/04/25 09:36:15 grep -r "arches_orm.models"
+ 4585  11/04/25 11:42:39 make run
+ 4586  11/04/25 11:44:47 make build
+ 4587  11/04/25 11:58:21 make run
+ 4588  11/04/25 11:58:31 make build
+ 4589  11/04/25 12:13:24 make run
+ 4590  11/04/25 12:18:58 code .
+ 4591  11/04/25 12:19:55 sudo docker-cleanup
+ 4592  11/04/25 12:20:07 make build
+ 4593  11/04/25 12:23:36 sudo docker-cleanup
+ 4594  11/04/25 12:23:51 make build > 0.1.6-build.log
+ 4595  11/04/25 12:33:42 sudo docker-cleanup
+ 4596  11/04/25 12:33:49 make build > 0.1.6-build.log
+ 4597  11/04/25 13:44:02 make run
+ 4598  11/04/25 15:59:19 /usr/local/bin/python2.7 /home/aidan/.vscode/extensions/ms-python.python-2025.4.0-linux-x64/python_files/printEnvVariablesToFile.py /home/aidan/.vscode/extensions/ms-python.python-2025.4.0-linux-x64/python_files/deactivate/bash/envVars.txt
+ 4599  11/04/25 15:59:20 /usr/local/bin/python2.7 /home/aidan/.vscode/extensions/ms-python.python-2025.4.0-linux-x64/python_files/printEnvVariablesToFile.py /home/aidan/.vscode/extensions/ms-python.python-2025.4.0-linux-x64/python_files/deactivate/bash/envVars.txt
+ 4600  11/04/25 16:44:40 docker ps
+ 4601  11/04/25 16:45:42 docker coral-db-1
+ 4602  11/04/25 16:45:48 docker follow coral-db-1
+ 4603  11/04/25 16:45:54 docker logs coral-db-1
+ 4604  11/04/25 16:47:18 make run
+ 4605  11/04/25 16:47:58 make build
+ 4606  11/04/25 16:50:28 sudo docker-cleanup
+ 4607  11/04/25 16:50:41 make build
+ 4608  11/04/25 17:04:21 code .
+ 4609  11/04/25 17:04:33 sudo docker-cleanup
+ 4610  11/04/25 17:04:42 make build
+ 4611  11/04/25 17:13:23 code .
+ 4612  11/04/25 15:59:20 /usr/local/bin/python2.7 /home/aidan/.vscode/extensions/ms-python.python-2025.4.0-linux-x64/python_files/printEnvVariablesToFile.py /home/aidan/.vscode/extensions/ms-python.python-2025.4.0-linux-x64/python_files/deactivate/bash/envVars.txt
+ 4613  11/04/25 16:40:14 git switch checkout -b "fix/129_test-version-0.2.2+a1" v0.1.6
+ 4614  11/04/25 16:40:22 git checkout -b "fix/129_test-version-0.2.2+a1" v0.1.6
+ 4615  11/04/25 16:40:35 git pull origin v0.2.2
+ 4616  11/04/25 16:40:43 git push origin fix/129_test-version-0.2.2+a1 
+ 4617  11/04/25 16:39:30 history
+ 4618  11/04/25 16:02:58 ls
+ 4619  11/04/25 16:03:07 cd git/emerald2/arches-orm/
+ 4620  11/04/25 16:03:07 code .
+ 4621  11/04/25 16:18:51 git switch release/0.3 
+ 4622  11/04/25 16:18:55 git switch release-emerald/0.3 
+ 4623  11/04/25 16:18:57 code .
+ 4624  11/04/25 16:23:10 git checkout -b "release-emerald/0.3.1+emerald-1"
+ 4625  11/04/25 16:23:56 git quick "fix: testing fix for coral build"
+ 4626  11/04/25 16:23:59 code .
+ 4627  11/04/25 16:24:44 git quick "fix: testing fix for coral build"
+ 4628  11/04/25 16:39:19 history
+ 4629  11/04/25 16:00:02 cd git/emerald2/coral-arches/
+ 4630  11/04/25 16:00:03 code .
+ 4631  11/04/25 16:00:13 sudo docker-cleanup
+ 4632  11/04/25 16:00:26 make build
+ 4633  11/04/25 16:08:32 sudo systemctl stop postgresql
+ 4634  11/04/25 16:08:34 make build
+ 4635  11/04/25 16:09:35 code .
+ 4636  11/04/25 16:09:42 make build
+ 4637  11/04/25 16:10:52 make docker-compose CMD="build"
+ 4638  11/04/25 16:15:33 make build
+ 4639  11/04/25 16:26:43 sudo docker-cleanup
+ 4640  11/04/25 16:26:53 code .
+ 4641  11/04/25 16:26:59 make build
+ 4642  11/04/25 16:42:36 code .
+ 4643  11/04/25 16:44:37 make build
+ 4644  11/04/25 16:50:14 code .
+ 4645  11/04/25 15:59:20 /usr/local/bin/python2.7 /home/aidan/.vscode/extensions/ms-python.python-2025.4.0-linux-x64/python_files/printEnvVariablesToFile.py /home/aidan/.vscode/extensions/ms-python.python-2025.4.0-linux-x64/python_files/deactivate/bash/envVars.txt
+ 4646  14/04/25 09:21:41 cd ..
+ 4647  14/04/25 09:21:43 cd arches-orm/
+ 4648  14/04/25 09:21:50 code .
+ 4649  14/04/25 10:57:54 cd '
+ 4650  14/04/25 10:57:57 cd #
+ 4651  14/04/25 10:58:01 cd git/emerald2/coral-arches/
+ 4652  14/04/25 10:58:34 docker ps -aq | xargs -n 1 -I {} docker logs {} 2>&1 | tee all-container-logs.txt
+ 4653  14/04/25 12:07:05 /usr/local/bin/python2.7 /home/aidan/.vscode/extensions/ms-python.python-2025.4.0-linux-x64/python_files/printEnvVariablesToFile.py /home/aidan/.vscode/extensions/ms-python.python-2025.4.0-linux-x64/python_files/deactivate/bash/envVars.txt
+ 4654  14/04/25 12:14:26 cd ..
+ 4655  14/04/25 12:14:26 ls
+ 4656  14/04/25 12:14:30 cd test-coral-arches/
+ 4657  14/04/25 12:14:39 . ../ENV/bin/activate
+ 4658  14/04/25 12:14:47 ls
+ 4659  14/04/25 12:14:49 cd ..
+ 4660  14/04/25 12:14:54 cd test-emerald-issue-with-coral/arches/
+ 4661  14/04/25 12:15:10 python manage.py setup_db
+ 4662  14/04/25 12:15:30 exit
+ 4663  14/04/25 10:16:18 /usr/local/bin/python2.7 /home/aidan/.vscode/extensions/ms-python.python-2025.4.0-linux-x64/python_files/printEnvVariablesToFile.py /home/aidan/.vscode/extensions/ms-python.python-2025.4.0-linux-x64/python_files/deactivate/bash/envVars.txt
+ 4664  14/04/25 15:03:25 history
+ 4665  14/04/25 11:14:28 make build
+ 4666  14/04/25 11:34:34 sudo docker-cleanup
+ 4667  14/04/25 11:34:43 make run
+ 4668  14/04/25 11:43:42 sudo docker-cleanup
+ 4669  14/04/25 11:43:51 make build
+ 4670  14/04/25 11:58:01 code .
+ 4671  14/04/25 11:58:07 make build
+ 4672  14/04/25 11:58:15 sudo docker-clenaup
+ 4673  14/04/25 11:58:19 sudo docker-cleanup
+ 4674  14/04/25 11:58:26 make build
+ 4675  14/04/25 12:00:58 sudo docker-cleanup
+ 4676  14/04/25 12:01:02 make build
+ 4677  14/04/25 12:15:49 ode .
+ 4678  14/04/25 12:15:51 code .
+ 4679  14/04/25 12:16:05 sudo docker rm coral-db-1
+ 4680  14/04/25 12:16:09 make build
+ 4681  14/04/25 12:16:18 sudo systemctl stop postgresql
+ 4682  14/04/25 12:16:20 make build
+ 4683  14/04/25 12:16:41 sudo systemctl stop postgresql
+ 4684  14/04/25 12:16:45 sudo docker rm coral-db-1
+ 4685  14/04/25 12:16:51 sudo docker stop coral-db-1
+ 4686  14/04/25 12:17:04 sudo docker kill coral-db-1
+ 4687  14/04/25 12:17:08 sudo docker rm coral-db-1
+ 4688  14/04/25 12:17:29 history
+ 4689  14/04/25 12:17:52 make build
+ 4690  14/04/25 12:30:03 ls
+ 4691  14/04/25 12:30:05 cd docker/
+ 4692  14/04/25 12:30:08 cd ..
+ 4693  14/04/25 12:30:10 cd docker/
+ 4694  14/04/25 12:30:13 sudo docker-compose
+ 4695  14/04/25 12:30:15 sudo docker-compose up
+ 4696  14/04/25 12:33:08 cd ..
+ 4697  14/04/25 12:33:11 docker logs -f $(docker ps -q) > all-container-logs.txt
+ 4698  14/04/25 12:33:23 sudo docker logs -f $(sudo docker ps -q) > after-lunch-all-container-logs.txt
+ 4699  14/04/25 12:34:05 for id in $(sudo docker ps -q); do sudo docker logs -f $id & done > after-lunch-all-container-logs.txt
+ 4700  14/04/25 12:34:18 code .
+ 4701  14/04/25 12:34:33 sudo ./follow-all.sh
+ 4702  14/04/25 12:34:58 sh follow-all.sh 
+ 4703  14/04/25 12:35:03 sudo sh follow-all.sh
+ 4704  14/04/25 12:35:28 follow-all.sh
+ 4705  14/04/25 12:35:32 ./follow-all.sh
+ 4706  14/04/25 12:35:34 sudo ./follow-all.sh
+ 4707  14/04/25 12:35:38 sudo sh ./follow-all.sh
+ 4708  14/04/25 14:30:37 code .
+ 4709  14/04/25 14:32:08 pyenv install 3.11.0
+ 4710  14/04/25 14:32:22 pyenv global 3.11.0
+ 4711  14/04/25 14:32:29 python --version
+ 4712  14/04/25 14:33:03 sudo systemctl start postgresql
+ 4713  14/04/25 14:39:19 code .
+ 4714  14/04/25 14:39:35 sudo docker-cleanup
+ 4715  14/04/25 14:39:42 make run
+ 4716  14/04/25 14:46:50 make build
+ 4717  14/04/25 15:02:37 make run
+ 4718  14/04/25 15:49:14 docker run -v /var/run/docker.sock:/var/run/docker.sock 
+ 4719  14/04/25 15:50:01 docker build -t my-container .
+ 4720  14/04/25 15:51:36 docker run -v /var/run/docker.sock:/var/run/docker.sock my-container
+ 4721  14/04/25 15:51:41 docker ps
+ 4722  14/04/25 15:51:43 docker run -v /var/run/docker.sock:/var/run/docker.sock my-container
+ 4723  14/04/25 15:51:57 ls -l /var/run/docker.sock
+ 4724  14/04/25 15:57:34 code .
+ 4725  14/04/25 15:58:46 cd ..
+ 4726  14/04/25 15:58:49 cd arches-orm/
+ 4727  14/04/25 16:00:11 docker rm - ${ARCHES_PROJECT_ROOT}./../arches-orm/arches_orm:/web_root/ENV/lib/python3.10/site-packages/arches_orm
+ 4728  14/04/25 16:00:17 docker rm 2ef04b5be1f9_coral-arches-1
+ 4729  14/04/25 16:00:24 docker kill 2ef04b5be1f9_coral-arches-1
+ 4730  14/04/25 16:00:28 docker rm 2ef04b5be1f9_coral-arches-1
+ 4731  14/04/25 16:01:02 make build
+ 4732  14/04/25 16:01:32 docker ps
+ 4733  14/04/25 16:01:52 docker rm coral-arches-1
+ 4734  14/04/25 16:01:56 docker kill coral-arches-1
+ 4735  14/04/25 16:02:04 docker rm coral-arches-1
+ 4736  14/04/25 16:04:20 git checkout -b "test-0.2.2-01" v0.2.2
+ 4737  14/04/25 16:05:58 git cherry-pick 763a3af58177ed268041d0d5b30157107bd02c44
+ 4738  14/04/25 16:06:03 git cherry-pick 535330c094fa4370656ef726b43639b21ac970ff
+ 4739  14/04/25 16:06:10 git cherry-pick 2181dab170d5d85f7caacc45e4f5c08b580315bc
+ 4740  14/04/25 16:06:17 git cherry-pick b64b3517bf11e849a9605bf8efd6c200c4345ff9
+ 4741  14/04/25 16:06:23 git cherry pick b63f6b522d9b7985fc318450f2072ee7fa667e93
+ 4742  14/04/25 16:06:32 git cherry-pick b63f6b522d9b7985fc318450f2072ee7fa667e93
+ 4743  14/04/25 16:09:06 docker build -t make-runner .
+ 4744  14/04/25 16:08:50 code .
+ 4745  14/04/25 16:09:11 docker build -t make-runner .
+ 4746  14/04/25 16:12:09 docker run -it --rm     -v /var/run/docker.sock:/var/run/docker.sock     -v $(pwd):/app     make-runner <make-target>
+ 4747  14/04/25 16:12:16 docker run -it --rm     -v /var/run/docker.sock:/var/run/docker.sock     -v $(pwd):/app     make-runner <make-target>
+ 4748  14/04/25 16:12:23 docker run -it --rm     -v /var/run/docker.sock:/var/run/docker.sock     -v $(pwd):/app     make-runner up
+ 4749  14/04/25 16:12:34 docker run -it --rm     -v /var/run/docker.sock:/var/run/docker.sock     -v $(pwd):/app     make-runner up
+ 4750  14/04/25 16:13:16 docker build -t make-runner .
+ 4751  14/04/25 16:13:40 docker run -it --rm     -v /var/run/docker.sock:/var/run/docker.sock     -v $(pwd):/app     make-runner up
+ 4752  14/04/25 16:16:28 docker build -t make-runner .
+ 4753  14/04/25 16:16:52 docker run -it --rm     -v /var/run/docker.sock:/var/run/docker.sock     -v $(pwd):/app     make-runner up
+ 4754  14/04/25 16:17:10 cd ..
+ 4755  14/04/25 16:17:13 cd arches-orm/
+ 4756  14/04/25 16:17:26 history
+ 4757  14/04/25 15:19:45 make build
+ 4758  14/04/25 15:21:31 docker ps
+ 4759  14/04/25 15:21:43 coral-arches-1
+ 4760  14/04/25 15:22:05 sudo docker exec -it coral-arches-1 /bin/bash
+ 4761  14/04/25 15:23:17 ls
+ 4762  14/04/25 15:23:19 cd coral/media/node_modules/arches/arches/management/commands
+ 4763  14/04/25 15:23:21 sudo docker exec -it coral-arches-1 /bin/bash
+ 4764  14/04/25 15:23:46 cd coral/media/node_modules/arches/arches/management/commands
+ 4765  14/04/25 15:23:54 sudo docker exec -it coral-arches-1 /bin/bash
+ 4766  14/04/25 15:23:55 coral/media/node_modules/arches/arches/management/commands
+ 4767  14/04/25 15:24:02 cat coral/media/node_modules/arches/arches/management/commands/setup_db.py
+ 4768  14/04/25 15:24:12 sudo docker exec -it coral-arches-1 /bin/bash
+ 4769  14/04/25 15:27:12 docker cp ./setup_db.py coral-arches-1:/web_root/coral/coral/media/node_modules/arches/arches/management/commands/setup_db.py
+ 4770  14/04/25 15:27:26 sudo docker exec -it coral-arches-1 /bin/bash
+ 4771  14/04/25 15:27:56 docker cp ./setup_db.py coral-arches-1:/web_root/coral/coral/media/node_modules/arches/arches/management/commands/setup_db.py
+ 4772  14/04/25 15:28:01 sudo docker exec -it coral-arches-1 /bin/bash
+ 4773  14/04/25 15:28:20 coral/media/node_modules/arches/arches/management/commands/
+ 4774  14/04/25 15:28:21 sudo docker exec -it coral-arches-1 /bin/bash
+ 4775  14/04/25 15:29:03 xs #
+ 4776  14/04/25 15:29:06 cd #
+ 4777  14/04/25 15:29:11 cd git/emerald2/coral-arches/
+ 4778  14/04/25 15:29:12 code .
+ 4779  14/04/25 15:29:29 sudo docker-cleanup
+ 4780  14/04/25 15:31:46 docker build -t my-dind-image .
+ 4781  14/04/25 15:35:12 docker logs my-dind-image
+ 4782  14/04/25 15:35:17 docker ps
+ 4783  14/04/25 15:36:05 docker run --privileged --name coral-dind -d my-dind-image
+ 4784  14/04/25 15:36:08 docker ps
+ 4785  14/04/25 15:36:12 docker logs -f coral-dind
+ 4786  14/04/25 15:38:05 docker build -t make-runner-dind .
+ 4787  14/04/25 15:38:18 docker run --rm -it --privileged --name make-runner make-runner-dind
+ 4788  14/04/25 15:40:16 docker build -t coral-make-runner .
+ 4789  14/04/25 15:40:28 docker run --rm -it --privileged --name coral coral-make-runner
+ 4790  14/04/25 15:41:19 docker build -t coral-make-runner .
+ 4791  14/04/25 15:41:34 docker run --rm -it --privileged --name coral coral-make-runner
+ 4792  14/04/25 15:43:34 docker build -t coral-make-runner .
+ 4793  14/04/25 15:45:32 docker run --rm -it --privileged --name coral coral-make-runner
+ 4794  14/04/25 15:46:42 make build
+ 4795  14/04/25 15:59:53 docker ps
+ 4796  14/04/25 16:01:06 make build
+ 4797  14/04/25 16:03:47 sudo docker-cleanup
+ 4798  14/04/25 16:06:42 make build
+ 4799  14/04/25 16:17:42 history
+ 4800  14/04/25 16:22:08 sudo docker-cleanup
+ 4801  14/04/25 16:22:23 code .
+ 4802  14/04/25 16:22:33 sudo make build
+ 4803  14/04/25 16:33:07 docker ps
+ 4804  14/04/25 16:33:21 sudo docker exec -it coral-arches /bin/bash
+ 4805  14/04/25 16:33:26 sudo docker exec -it coral-arches-1 /bin/bash
+ 4806  14/04/25 16:39:46 sudo docker-cleanpiu
+ 4807  14/04/25 16:39:49 sudo docker-cleanup
+ 4808  14/04/25 16:40:19 make build
+ 4809  14/04/25 16:48:43 sudo docker-cleanup
+ 4810  14/04/25 16:48:58 make build
+ 4811  14/04/25 16:56:22 sudo docker exec -it coral-arches-1 /bin/bash
+ 4812  14/04/25 16:58:15 sudo docker-cleanup
+ 4813  14/04/25 16:58:24 make build
+ 4814  14/04/25 17:04:17 docker logs -f coral-db-1 > db.log
+ 4815  14/04/25 17:07:58 docker exec -it DB b
+ 4816  14/04/25 17:08:01 docker exec -it db bash
+ 4817  14/04/25 17:08:09 docker exec -it coral-db-1 bash
+ 4818  14/04/25 17:14:01 docker logs -f coral-db-1
+ 4819  14/04/25 17:14:56 docker logs <container_name> | grep -i 'CREATE DATABASE'
+ 4820  14/04/25 17:15:08 docker-compose logs postgres
+ 4821  14/04/25 16:54:44 cd ..
+ 4822  14/04/25 16:54:45 ls
+ 4823  14/04/25 16:54:48 cd coral-arches/
+ 4824  14/04/25 16:54:49 code .
+ 4825  14/04/25 17:03:39 docker logs -f coral-arches-1 > coral.log
+ 4826  14/04/25 17:04:56 code .
+ 4827  14/04/25 15:04:06 cd git/emerald2/arches-orm/
+ 4828  14/04/25 15:04:11 git switch emerald-release/0.3
+ 4829  14/04/25 15:04:31 gi tpull
+ 4830  14/04/25 15:04:33 git pull
+ 4831  14/04/25 15:04:41 git checkout -b "test-0.3.1" v0.3.1-emerald
+ 4832  14/04/25 16:17:53 history
+ 4833  14/04/25 16:20:43 git checkout -b "test-0.2.2-60c4a752cc312fbfbb6b751f93eab62cb654e7b2"
+ 4834  14/04/25 16:20:52 git cherry-pick 793d061087ebd4a87164ff90620ec42c6c3d2b4b
+ 4835  14/04/25 16:20:56 git cherry-pick 410725b1670b1fa17a25e2800c5de5f74be27f7c
+ 4836  14/04/25 16:20:58 git cherry-pick c94c5f537db672492c193e96b5033383cad839bd
+ 4837  14/04/25 16:21:00 git cherry-pick 2b08c02ebefa3a4f2a2082b07de92b0b9dc58480
+ 4838  14/04/25 16:21:02 git cherry-pick e6593c14d44567763947f6a922b2990682eed045
+ 4839  14/04/25 16:21:06 git cherry-pick 60c4a752cc312fbfbb6b751f93eab62cb654e7b2
+ 4840  14/04/25 16:21:18 code .
+ 4841  14/04/25 16:22:43 cd ..
+ 4842  14/04/25 16:22:43 ls
+ 4843  14/04/25 16:22:46 cd coral-arches/
+ 4844  14/04/25 16:22:50 code .
+ 4845  14/04/25 16:27:32 docker build -t make-runner .
+ 4846  14/04/25 16:27:49 code .
+ 4847  14/04/25 16:28:01 docker build -t make-runner .
+ 4848  14/04/25 16:28:27 history
+ 4849  14/04/25 16:32:13 docker build -t make-runner .
+ 4850  14/04/25 16:34:41 cd ..
+ 4851  14/04/25 16:34:43 cd arches-orm/
+ 4852  14/04/25 16:34:44 code .
+ 4853  14/04/25 16:37:48 git checkout -b "test-0.2.2-5cb4172bb83c50a657f9ea9e938d205416d5d418"
+ 4854  14/04/25 16:37:55 git cherry-pick c04ae9d5169e72ae87ead46cd518a5ab074cb778
+ 4855  14/04/25 16:37:58 git cherry-pick eb27f2ab3c15b6e3d89aea81c8b0d0e5ace43d94
+ 4856  14/04/25 16:38:01 git cherry-pick 122e62b91b3fde8d8d4707bc07186e42ef5f29b4
+ 4857  14/04/25 16:38:04 git cherry-pick 3dc538215ee7be20bb17a27af1df27346a724397
+ 4858  14/04/25 16:38:07 git cherry-pick ee3fc0e38a48600c31932647ab03f5d7263a224c
+ 4859  14/04/25 16:38:09 git cherry-pick 037deb517c77c746b91d84939963f48c8111eb66
+ 4860  14/04/25 16:38:29 git cherry-pick 8b2e5e628c0cf4fbc0f4d99c781362ca31910bb8
+ 4861  14/04/25 16:38:32 git cherry-pick 5cb4172bb83c50a657f9ea9e938d205416d5d418
+ 4862  14/04/25 16:39:31 code .
+ 4863  14/04/25 16:47:48 git switch test-0.2.2-60c4a752cc312fbfbb6b751f93eab62cb654e7b2
+ 4864  14/04/25 16:48:02 git checkout -b "test-0.2.2-ee3fc0e38a48600c31932647ab03f5d7263a224c"
+ 4865  14/04/25 16:48:12 git cherry-pick c04ae9d5169e72ae87ead46cd518a5ab074cb778
+ 4866  14/04/25 16:48:15 git cherry-pick eb27f2ab3c15b6e3d89aea81c8b0d0e5ace43d94
+ 4867  14/04/25 16:48:17 git cherry-pick 122e62b91b3fde8d8d4707bc07186e42ef5f29b4
+ 4868  14/04/25 16:48:22 git cherry-pick 3dc538215ee7be20bb17a27af1df27346a724397
+ 4869  14/04/25 16:48:24 git cherry-pick ee3fc0e38a48600c31932647ab03f5d7263a224c
+ 4870  14/04/25 16:48:29 code .
+ 4871  14/04/25 16:57:01 checkout -b "test-0.2.2-037deb517c77c746b91d84939963f48c8111eb66"
+ 4872  14/04/25 16:57:09 git checkout -b "test-0.2.2-037deb517c77c746b91d84939963f48c8111eb66"
+ 4873  14/04/25 16:57:14 git cherry pick 037deb517c77c746b91d84939963f48c8111eb66
+ 4874  14/04/25 16:57:19 git cherry-pick 037deb517c77c746b91d84939963f48c8111eb66
+ 4875  14/04/25 16:57:23 code .
+ 4876  14/04/25 16:21:22 /usr/local/bin/python2.7 /home/aidan/.vscode/extensions/ms-python.python-2025.4.0-linux-x64/python_files/printEnvVariablesToFile.py /home/aidan/.vscode/extensions/ms-python.python-2025.4.0-linux-x64/python_files/deactivate/bash/envVars.txt
+ 4877  14/04/25 14:39:22 /usr/local/bin/python2.7 /home/aidan/.vscode/extensions/ms-python.python-2025.4.0-linux-x64/python_files/printEnvVariablesToFile.py /home/aidan/.vscode/extensions/ms-python.python-2025.4.0-linux-x64/python_files/deactivate/bash/envVars.txt
+ 4878  14/04/25 14:28:29 /usr/local/bin/python2.7 /home/aidan/.vscode/extensions/ms-python.python-2025.4.0-linux-x64/python_files/printEnvVariablesToFile.py /home/aidan/.vscode/extensions/ms-python.python-2025.4.0-linux-x64/python_files/deactivate/bash/envVars.txt
+ 4879  15/04/25 09:13:29 sudo systemctl stop postgresql
+ 4880  15/04/25 09:01:17 /bin/python /home/aidan/.vscode/extensions/ms-python.python-2025.4.0-linux-x64/python_files/printEnvVariablesToFile.py /home/aidan/.vscode/extensions/ms-python.python-2025.4.0-linux-x64/python_files/deactivate/bash/envVars.txt
+ 4881  15/04/25 15:15:10 /usr/local/bin/python2.7 /home/aidan/.vscode/extensions/ms-python.python-2025.4.0-linux-x64/python_files/printEnvVariablesToFile.py /home/aidan/.vscode/extensions/ms-python.python-2025.4.0-linux-x64/python_files/deactivate/bash/envVars.txt
+ 4882  15/04/25 09:16:14 pwd
+ 4883  15/04/25 15:57:12 cd ..
+ 4884  15/04/25 15:57:14 cd arches-orm/
+ 4885  15/04/25 15:57:23 git branch -a
+ 4886  15/04/25 15:57:47 git checkout -b "emerald-3.1" v0.3-emerald
+ 4887  15/04/25 15:59:14 ls
+ 4888  15/04/25 15:59:18 cd arches_orm/
+ 4889  15/04/25 15:59:22 cd ..
+ 4890  15/04/25 15:59:29 docker ps
+ 4891  15/04/25 15:59:32 make run
+ 4892  15/04/25 16:00:00 sudo docker exec -it coral-arches-1 /bin/bash
+ 4893  15/04/25 16:12:15 make manage CMD="resources remove_resources -g GRAPHIDFROMSTEP1 -y"
+ 4894  15/04/25 16:16:55 sudo docker exec -it coral-arches-1 /bin/bash
+ 4895  15/04/25 16:21:26 code .
+ 4896  15/04/25 16:29:07 make build
+ 4897  15/04/25 16:34:16 git stash list
+ 4898  15/04/25 16:34:38 code .
+ 4899  15/04/25 09:47:16 history
+ 4900  15/04/25 09:47:57 docker logs -f coral-arches-1 > db.log
+ 4901  15/04/25 09:48:25 docker logs -f coral-db-1 > db.log
+ 4902  15/04/25 09:51:00 cd ..
+ 4903  15/04/25 09:51:03 cd arches-orm/
+ 4904  15/04/25 09:51:21 git checkout -b "test-0.2.2-037deb517c77c746b91d84939963f48c8111eb66-with-datatype-update"
+ 4905  15/04/25 09:51:22 code .
+ 4906  15/04/25 09:56:15 git history
+ 4907  15/04/25 09:56:19 git branch -a
+ 4908  15/04/25 09:56:59 git switch ee3fc0e38a48600c31932647ab03f5d7263a224c
+ 4909  15/04/25 09:57:07 git switch test-0.2.2-ee3fc0e38a48600c31932647ab03f5d7263a224c
+ 4910  15/04/25 09:58:26 git checkout -b "test-0.2.2-ee3fc0e38a48600c31932647ab03f5d7263a224c-with-datatype-update"
+ 4911  15/04/25 09:59:23 code .
+ 4912  15/04/25 10:04:07 test
+ 4913  15/04/25 10:06:44 history
+ 4914  15/04/25 10:06:53 history | grep "pytest"
+ 4915  15/04/25 10:07:00 pytest
+ 4916  15/04/25 10:07:05 . ../ENV/bin/activate
+ 4917  15/04/25 10:07:06 pytest
+ 4918  15/04/25 10:10:36 git quick "added datatypes"
+ 4919  15/04/25 10:10:52 git switch test-0.2.2-ee3fc0e38a48600c31932647ab03f5d7263a224c
+ 4920  15/04/25 10:11:32 pytest
+ 4921  15/04/25 10:12:54 git switch emerald-release/0.3
+ 4922  15/04/25 10:12:58 git branch -a
+ 4923  15/04/25 10:13:12 git switch release/0.3
+ 4924  15/04/25 10:13:17 pytest
+ 4925  15/04/25 10:14:28 pytest ./tests/arches_django/test_arches_django.py 
+ 4926  15/04/25 10:14:49 pytest
+ 4927  15/04/25 10:16:23 git switch emerald-release/0.3
+ 4928  15/04/25 10:16:27 git branch -a
+ 4929  15/04/25 10:16:40 git switch release-emerald/0.3
+ 4930  15/04/25 10:16:42 pytest
+ 4931  15/04/25 10:19:05 grep -r "Must set a default adapter"
+ 4932  15/04/25 10:20:42 pytest
+ 4933  15/04/25 10:23:00 grep -r "RuntimeError"
+ 4934  15/04/25 10:24:29 grep -r "Error"
+ 4935  15/04/25 10:29:38 git checkout -b "release-emerald/0.3-adding-comments"
+ 4936  15/04/25 10:29:45 git quick "added some prints"
+ 4937  15/04/25 10:29:59 git switch test-0.2.2-ee3fc0e38a48600c31932647ab03f5d7263a224c-with-datatype-update
+ 4938  15/04/25 10:30:02 pytest
+ 4939  15/04/25 10:30:32 git switch test-0.2.2-ee3fc0e38a48600c31932647ab03f5d7263a224c
+ 4940  15/04/25 10:30:34 pytest
+ 4941  15/04/25 10:32:18 git switch release/0.3 
+ 4942  15/04/25 10:32:21 pytest
+ 4943  15/04/25 10:32:26 git pull
+ 4944  15/04/25 10:32:33 git branch -a
+ 4945  15/04/25 10:32:57 pytest
+ 4946  15/04/25 10:35:44 grep -r "set_default_adapter"
+ 4947  15/04/25 10:39:07 pytest
+ 4948  15/04/25 10:41:20 history
+ 4949  15/04/25 10:41:35 history | grep "pytest"
+ 4950  15/04/25 10:41:48 pytest -s -p no:warnings --log-level=ERROR
+ 4951  15/04/25 10:50:22 pip install jsondiff
+ 4952  15/04/25 10:50:25 pytest -s -p no:warnings --log-level=ERROR
+ 4953  15/04/25 10:53:55 grep -r "map_httpcore_exceptions"
+ 4954  15/04/25 10:54:57 pytest -s -p no:warnings --log-level=ERROR
+ 4955  15/04/25 12:13:02 cd ..
+ 4956  15/04/25 12:13:04 cd coral-arches/
+ 4957  15/04/25 12:13:04 code .
+ 4958  15/04/25 15:14:51 cd ..
+ 4959  15/04/25 15:14:52 ls
+ 4960  15/04/25 15:14:57 cd arches-orm/
+ 4961  15/04/25 15:14:58 code .
+ 4962  15/04/25 15:15:00 cd ..
+ 4963  15/04/25 15:15:00 ls
+ 4964  15/04/25 15:15:06 cd arches-her/
+ 4965  15/04/25 15:15:06 code .
+ 4966  15/04/25 15:15:42 cd ..
+ 4967  15/04/25 15:15:42 ls
+ 4968  15/04/25 15:15:45 cd ..
+ 4969  15/04/25 15:15:47 cd my-flex/
+ 4970  15/04/25 15:15:48 ls
+ 4971  15/04/25 15:15:50 cd proof-of-concept/
+ 4972  15/04/25 15:15:51 code .
+ 4973  15/04/25 15:16:15 git checkout -b "fix/other-found-issues"
+ 4974  15/04/25 15:16:24 git push origin fix/other-found-issues 
+ 4975  15/04/25 15:16:41 git pull origin main 
+ 4976  15/04/25 15:16:57 git push origin fix/other-found-issues 
+ 4977  15/04/25 15:17:32 git quick "fix: fixed theme colour, spinner last value disapear"
+ 4978  15/04/25 15:31:42 cd #
+ 4979  15/04/25 15:31:52 cd git/emerald2/coral-arches/
+ 4980  15/04/25 15:31:53 code .
+ 4981  15/04/25 15:34:25 sudo docker-cleanup
+ 4982  15/04/25 15:34:35 make build
+ 4983  15/04/25 15:59:35 make run
+ 4984  15/04/25 16:14:11 code .
+ 4985  15/04/25 16:14:34 make run
+ 4986  15/04/25 16:29:15 sudo docker-cleanup
+ 4987  15/04/25 16:29:32 make build
+ 4988  15/04/25 16:33:19 git pull
+ 4989  15/04/25 16:33:24 git switch de
+ 4990  15/04/25 16:33:27 git switch dev
+ 4991  15/04/25 16:33:29 git stash
+ 4992  15/04/25 16:33:32 git switch dev
+ 4993  15/04/25 16:33:53 git pull origin dev
+ 4994  15/04/25 16:34:48 git stash list
+ 4995  15/04/25 16:35:02 git stash apply stash@{0}
+ 4996  15/04/25 16:35:05 code .
+ 4997  15/04/25 16:35:59 dwadwa
+ 4998  15/04/25 16:36:20 make run
+ 4999  15/04/25 16:36:28 sudo docker-cleanup
+ 5000  15/04/25 16:36:36 make build
+ 5001  15/04/25 10:37:18 /home/aidan/git/emerald2/ENV/bin/python
+ 5002  15/04/25 10:00:31 /usr/local/bin/python2.7 /home/aidan/.vscode/extensions/ms-python.python-2025.4.0-linux-x64/python_files/printEnvVariablesToFile.py /home/aidan/.vscode/extensions/ms-python.python-2025.4.0-linux-x64/python_files/deactivate/bash/envVars.txt
+ 5003  15/04/25 09:01:17 /bin/python /home/aidan/.vscode/extensions/ms-python.python-2025.4.0-linux-x64/python_files/printEnvVariablesToFile.py /home/aidan/.vscode/extensions/ms-python.python-2025.4.0-linux-x64/python_files/deactivate/bash/envVars.txt
+ 5004  16/04/25 08:55:24 /usr/local/bin/python2.7 /home/aidan/.vscode/extensions/ms-python.python-2025.4.0-linux-x64/python_files/printEnvVariablesToFile.py /home/aidan/.vscode/extensions/ms-python.python-2025.4.0-linux-x64/python_files/deactivate/bash/envVars.txt
+ 5005  16/04/25 10:18:26 sudo docker exec -it /bin/bash
+ 5006  16/04/25 10:18:39 sudo docker exec -it coral-arches-1 /bin/bash
+ 5007  16/04/25 10:26:26 cd ..
+ 5008  16/04/25 10:26:28 cd arches-orm/
+ 5009  16/04/25 10:27:47 docker logs -f coral-arches-1 > coral-arches-1.log
+ 5010  16/04/25 10:31:34 code .
+ 5011  16/04/25 10:33:23 grep -r "pseudo_node"
+ 5012  16/04/25 10:28:04 docker ps
+ 5013  16/04/25 10:28:29 code .
+ 5014  16/04/25 10:28:38 grep -r "print"
+ 5015  16/04/25 10:32:40 grep -r "TF"
+ 5016  16/04/25 10:33:55 grep -r "print"
+ 5017  16/04/25 10:34:30 cd ..
+ 5018  16/04/25 10:34:42 sudo rm -r arches-orm/
+ 5019  16/04/25 10:35:03 git clone git@github.com:flaxandteal/arches-orm.git
+ 5020  16/04/25 10:35:09 git switch arches-orm/
+ 5021  16/04/25 10:35:13 cd arches-orm/
+ 5022  16/04/25 10:35:40 git checkout -b "release-emerald/0.3.1" v0.3.1-emerald
+ 5023  16/04/25 11:24:18 git stash
+ 5024  16/04/25 11:24:36 git checkout -b "release/0.2.2" v0.2.2 
+ 5025  16/04/25 11:25:15 git switch release-emerald/0.3.1
+ 5026  16/04/25 09:04:45 cd git/emerald2/coral-arches/
+ 5027  16/04/25 09:04:54 sudo systemctl stop postgresql
+ 5028  16/04/25 09:05:00 make build
+ 5029  16/04/25 09:40:11 make run
+ 5030  16/04/25 10:26:33 code .
+ 5031  16/04/25 10:27:01 make run
+ 5032  16/04/25 10:31:20 code .
+ 5033  16/04/25 10:32:02 make run
+ 5034  16/04/25 11:03:41 sudo docker-cleanup
+ 5035  16/04/25 11:03:58 make build
+ 5036  16/04/25 11:05:48 sudo docker-cleanup
+ 5037  16/04/25 11:06:02 make build
+ 5038  16/04/25 11:26:27 make run
+ 5039  16/04/25 14:50:52 make run 
+ 5040  16/04/25 14:51:51 make run
+ 5041  16/04/25 14:48:39 cd ..
+ 5042  16/04/25 14:48:40 ls
+ 5043  16/04/25 14:48:49 cd arches-arches
+ 5044  16/04/25 14:48:53 cd arches-orm/
+ 5045  16/04/25 14:49:01 git checkout -b "emerald/0.3.2"
+ 5046  16/04/25 14:49:22 git quick "fix: fixed issue with exclude not incluing none values when excluding"
+ 5047  16/04/25 12:13:38 /usr/local/bin/python2.7 /home/aidan/.vscode/extensions/ms-python.python-2025.4.0-linux-x64/python_files/printEnvVariablesToFile.py /home/aidan/.vscode/extensions/ms-python.python-2025.4.0-linux-x64/python_files/deactivate/bash/envVars.txt
+ 5048  16/04/25 08:55:24 /usr/local/bin/python2.7 /home/aidan/.vscode/extensions/ms-python.python-2025.4.0-linux-x64/python_files/printEnvVariablesToFile.py /home/aidan/.vscode/extensions/ms-python.python-2025.4.0-linux-x64/python_files/deactivate/bash/envVars.txt
+ 5049  17/04/25 09:06:54 cd git/emerald2/coral-arches/
+ 5050  17/04/25 09:06:56 make run
+ 5051  17/04/25 09:07:03 sudo systemctl stop postgresql
+ 5052  17/04/25 09:07:10 make run
+ 5053  17/04/25 14:21:53 cd git/emerald2/coral-arches/
+ 5054  17/04/25 14:21:55 make run
+ 5055  17/04/25 14:22:06 sudo systemctl stop postgresql
+ 5056  17/04/25 14:22:08 make run
+ 5057  17/04/25 14:21:45 /usr/local/bin/python2.7 /home/aidan/.vscode/extensions/ms-python.python-2025.4.0-linux-x64/python_files/printEnvVariablesToFile.py /home/aidan/.vscode/extensions/ms-python.python-2025.4.0-linux-x64/python_files/deactivate/bash/envVars.txt
+ 5058  17/04/25 14:21:45 /usr/local/bin/python2.7 /home/aidan/.vscode/extensions/ms-python.python-2025.4.0-linux-x64/python_files/printEnvVariablesToFile.py /home/aidan/.vscode/extensions/ms-python.python-2025.4.0-linux-x64/python_files/deactivate/bash/envVars.txt
+ 5059  17/04/25 17:22:11 git checkout -b "feat/128_refactor-dashboard-code-designation-strategy"
+ 5060  17/04/25 17:22:42 git quick "feat(#128): added new refactor code for dashboard, could be slow due to sorting unfortually"
+ 5061  17/04/25 17:29:50 make run
+ 5062  17/04/25 16:01:51 cd ..
+ 5063  17/04/25 16:01:53 cd arches-orm/
+ 5064  17/04/25 16:02:03 git quick "feat: added new selector count"
+ 5065  17/04/25 17:24:47 git switch release/0.2.2
+ 5066  17/04/25 17:24:56 git quick "fix: fixed issue with count"
+ 5067  17/04/25 17:25:00 git switch release/0.2.2
+ 5068  17/04/25 17:29:33 git switch emerald/0.3.2
+ 5069  17/04/25 16:25:27 make run]
+ 5070  17/04/25 16:25:30 make run
+ 5071  22/04/25 09:04:21 /usr/local/bin/python2.7 /home/aidan/.vscode/extensions/ms-python.python-2025.4.0-linux-x64/python_files/printEnvVariablesToFile.py /home/aidan/.vscode/extensions/ms-python.python-2025.4.0-linux-x64/python_files/deactivate/bash/envVars.txt
+ 5072  22/04/25 09:07:07 cd git/my-flex/proof-of-concept/
+ 5073  22/04/25 09:07:09 code .
+ 5074  22/04/25 09:12:23 ls
+ 5075  22/04/25 09:12:25 cd ..
+ 5076  22/04/25 09:12:26 ls
+ 5077  22/04/25 09:12:32 cd emerald2/arches-orm/
+ 5078  22/04/25 09:12:33 code .
+ 5079  22/04/25 09:12:35 cd ..
+ 5080  22/04/25 09:12:36 ls
+ 5081  22/04/25 09:12:41 cd coral-arches/
+ 5082  22/04/25 09:12:42 code .
+ 5083  22/04/25 09:19:27 sudo systemctl stop postgresql
+ 5084  22/04/25 09:19:32 mak eurn
+ 5085  22/04/25 09:19:35 make run
+ 5086  22/04/25 12:28:42 clear all docker image logs
+ 5087  22/04/25 12:28:45 sudo find /var/lib/docker/containers/ -name "*.log" -exec truncate -s 0 {} \;
+ 5088  22/04/25 12:28:49 clear all docker image logs
+ 5089  22/04/25 12:28:52 make run
+ 5090  22/04/25 12:35:06 make run
+ 5091  22/04/25 14:06:24 mak erun
+ 5092  22/04/25 14:06:25 make run
+ 5093  22/04/25 14:09:51 grep -r "_default_annotations
+ 5094  22/04/25 14:18:50 make run
+ 5095  22/04/25 14:46:13 git checkout -b "feat/129_refactor-dashboard-code-excavation-strategy"
+ 5096  22/04/25 14:46:29 git quick "feat(#129): fully completed"
+ 5097  22/04/25 14:51:28 git push origin feat/129_refactor-dashboard-code-excavation-strategy 
+ 5098  22/04/25 14:51:38 git pull
+ 5099  22/04/25 14:51:42 git push origin feat/129_refactor-dashboard-code-excavation-strategy 
+ 5100  22/04/25 14:55:37 git switch feat/128_refactor-dashboard-code-designation-strategy
+ 5101  22/04/25 14:56:01 git quick "feat(#128): refactored most code, however still some addions want finished"
+ 5102  22/04/25 14:56:09 git push origin feat/128_refactor-dashboard-code-designation-strategy 
+ 5103  22/04/25 15:05:15 code .
+ 5104  22/04/25 15:05:58 git switch feat/129_refactor-dashboard-code-excavation-strategy 
+ 5105  22/04/25 15:07:52 code .
+ 5106  22/04/25 15:10:01 make run
+ 5107  22/04/25 14:10:00 cd git/emerald2/arches-orm/
+ 5108  22/04/25 14:10:05 grep -r "_default_annotations"
+ 5109  22/04/25 14:12:07 clear
+ 5110  22/04/25 14:12:08 make run
+ 5111  22/04/25 15:03:37 git quick "feat: added way or domain value is now avaiable for expression PostgreSQL"
+ 5112  22/04/25 16:12:27 git switch release/0.2.2 
+ 5113  22/04/25 16:20:43 git switch emerald/0.3.2 
+ 5114  22/04/25 09:04:22 /usr/local/bin/python2.7 /home/aidan/.vscode/extensions/ms-python.python-2025.4.0-linux-x64/python_files/printEnvVariablesToFile.py /home/aidan/.vscode/extensions/ms-python.python-2025.4.0-linux-x64/python_files/deactivate/bash/envVars.txt
+ 5115  23/04/25 09:53:06 docker logs -f coral-arches-1
+ 5116  23/04/25 10:20:09 cd coral/concept_collections/first/
+ 5117  23/04/25 10:20:09 ls
+ 5118  23/04/25 09:18:11 sudo docker exec -it arches-1 /bin/bash
+ 5119  23/04/25 09:18:20 docker ps
+ 5120  23/04/25 09:18:27 sudo docker exec -it coral-arches-1 /bin/bash
+ 5121  23/04/25 09:26:38 make manage CMD="resources remove_resources -g 07883c9e-b25c-11e9-975a-a4d18cec433a -y"
+ 5122  23/04/25 09:26:44 sudo docker exec -it coral-arches-1 /bin/bash
+ 5123  23/04/25 09:58:50 docker ps
+ 5124  23/04/25 09:58:58 history
+ 5125  23/04/25 09:59:15 sudo docker logs -f 
+ 5126  23/04/25 09:59:21 sudo docker logs -f coral-arches-1
+ 5127  23/04/25 10:17:52 sudo docker exec -it coral-arches-1 /bin/bash
+ 5128  23/04/25 10:21:58 make manage CMD "packages -o import_reference_data -s coral/concept_collections/first/fat_administrative_area.xml"
+ 5129  23/04/25 10:22:15 sudo docker exec -it coral-arches-1 /bin/bash
+ 5130  23/04/25 11:00:07 history
+ 5131  23/04/25 11:00:41 docker logs -f coral-arches-1
+ 5132  23/04/25 15:23:28 make manage CMD="resources remove_resources -g 07883c9e-b25c-11e9-975a-a4d18cec433a -y"
+ 5133  23/04/25 15:23:52 sudo docker exec -it coral-arches-1 /bin/bash
+ 5134  23/04/25 09:03:52 cd git/emerald2
+ 5135  23/04/25 09:08:31 cd coral-arches/
+ 5136  23/04/25 09:08:41 sudo systemctl stop postgresql
+ 5137  23/04/25 09:08:51 make run
+ 5138  23/04/25 10:12:27 ls
+ 5139  23/04/25 10:13:05 cd coral/Concept_Collections/These\ first/
+ 5140  23/04/25 10:13:06 ls
+ 5141  23/04/25 10:17:33 cd #
+ 5142  23/04/25 10:17:40 cd git/emerald2/coral-arches/coral/
+ 5143  23/04/25 10:17:46 cd ..
+ 5144  23/04/25 10:17:47 make run
+ 5145  23/04/25 11:12:25 MAKE RUN
+ 5146  23/04/25 11:12:28 make run
+ 5147  23/04/25 12:00:39 clear
+ 5148  23/04/25 12:00:44 make run
+ 5149  23/04/25 14:57:53 sudo find /var/lib/docker/containers/ -name '*-json.log' -exec truncate -s 0 {} \;
+ 5150  23/04/25 14:57:56 make run
+ 5151  23/04/25 14:58:15 sudo rm -rf /var/lib/docker/containers/*
+ 5152  23/04/25 14:58:16 make run
+ 5153  23/04/25 14:58:28 sudo docker-cleanup 
+ 5154  23/04/25 14:59:16 make build
+ 5155  23/04/25 15:22:24 make run
+ 5156  23/04/25 15:22:45 make manage CMD="resources remove_resources -g 07883c9e-b25c-11e9-975a-a4d18cec433a -y"
+ 5157  23/04/25 15:22:51 make run
+ 5158  23/04/25 15:23:20 make manage CMD="resources remove_resources -g 07883c9e-b25c-11e9-975a-a4d18cec433a -y"
+ 5159  23/04/25 15:23:25 make run
+ 5160  23/04/25 16:11:46 make run > cat.log
+ 5161  23/04/25 16:17:17 make run
+ 5162  23/04/25 16:17:49 make run > cat.log
+ 5163  23/04/25 16:30:09 make run
+ 5164  23/04/25 10:27:25 touch install_reference_data.bash
+ 5165  23/04/25 16:38:55 make run
+ 5166  23/04/25 16:48:56 make run > cat.log
+ 5167  23/04/25 16:49:51 make run
+ 5168  23/04/25 16:50:16 make run > cat.log
+ 5169  23/04/25 17:03:17 git checkout -b "feat/130_refactor-dashboard-code-planning-strategy"
+ 5170  23/04/25 17:03:30 git quick "feat: refactoring planning strategy code"
+ 5171  23/04/25 16:30:52 cd ..
+ 5172  23/04/25 16:30:53 cd arches-orm/
+ 5173  23/04/25 16:30:56 grep -r "resourceinstance__createdtime"
+ 5174  23/04/25 16:31:08 grep -r "resourceinstance__"
+ 5175  23/04/25 11:30:59 cd git/emerald2/emerald/
+ 5176  23/04/25 11:31:02 cd //
+ 5177  23/04/25 11:31:08 cd #
+ 5178  23/04/25 11:31:10 cd git/emerald2/
+ 5179  23/04/25 11:31:11 ls
+ 5180  23/04/25 11:31:17 cd emerald/
+ 5181  23/04/25 11:31:18 ls
+ 5182  23/04/25 11:31:24 cd ..
+ 5183  23/04/25 11:31:26 cd arches-orm/
+ 5184  23/04/25 11:31:29 code .
+ 5185  23/04/25 11:31:44 git quick "feat: fixed issue with resource instance list ids"
+ 5186  23/04/25 12:08:32 code .
+ 5187  23/04/25 16:37:50 /home/aidan/git/emerald2/ENV/bin/python
+ 5188  23/04/25 12:08:35 /usr/local/bin/python2.7 /home/aidan/.vscode/extensions/ms-python.python-2025.4.0-linux-x64/python_files/printEnvVariablesToFile.py /home/aidan/.vscode/extensions/ms-python.python-2025.4.0-linux-x64/python_files/deactivate/bash/envVars.txt
+ 5189  24/04/25 09:04:49 cd git/emerald2/arches-orm/
+ 5190  24/04/25 09:05:08 clear
+ 5191  24/04/25 16:21:26 /usr/local/bin/python2.7 /home/aidan/.vscode/extensions/ms-python.python-2025.4.0-linux-x64/python_files/printEnvVariablesToFile.py /home/aidan/.vscode/extensions/ms-python.python-2025.4.0-linux-x64/python_files/deactivate/bash/envVars.txt
+ 5192  24/04/25 15:10:56 /home/aidan/git/emerald2/ENV/bin/python
+ 5193  24/04/25 12:02:06 cd git/emerald2/
+ 5194  24/04/25 12:02:06 ls
+ 5195  24/04/25 12:02:10 cd arches-orm/
+ 5196  24/04/25 12:02:11 ls
+ 5197  24/04/25 12:02:36 git quick "fix: updated"
+ 5198  24/04/25 12:15:51 git switch release/0.2
+ 5199  24/04/25 12:30:01 git switch emerald/0.3.2 
+ 5200  24/04/25 15:56:10 git quick "fix: fixed issue for sort by deadline"
+ 5201  24/04/25 16:49:41 git quick "fix: is null"
+ 5202  24/04/25 16:49:44 git switch release/0.2
+ 5203  24/04/25 16:55:15 git switch emerald/0.3.2 
+ 5204  24/04/25 11:19:30 python manage.py resources remove_resources -g 076f9381-7b00-11e9-8d6b-80000b44d1d9 -y
+ 5205  24/04/25 11:19:36 . ../ENV/bin/activate
+ 5206  24/04/25 11:19:37 python manage.py resources remove_resources -g 076f9381-7b00-11e9-8d6b-80000b44d1d9 -y
+ 5207  24/04/25 11:19:59 sudo docker exec -it coral-arches-1
+ 5208  24/04/25 11:20:06 sudo docker exec -it coral-arches-1 /bin/bash
+ 5209  24/04/25 11:32:13 sudo docker exec -it coral-arches-1
+ 5210  24/04/25 11:32:19 sudo docker exec -it coral-arches-1 /bin/bash
+ 5211  24/04/25 13:42:55 git switch feat/130_refactor-dashboard-code-planning-strategy 
+ 5212  24/04/25 16:48:35 git switch feat/128_refactor-dashboard-code-designation-strategy 
+ 5213  24/04/25 09:04:52 cd ..
+ 5214  24/04/25 09:05:02 cd coral-arches/
+ 5215  24/04/25 09:05:05 clear
+ 5216  24/04/25 09:21:03 sudo systemctl stop postgresql
+ 5217  24/04/25 09:21:08 make run
+ 5218  24/04/25 09:40:48 make rn
+ 5219  24/04/25 09:40:51 make run
+ 5220  24/04/25 10:09:31 git quick "feat(#130): refactored dashboard, still needs tested"
+ 5221  24/04/25 10:58:18 make run
+ 5222  24/04/25 12:01:25 git quick "fix(#130): issue with hb and hm members"
+ 5223  24/04/25 12:01:34 git switch feat/128_refactor-dashboard-code-designation-strategy 
+ 5224  24/04/25 12:01:39 make run
+ 5225  24/04/25 13:47:02 make ryun]
+ 5226  24/04/25 13:47:04 make run
+ 5227  24/04/25 16:41:48 git commit -m "fix: added Null value checks properly and cleaned and commented"
+ 5228  24/04/25 16:42:00 git quick "fix: added null value checks properly and cleaned and commented"
+ 5229  24/04/25 16:43:11 make run
+ 5230  25/04/25 10:05:44 cd git/emerald2/arches-orm/
+ 5231  25/04/25 10:05:56 git quick "feat: added commented about resource list for null values"
+ 5232  25/04/25 11:59:18 git quick "fix: fixed issue with annotations not resetting"
+ 5233  25/04/25 12:14:38 make run
+ 5234  25/04/25 13:48:05 git quick "chore: removed comments"
+ 5235  25/04/25 13:48:11 git switch release/0.2
+ 5236  25/04/25 13:52:32 git switch emerald/0.3.2 
+ 5237  25/04/25 14:07:51 git switch release/0.2.2 
+ 5238  25/04/25 14:07:57 code .
+ 5239  25/04/25 14:10:11 git checkout -b "release/0.2.3" v0.2.2
+ 5240  25/04/25 14:10:22 git cherry pick e82ac2598499fdf93503529c1c4780149450dd16
+ 5241  25/04/25 14:10:36 git cherry-pick e82ac2598499fdf93503529c1c4780149450dd16
+ 5242  25/04/25 14:10:48 git cherry-pick 58128f9036e534801a06542bd53102b58883da4a
+ 5243  25/04/25 14:10:55 git cherry-pick b0cec100f051159a837e1a89738688853738e900
+ 5244  25/04/25 14:11:06 git cherry-pick a5e993060b0b9f848ec3a06a1fc6183220cd5ca0
+ 5245  25/04/25 14:11:15 git cherry-pick 6416687e9ebacae6e21d5cb2d0f86d121426e60c
+ 5246  25/04/25 14:11:28 git cherry-pick d890a026fbef1f6d562ddd36c8b743758c01d9a9
+ 5247  25/04/25 14:11:38 git cherry-pick --abort
+ 5248  25/04/25 14:11:40 git cherry-pick d890a026fbef1f6d562ddd36c8b743758c01d9a9
+ 5249  25/04/25 14:11:42 code .
+ 5250  25/04/25 14:12:15 git cherry-pick c181a55560ec53529017b747f7d8a560b72cc681
+ 5251* 25/04/25 14:12:19 code 
+ 5252  25/04/25 14:13:07 git cherry-pick 506660b74e8fe2f561ec50a3d79c24a1e7ab1158
+ 5253  25/04/25 14:13:09 code .
+ 5254  25/04/25 14:13:53 git cherry-pick 7d2c8548defb45dbac58a9a58e309d6a2b62ceb7
+ 5255  25/04/25 14:14:00 git cherry-pick 375ce75740c68ab056de5eb0f8ace11c90df802a
+ 5256  25/04/25 14:14:02 code .
+ 5257  25/04/25 14:14:43 git cherry-pick 63bba20a4787f364ba4225c05e242ecf1f255bac
+ 5258  25/04/25 14:15:00 git cherry-pick 6661bb754a844245aecc28e5c23298bd4dec01ff
+ 5259  25/04/25 14:15:06 git cherry-pick 2a176909dc7b8fdee6d8fa33e3eb2e3287ed6162
+ 5260  25/04/25 14:15:12 git cherry-pick 60e69f7d16e4eb2b29ac38f12e7d87e8a70c2304
+ 5261  25/04/25 14:15:18 git cherry-pick fdc46df120fa32439ade88ad1b1cf1be1e15285b
+ 5262  25/04/25 14:15:25 git cherry-pick ee5cf8dbabd182b1602dfae327ed398bb98a0e85
+ 5263  25/04/25 14:15:32 git cherry-pick 3ae76183383fae36d29caef94bbb05fe4ef71f86
+ 5264  25/04/25 14:15:48 git cherry-pick 4d6caa71fe5e31622d35bb3c3bec98213868ea9c
+ 5265  25/04/25 14:15:54 git cherry-pick 58b1372ebe36b34505fabeddfa726aac3ca07832
+ 5266  25/04/25 14:16:00 git cherry-pick 747f002da216a17f02f5fee91083a3490ff8fa93
+ 5267  25/04/25 14:16:16 git cherry-pick e8c6c8c523f18756fb398a56cb7f3e4082ed8030
+ 5268  25/04/25 14:16:23 git cherry-pick 10ef219f4856354d1fdad41ee3f02cd428f9a5ec
+ 5269  25/04/25 14:16:32 git cherry-pick 923837ae64413ee29070e9bc3ca3799f62d9c9c4
+ 5270  25/04/25 14:16:42 git cherry-pick 8583eccec2f1510f2655547e816d367d4333cd8b
+ 5271  25/04/25 14:16:51 git cherry-pick fbf1691ccac3b7e330d2ba56b5f781c4d7de0b40
+ 5272  25/04/25 14:16:58 git cherry-pick a145515db984f405f7f7b972ed36f4ba239b01cc
+ 5273  25/04/25 14:17:08 git cherry-pick 1327988ea3a2dc85cbf211b4fdb7d53818d2eebe
+ 5274  25/04/25 14:17:14 git cherry-pick b3d3c1e55dee93c14f8bfe11c6af15c8e26e25aa
+ 5275  25/04/25 14:17:19 git cherry-pick 3c917b9418cc876b2ff20016471d12a025aa5cb5
+ 5276  25/04/25 14:17:25 git cherry-pick 75af1e696df26b8cf0ce67b04f23d9cc3b3db92c
+ 5277  25/04/25 14:17:30 git cherry-pick 61288d4411b75ac67aefb30ea418f390b748a3e3
+ 5278  25/04/25 14:17:42 git cherry-pick e2f55951c20bbea23b6c9214cb185268bbf78cab
+ 5279  25/04/25 14:17:48 git cherry-pick 69e3217325d250b1ff6d83c4c8c085fdbcd6c31a
+ 5280  25/04/25 14:17:50 code .
+ 5281  25/04/25 14:18:27 git cherry-pick 3e8c3fc5dd9b6949146cf6a6bcb8b4a173a0645d
+ 5282  25/04/25 14:19:01 git push origin release/0.2.3 
+ 5283  25/04/25 14:19:24 git checkout -b "release/0.2.3-passed-feb-20"
+ 5284  25/04/25 14:19:32 git switch release/0.2.3
+ 5285  25/04/25 14:19:54 git cherry-pick ce8ec2b3ba499ae5f410296ce141898d26f34a73
+ 5286* 25/04/25 14:19:56 code 
+ 5287  25/04/25 14:20:54 git cherry-pick a7f24c6b1412860efb163f958ace8b2a67710831
+ 5288  25/04/25 14:21:00 git cherry-pick de4421b8f369654155cac03c62a1cbd75f95aef1
+ 5289  25/04/25 14:21:05 git cherry-pick 272f3a52d240522dea6bf7680f0e897275f59c34
+ 5290  25/04/25 14:21:11 git cherry-pick 47a72aa2dfe1b4277d4763970424986150a7ed7d
+ 5291  25/04/25 14:22:27 git cherry-pick -m 1 47a72aa2dfe1b4277d4763970424986150a7ed7d
+ 5292  25/04/25 14:23:04 git cherry-pick --skip
+ 5293  25/04/25 14:23:24 git cherry-pick ca11d904c38e8a365ea7cdd8885dfa1fb24968d8
+ 5294  25/04/25 14:23:33 git cherry-pick -m 1 d754c5cd85dcd0cfaae23bc66ea8061c9d8fda36
+ 5295  25/04/25 14:23:38 git cherry-pick --skip
+ 5296  25/04/25 14:23:49 git cherry-pick bc06570a82bf68cd71208ce9dff66b3b4a370ad6
+ 5297  25/04/25 14:23:51 code .
+ 5298  25/04/25 14:24:35 git cherry-pick 27f0b8ac9eec16475cf866026ab7c15654e836bd
+ 5299  25/04/25 14:24:37 code .
+ 5300  25/04/25 14:24:56 git cherry-pick 7af54677410748d28d73f497d05d39c1c8461189
+ 5301  25/04/25 14:25:02 code .
+ 5302  25/04/25 14:25:27 git cherry-pick 21094404ab5a3b43608dbed9908fce051cd7e59e
+ 5303  25/04/25 14:25:34 git cherry-pick 0503da9c99416e8ef01efde5ab2a4d90403521da
+ 5304  25/04/25 14:25:40 git cherry-pick ecc785a48a5c4ba05c0a3e625ae2763606ab96b0
+ 5305  25/04/25 14:25:47 git cherry-pick 4c7ba2b3aa584adaeb4c7036dabe21837e4ba90b
+ 5306  25/04/25 14:25:49 code .
+ 5307  25/04/25 14:26:24 git cherry-pick 416491591e58e855369f0e58f8620f7a596d79e0
+ 5308  25/04/25 14:26:31 git cherry-pick 0c0c3dac5a2c5a618d85cd82caf7ebd5a78feba2
+ 5309  25/04/25 14:26:37 git cherry-pick 97f6a4d7e9d0ddb944d805da37870decc0ad392e
+ 5310  25/04/25 14:26:44 git cherry-pick d010ed4f7a53ff9991d8a41f96b103dc57e36b46
+ 5311  25/04/25 14:26:50 git cherry-pick d6df94ffe35c7857082b0a6fb1ea18cb5309d29a
+ 5312  25/04/25 14:26:58 git cherry-pick 9d92ccc16e72bc0c2f70e0115f3adb7975751399
+ 5313  25/04/25 14:27:01 code .
+ 5314  25/04/25 14:27:21 git cherry-pick d0eb8a5a4222ecb744664649623801a268d07c6c
+ 5315  25/04/25 14:27:30 git cherry-pick ea56c6784c52d80a50ed2f14cb8fe090d921b52b
+ 5316  25/04/25 14:27:38 git cherry-pick 5109ba3474c73717454fef5c9265a6c66d4436d9
+ 5317  25/04/25 14:27:42 git cherry-pick ba75505b6c0db393475f5bcc113860ae647ec45d
+ 5318  25/04/25 14:27:47 git cherry-pick 450511619c726fb471a6b37415623c312c85fe41
+ 5319  25/04/25 14:27:53 git cherry-pick 8a72f4956fb4a53065aa81ba49b367a5c27cca15
+ 5320  25/04/25 14:27:58 git cherry-pick 4986ec7ec3d0c04ff83d2ea636075f4b24fca35c
+ 5321  25/04/25 14:28:05 git cherry-pick 7b994d84d9c14f913518355c7f543875c6bd706b
+ 5322  25/04/25 14:28:21 git cherry-pick 4f79d38f9cec195f6ca94c4289fbaf75fca53e07
+ 5323  25/04/25 14:28:26 git cherry-pick 1f0d53cfc83d9a640d497ee679f6f4c68d368c93
+ 5324  25/04/25 14:28:32 git cherry-pick b95b78477741706c386b264d1e62c066bad19efe
+ 5325  25/04/25 14:28:37 git cherry-pick f9ebafa70f6eebc5d4d5d55fe9a6e4afc1bc39f3
+ 5326  25/04/25 14:28:43 git cherry-pick f700ffdcd87960e99577f3fb0cdebc975c77c5ab
+ 5327  25/04/25 14:28:58 git cherry-pick 5c10adcf73bd45b5a43677612a41dbfff280f443
+ 5328  25/04/25 14:29:08 history > cat.log

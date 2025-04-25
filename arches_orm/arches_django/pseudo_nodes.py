@@ -1,11 +1,8 @@
-from arches.app.models.tile import Tile as TileProxyModel
 from collections import UserList
 import inspect
 
 from arches_orm.view_models import ViewModel, NodeListViewModel, UnavailableViewModel, ResourceInstanceViewModel
 from arches.app.models.models import TileModel
-
-from .datatypes import get_view_model_for_datatype
 from arches.app.models.tile import Tile as TileProxyModel
 
 class PseudoNodeList(UserList):
@@ -147,6 +144,7 @@ class PseudoNodeValue:
             if parent is None:
                 raise RuntimeError("Must have a parent or parent class for a pseudo-node")
             parent_cls = parent.__class__
+        self.get_view_model_for_datatype = get_view_model_for_datatype
         self._parent = parent
         self._parent_cls = parent_cls
         self._parent_node = None
@@ -154,6 +152,7 @@ class PseudoNodeValue:
         self._value = value
         self._accessed = False
         self._original_tile = tile
+        self._TileProxyModel = TileProxyModel
 
     def __str__(self):
         return f"{{{self.value}}}"
@@ -221,7 +220,7 @@ class PseudoNodeValue:
         if not self.tile:
             if not self.node:
                 raise RuntimeError("Empty tile")
-            self.tile = TileProxyModel(
+            self.tile = self._TileProxyModel(
                 nodegroup_id=self.node.nodegroup_id, tileid=None, data={}
             )
             self.relationships = []
@@ -235,7 +234,7 @@ class PseudoNodeValue:
             else:
                 data = self._value
 
-            self._value, self._as_tile_data, self._datatype, self._multiple = get_view_model_for_datatype(
+            self._value, self._as_tile_data, self._datatype, self._multiple = self.get_view_model_for_datatype(
                 self.tile,
                 self.node,
                 value=data,
@@ -257,7 +256,7 @@ class PseudoNodeValue:
     def value(self, value):
         if not isinstance(value, ViewModel) or isinstance(value, ResourceInstanceViewModel):
             self.get_tile()
-            value, self._as_tile_data, self._datatype, self._multiple = get_view_model_for_datatype(
+            value, self._as_tile_data, self._datatype, self._multiple = self.get_view_model_for_datatype(
                 self.tile,
                 self.node,
                 value=value,
