@@ -76,14 +76,17 @@ class QueryBuilderSelectors:
    
 
                     # for tile in queryset_tiles:
-                    #     if 'desg_approved_by_annotation' in tile:
-                    #         print('desg_approved_by_annotation', tile['desg_approved_by_annotation'])
+                    #     if 'council_annotation_domain_value' in tile:
+                    #         print('council_annotation_domain_value', tile['council_annotation_domain_value'])
+                    #         print('council_annotation', tile['council_annotation'])
                     #         print('FILTER STRUCTURES : ', filter_structures)
                     #         print('===============================================================')
+                    # print('queryset_tiles : ', queryset_tiles)
                     queryset_tiles = queryset_tiles.filter(
                         transform_filter_structure_towards_query(filter_structures), 
                         **defaultFilterTileAgrs
                     )
+
 
                 else:
                     queryset_tiles = queryset_tiles.filter(**defaultFilterTileAgrs)
@@ -177,12 +180,12 @@ class QueryBuilderSelectors:
         exclude_structures = self._instance_query_builder._exclude_structures;
         order_by = self._instance_query_builder._order_by;
 
-        if (str(self._wrapper_instance._graph()) == 'Heritage Asset Revision'):
-            print('=============================================')
-            print('FILTER STRUCTURES: ', filter_structures)
-            print('ANNOTATIONS: ', annotations)
-            print(str(self._wrapper_instance._graph()))
-            print('=============================================')
+        # print('=============================================')
+        # print('FILTER STRUCTURES: ', filter_structures)
+        # print('DEFAULT ANNOTATIONS: ', self._instance_query_builder._before_annotations)
+        # print('ANNOTATIONS: ', annotations)
+        # print(str(self._wrapper_instance._graph()))
+        # print('=============================================')
 
         callback_get_tiles = self._default_get_tiles(
             annotations=annotations,
