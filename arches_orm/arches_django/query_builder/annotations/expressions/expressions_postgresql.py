@@ -17,7 +17,8 @@ class JsonBAgg(Aggregate):
     function = 'jsonb_agg'
     output_field = JSONField()
     template = '%(function)s(%(distinct)s%(expressions)s)'
-
+    
+# ! Please note that age__isnull=True/False will not work here as we are setting None. Instead use age=None or age__not_equal=None for this expression
 class ExtractKeyFromResourceInstanceList(Func):
     function = None  # Custom SQL
     template = """
@@ -122,7 +123,6 @@ def postgresql_expression_domain_value(node: Node, additional_keys: List[str] = 
             When(**{dynamic_annotation_key: node_id}, then=Value(selected_option))
         )
 
-    # ! Please note that age__isnull=True/False will not work here as we are setting None. Instead use age=None or age__not_equal=None for this expression
     case_expression = Case(*when_conditions, default=Value(None))
 
     # ! Unfortually, When() as some issues with running database functions as conditions, therefore we use default to extract the domain value id
