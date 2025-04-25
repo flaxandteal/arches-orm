@@ -106,6 +106,11 @@ class QueryBuilder:
         self._lazy_mode = False 
         self._current_build_stage = None
 
+        # ! Okay so this could cause issues within the future, resetting annotations, however I have done some research and discovered some problems
+        # ! https://docs.google.com/document/d/1_Qdad9GptCocUEb57kr7fXueHqeEshZOEbR--MNzzsw/edit?tab=t.0#heading=h.zdic8qjv5py2
+        self._annotations = {}
+        self._before_annotations = {}
+
     def create_wkri_with_datatype_values(
             self, 
             related_prefetch = None,
