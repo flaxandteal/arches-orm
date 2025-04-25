@@ -1327,10 +1327,8 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
                     parent_cls=cls.view_model,
                 )
             else:
-                node_value = PseudoNodeValue(
+                  node_value = PseudoNodeValue(
                     tile=tile,
-                    TileProxyModel=cls.TileProxyModel,
-                    get_view_model_for_datatype=get_view_model_for_datatype,
                     node=node_obj,
                     value=None,
                     parent=wkri,

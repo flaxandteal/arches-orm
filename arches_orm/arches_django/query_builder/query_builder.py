@@ -45,7 +45,7 @@ class QueryBuilder:
     _annotations: Dict[str, ExpressionWrapper] = {};
     
     _order_by: List[str] = [];
-    _lazy_mode: bool = False
+    _lazy_mode: bool = True
     _database_engine : str = None;
     _database_keys: Dict[str, List] = {
         'postgresql': ['postgresql', 'postgis'],
