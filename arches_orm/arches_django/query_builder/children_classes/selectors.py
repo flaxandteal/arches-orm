@@ -54,40 +54,6 @@ class QueryBuilderSelectors:
         """
 
         def _callback_get_tiles(**defaultFilterTileAgrs):
-            # class JsonbObjectAggFromLateral(Func):
-            #     function = 'jsonb_object_agg'
-            #     output_field = JSONField()
-            #     template = """
-            #     (SELECT jsonb_object_agg(kv.key, kv.value)
-            #     FROM jsonb_each(%(expressions)s) AS kv
-            #     )"""
-
-            # testTiles = TileModel.objects.filter(
-            #     resourceinstance_id='bb6cffff-9947-443d-9a82-16b35a417213'
-            # ).annotate(
-            #     merged_tiledata=JsonbObjectAggFromLateral('data')
-            # ).values('resourceinstance_id', 'merged_tiledata')
-                
-            # testTiles = TileModel.objects.values('resourceinstance_id').annotate(
-            #     resource_merged_tile_data=RawSQL(
-            #         """
-            #         (
-            #             SELECT jsonb_object_agg(kv.key, kv.value)
-            #             FROM tiles AS t
-            #             JOIN jsonb_each(t.tiledata) AS kv ON true
-            #             WHERE t.resourceinstanceid = tiles.resourceinstanceid
-            #         )
-            #         """, 
-            #         [],
-            #         output_field=PostgreSQLJSONField()  # This is the key fix
-            #     )
-            # ).distinct().annotate(**annotations)
-
-            # print(testTiles)
-
-            # print('WORKS?', testTiles.filter(resourceinstance_id="bb6cffff-9947-443d-9a82-16b35a417213"))
-
-
             queryset_tiles = TileModel.objects.values('resourceinstance_id')
             self._resourceinstances_ids = []
 
@@ -107,6 +73,13 @@ class QueryBuilderSelectors:
                 _apply_annotations()
 
                 if (filter_structures):
+   
+
+                    # for tile in queryset_tiles:
+                    #     if 'desg_approved_by_annotation' in tile:
+                    #         print('desg_approved_by_annotation', tile['desg_approved_by_annotation'])
+                    #         print('FILTER STRUCTURES : ', filter_structures)
+                    #         print('===============================================================')
                     queryset_tiles = queryset_tiles.filter(
                         transform_filter_structure_towards_query(filter_structures), 
                         **defaultFilterTileAgrs
@@ -203,6 +176,13 @@ class QueryBuilderSelectors:
         filter_structures = self._instance_query_builder._filter_structures;
         exclude_structures = self._instance_query_builder._exclude_structures;
         order_by = self._instance_query_builder._order_by;
+
+        if (str(self._wrapper_instance._graph()) == 'Heritage Asset Revision'):
+            print('=============================================')
+            print('FILTER STRUCTURES: ', filter_structures)
+            print('ANNOTATIONS: ', annotations)
+            print(str(self._wrapper_instance._graph()))
+            print('=============================================')
 
         callback_get_tiles = self._default_get_tiles(
             annotations=annotations,
