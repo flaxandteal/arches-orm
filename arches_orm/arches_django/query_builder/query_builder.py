@@ -244,6 +244,9 @@ class QueryBuilder:
                 resource = tile.resourceinstance
                 node = node_dict.get(tile.nodegroup_id)
 
+                if (node == None):
+                    raise ValueError(f'The node id {tile.nodegroup_id} does not exist')
+
                 current_wkri_index = _get_wkri_index_nor_create_wkri_instance(resource);
                 wkri = wkris[current_wkri_index];
 
