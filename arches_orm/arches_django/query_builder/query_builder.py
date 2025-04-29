@@ -45,7 +45,7 @@ class QueryBuilder:
     _annotations: Dict[str, ExpressionWrapper] = {};
     
     _order_by: List[str] = [];
-    _lazy_mode: bool = False
+    _lazy_mode: bool = True
     _database_engine : str = None;
     _database_keys: Dict[str, List] = {
         'postgresql': ['postgresql', 'postgis'],
@@ -103,7 +103,7 @@ class QueryBuilder:
         self._filter_structures = []
         self._exclude_structures = []
         self._order_by = []
-        self._lazy_mode = False 
+        self._lazy_mode = True 
         self._current_build_stage = None
 
         # ! Okay so this could cause issues within the future, resetting annotations, however I have done some research and discovered some problems
@@ -114,7 +114,7 @@ class QueryBuilder:
     def create_wkri_with_datatype_values(
             self, 
             related_prefetch = None,
-            lazy_mode = False, 
+            lazy_mode = True, 
             callback_get_tiles: Optional[Callable[[], Iterator[TileModel]]] = None
         ) -> List[type]:
         """
