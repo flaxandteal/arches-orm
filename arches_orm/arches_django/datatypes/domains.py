@@ -1,118 +1,71 @@
 import uuid
-from enum import Enum
-from functools import partial
-
-from arches.app.models.concept import Concept
+from typing import List
 
 from arches_orm.view_models import (
-    ConceptListValueViewModel,
-    ConceptValueViewModel,
-    EmptyConceptValueViewModel,
+
+    EmptyDomainValueViewModel,
+    DomainListValueViewModel,
+    DomainValueViewModel, 
+    DomainOptions
 )
 from arches_orm.collection import make_collection, CollectionEnum
 from ._register import REGISTER
 
-_COLLECTIONS: dict[str, type[Enum]] = {}
+def make_domain_value(value: uuid.UUID | None, domain_options: DomainOptions | None, datatype: str):
 
-def invalidate_collection(concept_id):
-    if concept_id in _COLLECTIONS:
-        del _COLLECTIONS[concept_id]
+    if value is None or isinstance(value, EmptyDomainValueViewModel):
+        if domain_options:
+            return EmptyDomainValueViewModel(
+                value
+            )
+            return None
+        return None
 
-def retrieve_children(concept_id: uuid.UUID, language: str | None, datatype) -> list[ConceptValueViewModel]:
-    # RMV TEST
-    concept = Concept().get(id=concept_id, include=["label"])
-    return [
-        make_concept_value(concept.get_preflabel().valueid, collection_id=None, datatype=datatype)
-        for child in concept.children
-    ]
-
-def retrieve_collection(collection_id: uuid.UUID, datatype=None) -> type[Enum]:
-    if collection_id in _COLLECTIONS:
-        return _COLLECTIONS[str(collection_id)]
-    collection = Concept().get(id=collection_id, include=["label"])
-    if not datatype:
-        datatype = REGISTER._datatype_factory.get_instance("concept")
-    def _make_concept(id, collection_id):
-        return ConceptValueViewModel(
-            id,
-            lambda value_id: datatype.get_value(value_id),
-            collection_id if collection_id else None,
-            (lambda _: retrieve_collection(collection_id, datatype=datatype) if collection_id else None),
-            partial(retrieve_children, datatype=datatype)
-        )
-    made_collection = make_collection(
-        collection.get_preflabel().value,
-        [
-            _make_concept(concept[2], collection_id) for concept in
-            Concept().get_child_collections(collection_id)
-        ],
-        str(collection_id)
+    return DomainValueViewModel(
+        value,
+        domain_options,
+        datatype
     )
-    _COLLECTIONS[str(collection_id)] = made_collection
-    return made_collection
 
-
-@REGISTER("concept-list")
-def concept_list(tile, node, value: list[uuid.UUID | str] | None, _, __, ___, datatype):
+@REGISTER("domain-value")
+def domain_value(tile, node, value: uuid.UUID | None, _, __, ___, datatype) -> DomainValueViewModel:
     if value is None:
         value = tile.data.get(str(node.nodeid), []) or []
 
-    collection_id = None
+    domain_options: DomainOptions | None = None
+
     if node and node.config:
-        collection_id = node.config.get("rdmCollection")
+        domain_options = node.config.get("options")
 
-    def make_cb(value):
-        return REGISTER.make(tile, node, value=value, datatype="concept")[0]
+    return make_domain_value(value, domain_options, datatype)
 
-    return ConceptListValueViewModel(
-        value, make_cb, collection_id, partial(retrieve_collection, datatype=datatype)
-    )
+@domain_value.as_tile_data
+def dv_as_tile_data(domain_value):
+    return domain_value.value
 
+@REGISTER("domain-value-list")
+def domain_value_list(tile, node, value: List[uuid.UUID] | None, _, __, ___, datatype):
+    # print('TILE |  ', tile)
+    # print('node |  ', node)
+    # print('value |  ', value)
+    # print('_ |  ', _)
+    # print('__ |  ', __)
+    # print('__ |  ', __)
+    # print('___ |  ', ___)
+    # print('datatype |  ', datatype)
 
-@concept_list.as_tile_data
-def cl_as_tile_data(concept_list):
-    return [cv_as_tile_data(x) for x in concept_list]
+    # * We check if the value is set, if not we reterieve the value from a tile
+    if value is None or not value:
+        value = tile.data.get(str(node.nodeid), []) or []
 
+    def make_domain_value(value: uuid.UUID):
+        return REGISTER.make(tile, node, value=value, datatype="domain-value")[0]
 
-@REGISTER("concept")
-def concept_value(tile, node, value: uuid.UUID | str | None | CollectionEnum | ConceptValueViewModel | EmptyConceptValueViewModel, __, ___, ____, datatype) -> ConceptValueViewModel | EmptyConceptValueViewModel | None:
-    if value is None:
-        value = tile.data.get(str(node.nodeid), None)
-    collection_id = None
-    if node and node.config:
-        collection_id = node.config.get("rdmCollection")
-    if isinstance(value, CollectionEnum):
-        value = value.value
-    if isinstance(value, ConceptValueViewModel | EmptyConceptValueViewModel):
-        if value._collection_id != collection_id:
-            raise RuntimeError(
-                f"Tried to assign value from collection {value._collection_id} to node for collection {collection_id}"
-            )
-        return value
-    return make_concept_value(value if isinstance(value, uuid.UUID) else uuid.UUID(value) if value else None, collection_id, datatype)
+    return DomainListValueViewModel(value, make_domain_value)
 
-def make_concept_value(value: uuid.UUID | None, collection_id: uuid.UUID | None, datatype) -> ConceptValueViewModel | EmptyConceptValueViewModel | None:
-    def concept_value_cb(value):
-        if isinstance(value, ConceptValueViewModel):
-            value = value._concept_value_id
-        return datatype.get_value(value)
-
-    if value is None or isinstance(value, EmptyConceptValueViewModel):
-        if collection_id:
-            return EmptyConceptValueViewModel(
-                collection_id,
-                partial(retrieve_collection, datatype=datatype)
-            )
-        return None
-    return ConceptValueViewModel(
-        value,
-        concept_value_cb,
-        collection_id,
-        partial(retrieve_collection, datatype=datatype),
-        partial(retrieve_children, datatype=datatype)
-    )
-
-
-@concept_value.as_tile_data
-def cv_as_tile_data(concept_value):
-    return None if isinstance(concept_value, EmptyConceptValueViewModel) else str(concept_value._concept_value_id)
+@domain_value_list.as_tile_data
+def dl_as_tile_data(domain_value_list):
+    print('dvl_as_tile_data | ', domain_value_list)
+    data = [dv_as_tile_data(domain_value) for domain_value in domain_value_list]  # Should be a list, not a set
+    print('dvl_as_tile_data  data | ', data)
+    return data
