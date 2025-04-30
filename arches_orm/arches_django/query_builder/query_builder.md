@@ -198,8 +198,8 @@ In this section will describe an example of the process for filtering, modifiyin
 Person.where(firsname__de__contains='Aid').order_by('firstname').get()
 ```
 
-#### Filter - where(firsname__contains='Aid')
-![Alt text](./Filter%20Structurer.png)
+#### Filter (1/3) - where(firsname__contains='Aid')
+![Alt text](./assets/Filter%20Structurer.png)
 
 ##### 1st - Accessing where
 The user access the init method `where` on the wrapper which points to a exposed method on the query builder that is gained from filters
@@ -233,8 +233,27 @@ Once the loop is completed the `_filter_structures` & `_exclude_structures` is s
 ##### 4th - What's returned
 The same instance of the [Query Builder](./query_builder.py) is returned, therefore offering chainable through `__getattr__`
 
-#### Modifiter
+#### Modifiter (2/3) - order_by('firstname')
+![alt text](./assets/Modifier%20Structurer.png)
 
+
+##### 1st - Accessing order by
+The user access the chainable order by, therefore the data from the filter section is saved within query builder. 
+
+##### 2nd - The loop
+The conditions are looped so in this case, it's just a single loop, we just loop `firstname`. 
+
+Within these loop we format the key to know the field key `firstname`, the addional keys [] and the sepertor ``.
+
+The `_annotations` & `_before_annotations` is set within [Query Builder](./query_builder.py) using the method `set_annotation`
+
+Next the definement of `_order_by` is setup within [Query Builder](./query_builder.py) and we add `firstname` to this `_order_by`
+
+#### Selector (3/3) - get()
+![alt text](./assets/Selector%20Structurer.png)
+
+##### 1st - Accessing get selector
+The user access the chainable selector, therefore the data from the filter section and modifier is saved within query builder. 
 
 ## The file structure
 In this section describes some of the files structures to help fully understand the purpose of each file and where future development code be defined within
@@ -252,9 +271,6 @@ This child class defines the modifiers query methods so things such as `lazy()`,
 
 ### children_classes/selectors.py
 This child class defines the selectors query methods for example `all()`, `get()`, `first()`, etc. These methods set up a callback method towards the method "*create_wkri_with_datatype_values*" on the `query_builder.py`. These methods define filtering, excluding, order by, offset data, annotations towards the Django system within the callback method. 
-
-### expressions.py
-This file is used towards defining expressions towards annotations towards JSON columns storaged within the database for example `age_annotation=data__ec03c1fd-e250-46be-b27a-d28d4d32762c`. In this file, defines datatypes towards tile data as each datatype is stored differently within the JSON column and it also might need some casting aswel, for example field_output=NumberField(). Overall, these expressions help with annotations setup, therefore filtering becomes exetremly simpler as we can use the node alias, instead of the node uuid and this also extracts the value to query agasint from the JSON column.
 
 ### config.py
 This file stores variables which are globally used within the query_builder. Current the variables stored are the custom keys which the user can use to query certain operations for example `INSENSITIVE_CONTAINS_KEYS = ['ict', 'icontains']` -> `person.where(name__ict='test').get()` or `person.where(name__icontains='test').get()` but both ways preform a insenitive contains key operation
