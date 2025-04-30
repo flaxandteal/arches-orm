@@ -24,6 +24,11 @@ class FilterStructure(TypedDict):
     logical_operator: str
     conditions: Dict[str, any]
 
+class WKRILazyLoadMeta(TypedDict):
+    node_alias: str
+    wkri_index: int
+    tile: TileModel
+
 ExcludeStructure = FilterStructure
 
 class QueryBuilder:
@@ -34,6 +39,9 @@ class QueryBuilder:
     _instance_selectors: QueryBuilderSelectors = None;
     _instance_modifiers: QueryBuilderModifier = None;
     _current_build_stage: str = None;
+
+    _wkri_lazy_load_meta: Dict[str, List[WKRILazyLoadMeta]] = {}
+    wkris: List[type] = []; # * Return value
 
     _edges_domain_to_range: Dict[str, str] = None;
     _edges_range_to_domain: Dict[str, str] = None;
@@ -76,6 +84,29 @@ class QueryBuilder:
             return getattr(self._instance_selectors, name)
  
         raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{name}'")    
+
+    def _load_resource_from_lazy_load(self, resourceinstance_id):
+        wkri_lazy_load_metas = self._wkri_lazy_load_meta[resourceinstance_id]
+
+        print('resourceinstance_id : ', resourceinstance_id)
+
+        if wkri_lazy_load_metas == None or len(wkri_lazy_load_metas) == 0:
+            raise ValueError('No resource instance found with : ', resourceinstance_id)
+        
+        wkri = self.wkris[wkri_lazy_load_metas[0].wkri_index]
+        
+        for wkri_lazy_load_meta in wkri_lazy_load_metas:
+            pseudo_node = self._parent_wrapper_instance._make_pseudo_node_cls(
+                key=wkri_lazy_load_meta.node.alias,
+                # node=node,
+                tile=wkri_lazy_load_meta.tile,
+                wkri=wkri
+            )
+
+            wkri._._values.__setitem__(wkri_lazy_load_meta.node.alias, [pseudo_node])
+            self.self.wkris[wkri_lazy_load_metas[0].wkri_index] = wkri
+                    
+        return wkri
 
     @property
     def database_engine(self) -> str:
@@ -161,7 +192,6 @@ class QueryBuilder:
 
             # * Next we have our return value and a mapping of index within wkris with the key as resource ids
             wkri_resource_instance_mapping_wkris_index: Dict[str, int] = {}
-            wkris: List[type] = []; # * Return value
 
             def _get_wkri_index_nor_create_wkri_instance(resource) -> int:
                 """
@@ -173,7 +203,7 @@ class QueryBuilder:
                 Returns:
                     int: The WKRI index within the List wkris
                 """
-                nonlocal wkris, wkri_resource_instance_mapping_wkris_index
+                nonlocal wkri_resource_instance_mapping_wkris_index
 
                 # * If the resource id is not contained within mapping, it means there is no WKRI instance towrads this tile as of yet
                 # * therefore we must create this WKRI and append/map towards our variables
@@ -197,12 +227,12 @@ class QueryBuilder:
                 )
 
                 # * Save the WKRI instances so we can reuse the instances
-                wkris.append(wkri)
-                wkri_resource_instance_mapping_wkris_index[resource.resourceinstanceid] = len(wkris) - 1
+                self.wkris.append(wkri)
+                wkri_resource_instance_mapping_wkris_index[resource.resourceinstanceid] = len(self.wkris) - 1
 
                 return wkri_resource_instance_mapping_wkris_index.get(resource.resourceinstanceid)
 
-            def _set_node_value_within_value_list(wkri, current_wkri_index: int, node: Node, tile: TileModel):
+            def _set_node_value_within_value_list(wkri, current_wkri_index: int, node: Node, tile: TileModel, resourceinstanceid: str):
                 """
                 Method handles registering the node value to a datatype class/view model and then attaches this dataype class/view model to a ValueList 
                 class instance. Moreover, if lazy loading is enabled, then we just only care about the nodegroup alias which the node is related towards
@@ -215,28 +245,52 @@ class QueryBuilder:
                     node (Node): This is the node which the tile is related towards
                     tile (TileModel): This is the tile record itself, containing the database data
                 """
-                nonlocal node_dict, wkris
-                if lazy_mode:
-                    nodegroup = node_dict.get(tile.nodegroup.nodegroupid)
+                nonlocal node_dict
 
-                    wkri._._values.__setitem__(nodegroup.alias, False)
-                    wkris[current_wkri_index] = wkri
+                # ? Lazy mode is always on now
+                nodegroup = node_dict.get(tile.nodegroup.nodegroupid)
 
-                else:
-                    # * Convert the tile to a pseudo node
-                    pseudo_node = self._parent_wrapper_instance._make_pseudo_node_cls(
-                        key=node.alias,
-                        # node=node,
-                        tile=tile,
-                        wkri=wkri
-                    )
+                wkri._._values.__setitem__(nodegroup.alias, False)
+                self.wkris[current_wkri_index] = wkri
 
-                    # ? Here we state that the tile can be converted from a resource to a Tile Datatype Class as again this slows the process
-                    pseudo_node._convert_tile_resource = True;
+                item: WKRILazyLoadMeta = {
+                    "node_alias": node.alias,
+                    "wkri_index": current_wkri_index,
+                    "tile": tile 
+                }
 
-                    # * Append on the wkri values and update the WKRI within our return value list
-                    wkri._._values.__setitem__(node.alias, [pseudo_node])
-                    wkris[current_wkri_index] = wkri
+                # Append the item, initializing the list if the key doesn't exist
+                if resourceinstanceid not in self._wkri_lazy_load_meta:
+                    self._wkri_lazy_load_meta[resourceinstanceid] = []
+
+                self._wkri_lazy_load_meta[resourceinstanceid].append(item)
+                # if lazy_mode:
+                #     nodegroup = node_dict.get(tile.nodegroup.nodegroupid)
+
+                #     wkri._._values.__setitem__(nodegroup.alias, False)
+                #     wkris[current_wkri_index] = wkri
+
+                #     self._wkri_lazy_load_meta[resourceinstanceid] = {
+                #         "node_alias": node.alias,
+                #         "tile": tile,
+                #         "wkri_index": current_wkri_index
+                #     }
+
+                # else:
+                #     # * Convert the tile to a pseudo node
+                #     pseudo_node = self._parent_wrapper_instance._make_pseudo_node_cls(
+                #         key=node.alias,
+                #         # node=node,
+                #         tile=tile,
+                #         wkri=wkri
+                #     )
+
+                #     # ? Here we state that the tile can be converted from a resource to a Tile Datatype Class as again this slows the process
+                #     pseudo_node._convert_tile_resource = True;
+
+                #     # * Append on the wkri values and update the WKRI within our return value list
+                #     wkri._._values.__setitem__(node.alias, [pseudo_node])
+                #     wkris[current_wkri_index] = wkri
 
             # * Loop all tiles so (n*tiles)
             for tile in tiles:
@@ -248,11 +302,11 @@ class QueryBuilder:
                     raise ValueError(f'The node id {tile.nodegroup_id} does not exist')
 
                 current_wkri_index = _get_wkri_index_nor_create_wkri_instance(resource);
-                wkri = wkris[current_wkri_index];
+                wkri = self.wkris[current_wkri_index];
 
-                _set_node_value_within_value_list(wkri, current_wkri_index, node, tile)
+                _set_node_value_within_value_list(wkri, current_wkri_index, node, tile, resource.resourceinstanceid)
 
-            return wkris
+            return self.wkris
 
         # * We first need to quire the tiles so we use the callback_get_tiles and if one is not provided then we use _fallback_get_tiles as a default.
         # * Either way we get the tiles

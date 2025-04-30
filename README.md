@@ -4,6 +4,48 @@ This provides simple (server-side) access to Arches resources from Python
 as Python objects. It makes no guarantees about efficiency or type-accuracy
 but such issues raised will be addressed as far as possible.
 
+## Understanding
+![alt text](image.png)
+
+Above shows a simple diagram explaining the process of part of the system.
+
+### Apdators
+Apdators are different methods for getting the tile records and may have different internal methods, currently we have three adaptors within the system
+- [Django](./arches_orm/arches_django/): This gets tile records from the DB by using Django
+- [Static](./arches_orm/static/): This gets tile data statically as the tile data is stored locally on the wrapper.py
+- [ResourceAPI](./arches_orm/resource_api/): This gets tile data using a 3rd party Rust GO project, to call an API to pull down tile data
+
+The main apdator current is Django as this apdator access your database for the tile records.
+
+### Wrappers
+
+## Well-known Resource Models
+
+To provide a partial boundary, this package expects a settings object called
+`WELL_KNOWN_RESOURCE_MODELS` to list, at least, the models that should be
+wrapped by this system.
+
+It should be a list:
+
+    WELL_KNOWN_RESOURCE_MODELS = [
+        {
+            "model_name": "Person",
+            "graphid": "4110f743-1a44-11e9-9a37-000d3ab1e500",
+            "nodes": {}, # optional additional configuration
+            "to_string": lambda wkrm: str(wkrm) # optional callback for stringifying
+        }
+    ]
+
+You must _not_ take this list as an exclusive boundary of data that can be accessed.
+
+## Hooks
+
+This package also contains experimental functionality for hooking tile saves,
+so that client code can use the `MyModel.post_save` signal to get well-known
+resource model events. To avoid any unintended overhead, it does not load
+unless explicitly turned on with `arches_orm.add_hooks()`.
+
+
 ## Installation
 
 Basic installation can then happen as follows, _without_ Arches backend support:
@@ -46,32 +88,6 @@ Runs tests across the various backends.
 pip install .[tests]
 python -m pytest
 ```
-
-## Well-known Resource Models
-
-To provide a partial boundary, this package expects a settings object called
-`WELL_KNOWN_RESOURCE_MODELS` to list, at least, the models that should be
-wrapped by this system.
-
-It should be a list:
-
-    WELL_KNOWN_RESOURCE_MODELS = [
-        {
-            "model_name": "Person",
-            "graphid": "4110f743-1a44-11e9-9a37-000d3ab1e500",
-            "nodes": {}, # optional additional configuration
-            "to_string": lambda wkrm: str(wkrm) # optional callback for stringifying
-        }
-    ]
-
-You must _not_ take this list as an exclusive boundary of data that can be accessed.
-
-## Hooks
-
-This package also contains experimental functionality for hooking tile saves,
-so that client code can use the `MyModel.post_save` signal to get well-known
-resource model events. To avoid any unintended overhead, it does not load
-unless explicitly turned on with `arches_orm.add_hooks()`.
 
 ## Tests
 

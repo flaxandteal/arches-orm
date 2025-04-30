@@ -156,6 +156,10 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
     def where(cls, **kwargs):
         return cls.get_query_builder().where(**kwargs)
     
+    @classmethod
+    def _load_resource_from_lazy_load(cls, resourceinstanceid):
+        return cls.get_query_builder()._load_resource_from_lazy_load(resourceinstanceid)
+    
     def _can_delete_resource(self, resource=None):
         if (user := self._context_get("user")):
             resource = resource or self.resource
@@ -618,6 +622,7 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
     @classmethod
     def from_resource_instance(cls, resourceinstance, cross_record=None, lazy=False):
         """Build a well-known resource from a resource instance."""
+        # print('FROM_RESOURCE_INSTANCE')
 
         if not cls ._can_read_graph():
             raise WKRMPermissionDenied()
@@ -626,6 +631,7 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
         return cls.from_resource(resource, cross_record=cross_record, lazy=lazy)
 
     def reload(self, ignore_prefetch=True, lazy=False):
+        # print('RELOAD')
         """Reload field values, but not node values for class."""
 
         if not self._can_read_graph():
@@ -665,6 +671,8 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
 
     @classmethod
     def from_resource(cls, resource, cross_record=None, related_prefetch=None, lazy=False):
+        print('from_resource')
+
         """Build a well-known resource from an Arches resource."""
 
         if not cls._can_read_graph():
@@ -742,6 +750,7 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
     def get_fields(cls, include_root=False):
         cls._build_nodes()
         def _fill_fields(pseudo_node):
+            # print('_fill_fields')
             typ, multiple = pseudo_node.get_type()
             try:
                 typ = DataTypeNames(typ)
@@ -1190,6 +1199,7 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
         implied_nodegroups = set()
 
         def _add_node(node: Node, tile: TileProxyModel | None) -> None:
+            # print('_ADD_NODE')
             key = node.alias
             if existing_values.get(key, False) is not False:
                 raise RuntimeError(f"Tried to load node twice: {key}")
@@ -1373,6 +1383,7 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
 
     @classmethod
     def _get_root_pseudo_node(cls):
+        # print('_get_root_pseudo_node')
         if (node := cls._root_node()):
             return cls._make_pseudo_node_cls(
                 node.alias,
@@ -1381,6 +1392,7 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
         return None
 
     def get_root(self):
+        # print('_get_root')
         if (node := self._root_node()):
             self._values.setdefault(node.alias, [])
             if len(self._values[node.alias]) not in (0, 1):
