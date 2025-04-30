@@ -7,6 +7,7 @@ from django.db.models import ExpressionWrapper
 from .children_classes.filters import QueryBuilderFilters
 from .children_classes.selectors import QueryBuilderSelectors
 from .children_classes.modifiers import QueryBuilderModifier
+from .children_classes.combinators import QueryBuilderCombinator
 from django.conf import settings
 from arches.app.models.models import Node
 
@@ -29,10 +30,14 @@ ExcludeStructure = FilterStructure
 class QueryBuilder:
     _instance = None
     _parent_wrapper_instance = None;
+    _joins = {}
+    _join_keys = []
 
     _instance_filters: QueryBuilderFilters = None;
     _instance_selectors: QueryBuilderSelectors = None;
     _instance_modifiers: QueryBuilderModifier = None;
+    _instance_combinators: QueryBuilderCombinator = None;
+
     _current_build_stage: str = None;
 
     _edges_domain_to_range: Dict[str, str] = None;
@@ -59,13 +64,18 @@ class QueryBuilder:
         self._reset()
 
         # * Setup instances of filters, modifiers, selectors
+        self._instance_combinators  = QueryBuilderCombinator(self)
         self._instance_filters  = QueryBuilderFilters(self)
         self._instance_modifiers  = QueryBuilderModifier(self)
         self._instance_selectors = QueryBuilderSelectors(self)
 
+    # ! FIX THIS STAGING, CURRENT WE CAN DO JOIN ANYWAY AND NUMBER OF TIMES, THIS SHOULD BE NOT POSSBILE
     def __getattr__(self, name):
         if not self._current_build_stage and hasattr(self._instance_filters, name):
             return getattr(self._instance_filters, name)
+
+        elif not self._current_build_stage and hasattr(self._instance_combinators, name):
+            return getattr(self._instance_combinators, name)
 
         elif not self._current_build_stage and hasattr(self._instance_modifiers, name):
             self._current_build_stage = 'modifiers'
@@ -105,11 +115,24 @@ class QueryBuilder:
         self._order_by = []
         self._lazy_mode = True 
         self._current_build_stage = None
+        self._joins = {}
+        self._join_keys = []
 
         # ! Okay so this could cause issues within the future, resetting annotations, however I have done some research and discovered some problems
         # ! https://docs.google.com/document/d/1_Qdad9GptCocUEb57kr7fXueHqeEshZOEbR--MNzzsw/edit?tab=t.0#heading=h.zdic8qjv5py2
         self._annotations = {}
         self._before_annotations = {}
+
+    def _get_permitted_nodegroups(self):
+        # if (len(self._joins) > 0):
+        #     permitted_nodegroups = []
+
+        #     for _, wrapper in self._joins.items():
+        #         permitted_nodegroups = permitted_nodegroups + wrapper._permitted_nodegroups()
+
+        #     return permitted_nodegroups
+        
+        return self._parent_wrapper_instance._permitted_nodegroups()
 
     def create_wkri_with_datatype_values(
             self, 
@@ -132,7 +155,7 @@ class QueryBuilder:
         """
 
         # * These vars are used manally to setup the get tiles methods for the user premitted node groups
-        permittedNodegroupIds: List[str | None] = self._parent_wrapper_instance._permitted_nodegroups()
+        permittedNodegroupIds: List[str | None] = self._get_permitted_nodegroups()
         defaultFilterTileAgrs: Dict[str, any] = {
             'nodegroup_id__in': permittedNodegroupIds
         }

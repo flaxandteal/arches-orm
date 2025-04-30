@@ -192,7 +192,7 @@ queryset_tiles = queryset_tiles.annotate(
 )
 ```
 
-### Example of Process
+### Insight on Progress
 In this section will describe an example of the process for filtering, modifiying and selecting data. We will assume the query 
 ```python
 Person.where(firsname__de__contains='Aid').order_by('firstname').get()
@@ -222,7 +222,18 @@ Next we define the conditions inside locally `_filters` & `_excludes` for future
 
 Finally within the loop we call `set_annotation()` from the query builder
 
-##### 3rd - Set annotation
+The `set_annotation()` method instead the [Query Builder](./query_builder.py) will setup the annotation towards the key and pick the apporatie expression for value extraction from the JSON_B column. Read [here](#annotations-and-expressions) to learn more.
+
+The `_annotations` & `_before_annotations` is set within [Query Builder](./query_builder.py) using the method `set_annotation`
+
+##### 3rd - Setting up _filter_structures and _exclude_structures
+Once the loop is completed the `_filter_structures` & `_exclude_structures` is set using the local `_filters` & `_excludes`. The `_filter_structures` & `_exclude_structures` are variables defined within [Query Builder](./query_builder.py)
+
+
+##### 4th - What's returned
+The same instance of the [Query Builder](./query_builder.py) is returned, therefore offering chainable through `__getattr__`
+
+#### Modifiter
 
 
 ## The file structure

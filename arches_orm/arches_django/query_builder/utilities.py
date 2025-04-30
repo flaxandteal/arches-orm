@@ -14,6 +14,7 @@ from .config import (
 from typing import List, TYPE_CHECKING
 from django.db.models import Q
 from typing import TypedDict
+from typing import List, Optional, Dict
 
 if TYPE_CHECKING:
     from .query_builder import FilterStructure, ExcludeStructure
@@ -157,7 +158,7 @@ def transform_filter_structure_towards_query(structures: List["FilterStructure"]
     
     return query
 
-def split_query_key(key: str) -> SplitQueryKeyReturn | None:
+def split_query_key(key: str, joins: List[str]) -> SplitQueryKeyReturn | None:
     """
     Method is used to the raw query key up for example where(first_name__en__contains='Aid'), this would return something like this
     field_key: 'first_name',
@@ -170,25 +171,60 @@ def split_query_key(key: str) -> SplitQueryKeyReturn | None:
     Returns:
         SplitQueryKeyReturn | None: Returns None if the key is invalid or returns the Dict
     """
-    pattern = r"([a-zA-Z0-9__]+)"
+    pattern = r"([a-zA-Z0-9_]+(?:__?[a-zA-Z0-9_]+)*)"
     match = re.search(pattern, key)
 
     if not match:
-        return None;
+        return None
 
     found_values: List[str] = match.group(1).split('__')
-    operator: str = handle_operatortion(found_values[-1]);
+    operator: str = handle_operatortion(found_values[-1]) 
 
-    # * Remove the last key from found values as this is the operator
-    if (operator != 'equal'):
-        found_values.pop();
+    if operator != 'equal':
+        found_values.pop() 
 
-    field_key: str = found_values[0]
-    found_values.pop(0)
-    additional_keys: List[str] = found_values;
+    join: Optional[str] = None
+    field_key: str = ''
+    additional_keys: List[str] = []
+
+    if found_values[0] in joins:
+        join = found_values.pop(0)
+
+    if found_values:
+        field_key = found_values.pop(0)
+
+    additional_keys = found_values  # remaining items
+
+    if (join != None):
+        field_key = f'{join}__{field_key}'
 
     return {
         'field_key': field_key,
         'additional_keys': additional_keys,
         'operator': operator
     }
+
+# def split_query_key(key: str) -> SplitQueryKeyReturn | None:
+
+#     pattern = r"([a-zA-Z0-9__]+)"
+#     match = re.search(pattern, key)
+
+#     if not match:
+#         return None;
+
+#     found_values: List[str] = match.group(1).split('__')
+#     operator: str = handle_operatortion(found_values[-1]);
+
+#     # * Remove the last key from found values as this is the operator
+#     if (operator != 'equal'):
+#         found_values.pop();
+
+#     field_key: str = found_values[0]
+#     found_values.pop(0)
+#     additional_keys: List[str] = found_values;
+
+#     return {
+#         'field_key': field_key,
+#         'additional_keys': additional_keys,
+#         'operator': operator
+#     }

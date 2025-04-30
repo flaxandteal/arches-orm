@@ -65,7 +65,7 @@ class QueryBuilderFilters:
         for key, value in kwargs.items():
             
             # * We split the key query down as they might be addional information or different operation handling needed
-            query = split_query_key(key)
+            query = split_query_key(key, self._instance_query_builder._joins_keys)
             node: Node = nodes.get(query['field_key'])
 
             # print('key : ', key)

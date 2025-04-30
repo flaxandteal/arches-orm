@@ -213,7 +213,7 @@ class QueryBuilderSelectors:
             exclude_structures=exclude_structures,
         )
 
-        permittedNodegroupIds: List[str | None] = self._wrapper_instance._permitted_nodegroups()
+        permittedNodegroupIds: List[str | None] = self._instance_query_builder._get_permitted_nodegroups()
         defaultFilterTileAgrs: Dict[str, any] = {
             'nodegroup_id__in': permittedNodegroupIds
         }

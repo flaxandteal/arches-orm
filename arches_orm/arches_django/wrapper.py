@@ -72,6 +72,11 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
         cls._query_builder_instance._reset()
         return cls._query_builder_instance
     
+    # ** COMBINATORS
+    @classmethod
+    def join(cls, **kwargs):
+        return cls.get_query_builder().join(**kwargs)
+    
     # ** SELECTORS
     @classmethod
     def offset(cls, offset: None | int = None, limit: None | int = None):
