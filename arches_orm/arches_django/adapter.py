@@ -43,11 +43,20 @@ class ArchesDjangoAdapter(Adapter):
         if str(resource.graph_id) not in resource_models_by_graph_id:
             logger.error("Tried to load non-existent WKRM: %s", resource_id)
             return None
-        new_resource = resource_models_by_graph_id[str(resource.graph_id)].from_resource(
-            resource, related_prefetch=from_prefetch, lazy=lazy
+        
+        new_resource = resource_models_by_graph_id[str(resource.graph_id)]._load_resource_from_lazy_load(
+            resource
         )
 
-        print('new_resource : ', new_resource)
+        # new_resource = resource_models_by_graph_id[str(resource.graph_id)].from_resource(
+        #     resource, related_prefetch=from_prefetch, lazy=lazy
+        # )
+
+        print('=========================================')
+        print('NEW RESOURCE : ', new_resource)
+        print('NEW RESOURCE : ', type(new_resource))
+        print('=========================================')
+
         return new_resource
 
     def get_hooks(self):

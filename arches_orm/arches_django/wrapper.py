@@ -157,8 +157,9 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
         return cls.get_query_builder().where(**kwargs)
     
     @classmethod
-    def _load_resource_from_lazy_load(cls, resourceinstanceid):
-        return cls.get_query_builder()._load_resource_from_lazy_load(resourceinstanceid)
+    def _load_resource_from_lazy_load(cls, resource):
+        print('INSIDE  - _load_resource_from_lazy_load')
+        return cls.get_query_builder()._load_resource_from_lazy_load(resource)
     
     def _can_delete_resource(self, resource=None):
         if (user := self._context_get("user")):

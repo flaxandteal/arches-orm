@@ -85,27 +85,66 @@ class QueryBuilder:
  
         raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{name}'")    
 
-    def _load_resource_from_lazy_load(self, resourceinstance_id):
-        wkri_lazy_load_metas = self._wkri_lazy_load_meta[resourceinstance_id]
+    def _load_resource_from_lazy_load(self, resource):
+        print('BEGIN _LOAD_RESOURCES_FROM_LAZY_LOAD')
+        wkri_lazy_load_metas = self._wkri_lazy_load_meta.get(resource.resourceinstanceid)
+        def _get_or_create_wkri():
+            def _create():
+                print('INSIDE HERE')
+                wkri = self._parent_wrapper_instance.view_model(
+                    id=resource.resourceinstanceid,
+                    resource=resource,
+                    cross_record=None,
+                )
+                print('INSIDE HERE 2 ')
 
-        print('resourceinstance_id : ', resourceinstance_id)
+                wkri._values = ValueList(
+                    {},
+                    wkri._,
+                    related_prefetch=None
+                )
+                print('INSIDE HERE 3')
 
-        if wkri_lazy_load_metas == None or len(wkri_lazy_load_metas) == 0:
-            raise ValueError('No resource instance found with : ', resourceinstance_id)
+                return wkri;
+
+            if wkri_lazy_load_metas == None or len(wkri_lazy_load_metas) == 0:
+                return _create()
+
+            wkri = self.wkris[wkri_lazy_load_metas[0].wkri_index]
+
+            if wkri == None:
+                return _create()
         
-        wkri = self.wkris[wkri_lazy_load_metas[0].wkri_index]
+            return wkri
+        print('BEFORE ALL')
+
+        wkri = _get_or_create_wkri()
+
+        print('HERE IS WKRI : ', wkri_lazy_load_metas)
+        
+        if wkri_lazy_load_metas == None:
+            return wkri
         
         for wkri_lazy_load_meta in wkri_lazy_load_metas:
+            print('INSIDE LOOP')
             pseudo_node = self._parent_wrapper_instance._make_pseudo_node_cls(
                 key=wkri_lazy_load_meta.node.alias,
                 # node=node,
                 tile=wkri_lazy_load_meta.tile,
                 wkri=wkri
             )
+            print('INSIDE LOOP 1 ')
 
-            wkri._._values.__setitem__(wkri_lazy_load_meta.node.alias, [pseudo_node])
-            self.self.wkris[wkri_lazy_load_metas[0].wkri_index] = wkri
-                    
+            wkri._values.__setitem__(wkri_lazy_load_meta.node.alias, [pseudo_node])
+            print('INSIDE LOOP 2 ')
+
+        # if (wkri_lazy_load_metas == None and len(wkri_lazy_load_metas) == 0):
+        #     self.wkris.append(wkri)
+
+        # else:
+
+
+        # self.wkris[wkri_lazy_load_metas[0].wkri_index] = wkri
         return wkri
 
     @property
@@ -136,6 +175,8 @@ class QueryBuilder:
         self._order_by = []
         self._lazy_mode = False 
         self._current_build_stage = None
+        self._wkri_lazy_load_meta = {}
+        self.wkris = [];
 
         # ! Okay so this could cause issues within the future, resetting annotations, however I have done some research and discovered some problems
         # ! https://docs.google.com/document/d/1_Qdad9GptCocUEb57kr7fXueHqeEshZOEbR--MNzzsw/edit?tab=t.0#heading=h.zdic8qjv5py2
@@ -263,7 +304,7 @@ class QueryBuilder:
                 if resourceinstanceid not in self._wkri_lazy_load_meta:
                     self._wkri_lazy_load_meta[resourceinstanceid] = []
 
-                self._wkri_lazy_load_meta[resourceinstanceid].append(item)
+                self._wkri_lazy_load_meta.get(resourceinstanceid).append(item)
                 # if lazy_mode:
                 #     nodegroup = node_dict.get(tile.nodegroup.nodegroupid)
 
