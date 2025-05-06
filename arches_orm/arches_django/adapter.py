@@ -44,23 +44,9 @@ class ArchesDjangoAdapter(Adapter):
             logger.error("Tried to load non-existent WKRM: %s", resource_id)
             return None
         
-        use_new = True;
-
-        if use_new:
-            new_resource = resource_models_by_graph_id[str(resource.graph_id)].load_resource_from_lazy_load(
-                resource
-            )
-        else:
-            new_resource = resource_models_by_graph_id[str(resource.graph_id)].from_resource(
-                resource, related_prefetch=from_prefetch, lazy=lazy
-            )
-
-        # print('=========================================')
-        # print('NEW RESOURCE : ', new_resource)
-        # print('NEW RESOURCE : ', type(new_resource))
-        # print('=========================================')
-
-        return new_resource
+        return resource_models_by_graph_id[str(resource.graph_id)].create_single_wkri_from_resource_instance_or_nodegroup(
+            resourceinstance_ids=[resource.resourceinstanceid]
+        )
 
     def get_hooks(self):
         from .hooks import HOOKS

@@ -35,6 +35,7 @@ from arches_orm.view_models.resources import RelatedResourceInstanceViewModelMix
 from .bulk_create import BulkImportWKRM
 from .pseudo_nodes import PseudoNodeList, PseudoNodeValue, PseudoNodeUnavailable
 from .filters import SearchMixin
+import traceback
 
 logger = logging.getLogger(__name__)
 
@@ -82,6 +83,9 @@ class ValueList(UserDict):
             if self._wrapper.resource:
                 # Will KeyError if we do not have it.
                 node = self._wrapper._nodes[key]
+                # print('==============================')
+                # print('_get() | resource', self._wrapper.resource.resourceinstanceid)
+            
                 ng = self._wrapper._ensure_nodegroup(
                     self._values,
                     node.nodegroup_id,
@@ -92,6 +96,14 @@ class ValueList(UserDict):
                     related_prefetch=self._related_prefetch,
                     wkri=self._wrapper.view_model_inst,
                 )
+
+                # test = self.create_single_wkri_from_resource_instance_or_nodegroup(
+                #     resourceinstance_ids=[self._wrapper.resource.resourceinstanceid],
+                #     nodegroup_ids=[node.nodegroup_id]
+                # )
+                # print('test : ', test)
+                # print('NG : ', ng)
+                # print('==============================')
                 self._values.update(ng)
             else:
                 del self._values[key]
@@ -159,8 +171,8 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
     
     # * FILTERS
     @classmethod
-    def load_resource_from_lazy_load(cls, resource):
-        return cls.get_query_builder()._load_resource_from_lazy_load(resource)
+    def create_single_wkri_from_resource_instance_or_nodegroup(cls, resourceinstance_ids: List[str] = None, nodegroup_ids: List[str] = None):
+        return cls.get_query_builder().create_single_wkri_from_resource_instance_or_nodegroup(resourceinstance_ids, nodegroup_ids)
 
     def _can_delete_resource(self, resource=None):
         if (user := self._context_get("user")):
@@ -340,9 +352,9 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
 
         # parented tiles are saved hierarchically
         resource.tiles = [t for t in sum((ts for ts in tiles.values()), [])]
-        for i, tile in enumerate(resource.tiles):
+        for index, tile in enumerate(resource.tiles):
             if isinstance(tile, BasicTileModel):
-                resource.tiles[i] = TileProxyModel(
+                resource.tiles[index] = TileProxyModel(
                     tileid=tile.tileid,
                     data=tile.data,
                     resourceinstance_id=tile.resourceinstance_id,
@@ -1147,9 +1159,6 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
         implied_nodegroups = set()
         value = all_values.get(node.alias, None)
 
-        if (node.alias == 'name'):
-            print('BEFORE : ', all_values.get(node.alias, None));
-
         if value is False or (add_if_missing and value is None):
             if node.alias in all_values:
                 del all_values[node.alias]
@@ -1172,9 +1181,7 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
             )
             all_values.update(new_values)
             implied_nodegroups |= new_implied_nodegroups
-            
-        if (node.alias == 'name'):
-            print('1 : ', all_values.get(node.alias, None));
+        
         while implied_nodegroups:
             seen_nodegroups = set(implied_nodegroups)
             for nodegroup_id in seen_nodegroups:
@@ -1190,8 +1197,6 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
                     add_if_missing=True,
                 )
             implied_nodegroups -= seen_nodegroups
-        if (node.alias == 'name'):
-            print('2 : ', all_values.get(node.alias, None));
         return all_values
 
     @classmethod
