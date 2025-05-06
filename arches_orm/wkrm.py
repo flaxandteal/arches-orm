@@ -117,8 +117,6 @@ def attempt_well_known_resource_model(
     is not matched.
     """
 
-    print('FROM WKRM')
-
     return get_adapter(adapter).load_from_id(
         resource_id=resource_id, from_prefetch=from_prefetch, lazy=lazy
     )

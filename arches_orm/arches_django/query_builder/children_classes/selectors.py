@@ -1,4 +1,5 @@
-from arches.app.models.tile import Tile as TileModel
+# from arches.app.models.tile import Tile as TileModel
+from arches.app.models.models import Node, Edge, TileModel
 from arches_orm.arches_django.query_builder.utilities import transform_filter_structure_towards_query, transform_exclude_structure_towards_query
 from typing import Dict, List, TYPE_CHECKING, TypedDict
 from django.db.models import ExpressionWrapper, QuerySet

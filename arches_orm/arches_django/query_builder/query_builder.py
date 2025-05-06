@@ -1,5 +1,5 @@
 from typing import Iterator, Dict, List, TypedDict, Callable, Optional
-from arches.app.models.models import TileModel
+from arches.app.models.tile import Tile as TileModel
 from arches.app.models.models import Node, Edge, TileModel
 from arches_orm.arches_django.wrapper import ValueList
 from django.db.models import ExpressionWrapper
@@ -9,6 +9,7 @@ from .children_classes.selectors import QueryBuilderSelectors
 from .children_classes.modifiers import QueryBuilderModifier
 from django.conf import settings
 from arches.app.models.models import Node
+from ..pseudo_nodes import PseudoNodeList, PseudoNodeValue, PseudoNodeUnavailable
 
 
 import re
@@ -26,8 +27,12 @@ class FilterStructure(TypedDict):
 
 class WKRILazyLoadMeta(TypedDict):
     node_alias: str
-    wkri_index: int
     tile: TileModel
+
+class WKRICacheLazyLoadValue(TypedDict):
+    resourceinstance: any
+    wkri: any
+    meta: List[WKRILazyLoadMeta]
 
 ExcludeStructure = FilterStructure
 
@@ -40,8 +45,7 @@ class QueryBuilder:
     _instance_modifiers: QueryBuilderModifier = None;
     _current_build_stage: str = None;
 
-    _wkri_lazy_load_meta: Dict[str, List[WKRILazyLoadMeta]] = {}
-    wkris: List[type] = []; # * Return value
+    _wkris_cache_lazy_load: Dict[str, WKRICacheLazyLoadValue] = {}
 
     _edges_domain_to_range: Dict[str, str] = None;
     _edges_range_to_domain: Dict[str, str] = None;
@@ -86,65 +90,94 @@ class QueryBuilder:
         raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{name}'")    
 
     def _load_resource_from_lazy_load(self, resource):
-        print('BEGIN _LOAD_RESOURCES_FROM_LAZY_LOAD')
-        wkri_lazy_load_metas = self._wkri_lazy_load_meta.get(resource.resourceinstanceid)
-        def _get_or_create_wkri():
-            def _create():
-                print('INSIDE HERE')
-                wkri = self._parent_wrapper_instance.view_model(
-                    id=resource.resourceinstanceid,
-                    resource=resource,
-                    cross_record=None,
-                )
-                print('INSIDE HERE 2 ')
+        # print('BEGIN _LOAD_RESOURCES_FROM_LAZY_LOAD')
+        # * from_resource() : WORKS
+        # * TRY THIS NEXT values_from_resource
+        # return self._parent_wrapper_instance.from_resource(resource)
+        # found_cache = self._wkris_cache_lazy_load.get(resource.resourceinstanceid, None)
+  
+        def callback_get_tiles(**defaultFilterTileAgrs):
+            return TileModel.objects.filter(**defaultFilterTileAgrs).filter(resourceinstance_id=(resource.resourceinstanceid))
 
-                wkri._values = ValueList(
-                    {},
-                    wkri._,
-                    related_prefetch=None
-                )
-                print('INSIDE HERE 3')
+        wkris = self.create_wkri_with_datatype_values(
+            callback_get_tiles=callback_get_tiles
+        )
 
-                return wkri;
+        print('resource.resourceinstanceid : ', resource.resourceinstanceid)
+        print('WKRIS : ', wkris)
 
-            if wkri_lazy_load_metas == None or len(wkri_lazy_load_metas) == 0:
-                return _create()
+        return wkris[0]
+  
+        # print('====================================================')
 
-            wkri = self.wkris[wkri_lazy_load_metas[0].wkri_index]
+        # print('wkri_lazy_load_metas : ', found_cache)
 
-            if wkri == None:
-                return _create()
+        # def _get_or_create_wkri():
+        #     def _create():
+        #         wkri = self._parent_wrapper_instance.view_model(
+        #             id=resource.resourceinstanceid,
+        #             resource=resource,
+        #             cross_record=None,
+        #         )
+
+        #         wkri._values = ValueList(
+        #             {},
+        #             wkri._,
+        #             related_prefetch=None
+        #         )
+
+        #         print('CREATE NEW WKRI : ', resource.resourceinstanceid)
+
+        #         return wkri;
+
+        #     if found_cache == None:
+        #         return _create()
+            
+        #     return found_cache.get('wkri')
         
-            return wkri
-        print('BEFORE ALL')
-
-        wkri = _get_or_create_wkri()
-
-        print('HERE IS WKRI : ', wkri_lazy_load_metas)
-        
-        if wkri_lazy_load_metas == None:
-            return wkri
-        
-        for wkri_lazy_load_meta in wkri_lazy_load_metas:
-            print('INSIDE LOOP')
-            pseudo_node = self._parent_wrapper_instance._make_pseudo_node_cls(
-                key=wkri_lazy_load_meta.node.alias,
-                # node=node,
-                tile=wkri_lazy_load_meta.tile,
-                wkri=wkri
-            )
-            print('INSIDE LOOP 1 ')
-
-            wkri._values.__setitem__(wkri_lazy_load_meta.node.alias, [pseudo_node])
-            print('INSIDE LOOP 2 ')
-
-        # if (wkri_lazy_load_metas == None and len(wkri_lazy_load_metas) == 0):
-        #     self.wkris.append(wkri)
-
-        # else:
+        # print('BEFORE WKRI : ')
+        # wkri = _get_or_create_wkri()
+        # # # print('_values : ', wkri._values);
+        # print('AFTER WKRI : ')
 
 
-        # self.wkris[wkri_lazy_load_metas[0].wkri_index] = wkri
+        # meta = found_cache.get('meta', None);
+
+        # if meta == None or len(meta) == 0:
+        #     return wkri
+        # print('AFTER WKRI FOUND: ', meta)
+
+
+
+        # for found_cache_meta in found_cache.get('meta'):
+        #     pseudo_node = self._parent_wrapper_instance._make_pseudo_node_cls(
+        #         key=found_cache_meta.node.alias,
+        #         # node=node,
+        #         tile=found_cache_meta.tile,
+        #         wkri=wkri
+        #     )
+  
+        #     wkri._values.__setitem__(found_cache_meta.node.alias, [pseudo_node])
+
+        # # for found_cache_meta in found_cache.get('meta'):
+        # #     pseudo_node = self._parent_wrapper_instance._make_pseudo_node_cls(
+        # #         key=found_cache_meta.node.alias,
+        # #         # node=node,
+        # #         tile=found_cache_meta.tile,
+        # #         wkri=wkri
+        # #     )
+  
+        # #     wkri._values.__setitem__(found_cache_meta.node.alias, [pseudo_node])
+
+
+        # # if (wkri_lazy_load_metas == None and len(wkri_lazy_load_metas) == 0):
+        # #     self.wkris.append(wkri)
+
+        # # else:
+        # print('====================================================')
+
+
+        # # self.wkris[wkri_lazy_load_metas[0].wkri_index] = wkri
         return wkri
 
     @property
@@ -175,8 +208,6 @@ class QueryBuilder:
         self._order_by = []
         self._lazy_mode = False 
         self._current_build_stage = None
-        self._wkri_lazy_load_meta = {}
-        self.wkris = [];
 
         # ! Okay so this could cause issues within the future, resetting annotations, however I have done some research and discovered some problems
         # ! https://docs.google.com/document/d/1_Qdad9GptCocUEb57kr7fXueHqeEshZOEbR--MNzzsw/edit?tab=t.0#heading=h.zdic8qjv5py2
@@ -233,6 +264,7 @@ class QueryBuilder:
 
             # * Next we have our return value and a mapping of index within wkris with the key as resource ids
             wkri_resource_instance_mapping_wkris_index: Dict[str, int] = {}
+            wkris: List[any] = []
 
             def _get_wkri_index_nor_create_wkri_instance(resource) -> int:
                 """
@@ -244,7 +276,7 @@ class QueryBuilder:
                 Returns:
                     int: The WKRI index within the List wkris
                 """
-                nonlocal wkri_resource_instance_mapping_wkris_index
+                nonlocal wkri_resource_instance_mapping_wkris_index, wkris
 
                 # * If the resource id is not contained within mapping, it means there is no WKRI instance towrads this tile as of yet
                 # * therefore we must create this WKRI and append/map towards our variables
@@ -268,8 +300,8 @@ class QueryBuilder:
                 )
 
                 # * Save the WKRI instances so we can reuse the instances
-                self.wkris.append(wkri)
-                wkri_resource_instance_mapping_wkris_index[resource.resourceinstanceid] = len(self.wkris) - 1
+                wkris.append(wkri)
+                wkri_resource_instance_mapping_wkris_index[resource.resourceinstanceid] = len(wkris) - 1
 
                 return wkri_resource_instance_mapping_wkris_index.get(resource.resourceinstanceid)
 
@@ -291,20 +323,27 @@ class QueryBuilder:
                 # ? Lazy mode is always on now
                 nodegroup = node_dict.get(tile.nodegroup.nodegroupid)
 
-                wkri._._values.__setitem__(nodegroup.alias, False)
-                self.wkris[current_wkri_index] = wkri
+                # wkri._._values.__setitem__(nodegroup.alias, False)
+                # wkris[current_wkri_index] = wkri # ! Needs to also attach on it's on WKRI locally
 
-                item: WKRILazyLoadMeta = {
-                    "node_alias": node.alias,
-                    "wkri_index": current_wkri_index,
-                    "tile": tile 
-                }
+                # item: WKRILazyLoadMeta = {
+                #     "node_alias": nodegroup.alias,
+                #     "tile": tile 
+                # }
 
-                # Append the item, initializing the list if the key doesn't exist
-                if resourceinstanceid not in self._wkri_lazy_load_meta:
-                    self._wkri_lazy_load_meta[resourceinstanceid] = []
+                # cached_data = self._wkris_cache_lazy_load.get(resourceinstanceid, None);
 
-                self._wkri_lazy_load_meta.get(resourceinstanceid).append(item)
+                # # Append the item, initializing the list if the key doesn't exist
+                # if cached_data is None:
+                #     self._wkris_cache_lazy_load[resourceinstanceid] = {
+                #         'resourceinstance': None,
+                #         'wkri': wkri,
+                #         'meta': [item]
+                #     }
+
+                # else:
+                #     self._wkris_cache_lazy_load[resourceinstanceid].get('meta').append(item)
+
                 # if lazy_mode:
                 #     nodegroup = node_dict.get(tile.nodegroup.nodegroupid)
 
@@ -318,20 +357,17 @@ class QueryBuilder:
                 #     }
 
                 # else:
-                #     # * Convert the tile to a pseudo node
-                #     pseudo_node = self._parent_wrapper_instance._make_pseudo_node_cls(
-                #         key=node.alias,
-                #         # node=node,
-                #         tile=tile,
-                #         wkri=wkri
-                #     )
+                    # * Convert the tile to a pseudo node
+                pseudo_node = self._parent_wrapper_instance._make_pseudo_node_cls(
+                    key=node.alias,
+                    # node=node,
+                    tile=tile,
+                    wkri=wkri
+                )
 
-                #     # ? Here we state that the tile can be converted from a resource to a Tile Datatype Class as again this slows the process
-                #     pseudo_node._convert_tile_resource = True;
-
-                #     # * Append on the wkri values and update the WKRI within our return value list
-                #     wkri._._values.__setitem__(node.alias, [pseudo_node])
-                #     wkris[current_wkri_index] = wkri
+                # * Append on the wkri values and update the WKRI within our return value list
+                wkri._._values.__setitem__(node.alias, [pseudo_node])
+                wkris[current_wkri_index] = wkri
 
             # * Loop all tiles so (n*tiles)
             for tile in tiles:
@@ -343,11 +379,11 @@ class QueryBuilder:
                     raise ValueError(f'The node id {tile.nodegroup_id} does not exist')
 
                 current_wkri_index = _get_wkri_index_nor_create_wkri_instance(resource);
-                wkri = self.wkris[current_wkri_index];
+                wkri = wkris[current_wkri_index];
 
                 _set_node_value_within_value_list(wkri, current_wkri_index, node, tile, resource.resourceinstanceid)
 
-            return self.wkris
+            return wkris
 
         # * We first need to quire the tiles so we use the callback_get_tiles and if one is not provided then we use _fallback_get_tiles as a default.
         # * Either way we get the tiles
