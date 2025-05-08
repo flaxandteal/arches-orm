@@ -13,6 +13,7 @@ from arches.app.models.graph import Graph
 from arches.app.models.tile import Tile as TileProxyModel
 from arches.app.models.system_settings import settings as system_settings
 from arches_orm.view_models.semantic import SemanticViewModel;
+from arches.app.models.models import TileModel as BasicTileModel;
 from arches.app.utils.permission_backend import get_nodegroups_by_perm
 import logging
 from arches.app.utils.permission_backend import (
@@ -71,12 +72,7 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
             cls._query_builder_instance = QueryBuilder(parent_wrapper_instance=cls)
         cls._query_builder_instance._reset()
         return cls._query_builder_instance
-    
-    # ** COMBINATORS
-    @classmethod
-    def join(cls, **kwargs):
-        return cls.get_query_builder().join(**kwargs)
-    
+        
     # ** SELECTORS
     @classmethod
     def offset(cls, offset: None | int = None, limit: None | int = None):
@@ -112,6 +108,10 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
     def where(cls, **kwargs):
         return cls.get_query_builder().where(**kwargs)
     
+    @classmethod
+    def create_single_wkri_from_resource_instance_or_nodegroup(cls, resourceinstance_ids: List[str] = None, nodegroup_ids: List[str] = None):
+        return cls.get_query_builder().create_single_wkri_from_resource_instance_or_nodegroup(resourceinstance_ids, nodegroup_ids)
+
     def _can_delete_resource(self, resource=None):
         if (user := self._context_get("user")):
             resource = resource or self.resource
@@ -290,6 +290,14 @@ class ArchesDjangoResourceWrapper(SearchMixin, ResourceWrapper, proxy=True):
 
         # parented tiles are saved hierarchically
         resource.tiles = [t for t in sum((ts for ts in tiles.values()), [])]
+        for index, tile in enumerate(resource.tiles):
+            if isinstance(tile, BasicTileModel):
+                resource.tiles[index] = TileProxyModel(
+                    tileid=tile.tileid,
+                    data=tile.data,
+                    resourceinstance_id=tile.resourceinstance_id,
+                    nodegroup_id=tile.nodegroup_id
+                )
 
         if not resource.createdtime:
             resource.createdtime = datetime.now()

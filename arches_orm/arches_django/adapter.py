@@ -68,9 +68,9 @@ class ArchesDjangoAdapter(Adapter, PseudoNodeAdapterMixin):
         if str(resource.graph_id) not in resource_models_by_graph_id:
             logger.error("Tried to load non-existent WKRM: %s", resource_id)
             return None
-        return resource_models_by_graph_id[str(resource.graph_id)].from_resource(
-            resource, related_prefetch=from_prefetch, lazy=lazy
-        )
+        return resource_models_by_graph_id[str(resource.graph_id)].create_single_wkri_from_resource_instance_or_nodegroup(
+            resourceinstance_ids=[resource.resourceinstanceid]
+        );
 
     def get_hooks(self):
         from .hooks import HOOKS

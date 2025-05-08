@@ -1,4 +1,5 @@
-from arches.app.models.models import TileModel
+# from arches.app.models.tile import Tile as TileModel
+from arches.app.models.models import Node, Edge, TileModel
 from arches_orm.arches_django.query_builder.utilities import transform_filter_structure_towards_query, transform_exclude_structure_towards_query
 from typing import Dict, List, TYPE_CHECKING, TypedDict
 from django.db.models import ExpressionWrapper, QuerySet
@@ -213,7 +214,7 @@ class QueryBuilderSelectors:
             exclude_structures=exclude_structures,
         )
 
-        permittedNodegroupIds: List[str | None] = self._instance_query_builder._get_permitted_nodegroups()
+        permittedNodegroupIds: List[str | None] = self._wrapper_instance._permitted_nodegroups()
         defaultFilterTileAgrs: Dict[str, any] = {
             'nodegroup_id__in': permittedNodegroupIds
         }

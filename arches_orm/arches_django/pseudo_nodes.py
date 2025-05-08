@@ -1,9 +1,10 @@
+from arches.app.models.tile import Tile as TileProxyModel
 from collections import UserList
-import inspect
-
 from arches_orm.view_models import ViewModel, NodeListViewModel, UnavailableViewModel, ResourceInstanceViewModel
 from arches.app.models.models import TileModel
-from arches.app.models.tile import Tile as TileProxyModel
+
+from .datatypes import get_view_model_for_datatype
+
 
 class PseudoNodeList(UserList):
     def __init__(self, node, parent=None, parent_cls=None):
@@ -137,14 +138,13 @@ class PseudoNodeValue:
     _as_tile_data = None
     _convert_tile_model_to_tile_orm = False
 
-    def __init__(self, node, get_view_model_for_datatype, TileProxyModel: type, tile: TileProxyModel | TileModel = None, value=None, parent=None, child_nodes=None, parent_cls=None):
+    def __init__(self, node, tile: TileProxyModel | TileModel = None, value=None, parent=None, child_nodes=None, parent_cls=None):
         self.node = node
         self._tile = tile
         if parent_cls is None:
             if parent is None:
                 raise RuntimeError("Must have a parent or parent class for a pseudo-node")
             parent_cls = parent.__class__
-        self.get_view_model_for_datatype = get_view_model_for_datatype
         self._parent = parent
         self._parent_cls = parent_cls
         self._parent_node = None
@@ -152,7 +152,6 @@ class PseudoNodeValue:
         self._value = value
         self._accessed = False
         self._original_tile = tile
-        self._TileProxyModel = TileProxyModel
 
     def __str__(self):
         return f"{{{self.value}}}"
@@ -167,11 +166,11 @@ class PseudoNodeValue:
     @property
     def tile(self):
         if (self._convert_tile_model_to_tile_orm and isinstance(self._tile, TileModel)):
-            self._tile = TileProxyModel(
-                tileid=self._tile.tileid,  
-                data=self._tile.data,
-                resourceinstance_id=self._tile.resourceinstance_id
-            )
+                self._tile = TileProxyModel(
+                    tileid=self._tile.tileid,  
+                    data=self._tile.data,
+                    resourceinstance_id=self._tile.resourceinstance_id
+                )
 
         return self._tile
 
@@ -220,7 +219,7 @@ class PseudoNodeValue:
         if not self.tile:
             if not self.node:
                 raise RuntimeError("Empty tile")
-            self.tile = self._TileProxyModel(
+            self.tile = TileProxyModel(
                 nodegroup_id=self.node.nodegroup_id, tileid=None, data={}
             )
             self.relationships = []
@@ -234,7 +233,7 @@ class PseudoNodeValue:
             else:
                 data = self._value
 
-            self._value, self._as_tile_data, self._datatype, self._multiple = self.get_view_model_for_datatype(
+            self._value, self._as_tile_data, self._datatype, self._multiple = get_view_model_for_datatype(
                 self.tile,
                 self.node,
                 value=data,
@@ -256,7 +255,7 @@ class PseudoNodeValue:
     def value(self, value):
         if not isinstance(value, ViewModel) or isinstance(value, ResourceInstanceViewModel):
             self.get_tile()
-            value, self._as_tile_data, self._datatype, self._multiple = self.get_view_model_for_datatype(
+            value, self._as_tile_data, self._datatype, self._multiple = get_view_model_for_datatype(
                 self.tile,
                 self.node,
                 value=value,
