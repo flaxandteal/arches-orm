@@ -33,7 +33,12 @@ class SemanticViewModel(ViewModel, Mapping[str, ViewModel]):
         return iter(self._child_keys)
 
     def update(self, values):
-        for key, value in values.items():
+        try:
+            items = values.items()
+        except AttributeError:
+            raise AttributeError(f"Could not update semantic node from {type(values)}: {str(values)[:300]}")
+
+        for key, value in items:
             setattr(self, key, value)
 
     def get_child_types(self):
