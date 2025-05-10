@@ -67,7 +67,10 @@ def concept_value(tile, node, value: uuid.UUID | str | None | CollectionEnum | C
                 # print(collection.__members__, "CV")
                 if value not in collection._member_map_:
                     logging.error("Missing collection value: %s in node %s tile %s", value, node.nodeid, str(tile))
-                return collection[value].value
+                try:
+                    return collection[value].value
+                except KeyError as e:
+                    raise KeyError(f"Missing collection value: {value} in node {node.alias} [{node.nodeid}] tile {str(tile)}")
             else:
                 raise
     return make_concept_value(value if isinstance(value, uuid.UUID) else uuid.UUID(value) if value else None, collection_id, datatype)
