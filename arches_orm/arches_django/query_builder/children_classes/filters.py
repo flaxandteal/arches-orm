@@ -165,11 +165,11 @@ class QueryBuilderFilters:
             },
             'None': {
                 'equal': {
-                    'default': lambda: _append_fitler('OR', { annotation_key(query['field_key'] + '__isnull'): True }),
+                    'default': lambda: _append_fitler('OR', { annotation_key(query['field_key']) + '__isnull': True }),
                     'date': lambda: _append_fitler('OR', { annotation_key(query['field_key']): 'null' })
                 },
                 'not_equal': {
-                    'default': lambda: _append_fitler('OR', { annotation_key(query['field_key'] + '__isnull'): False }),
+                    'default': lambda: _append_fitler('OR', { annotation_key(query['field_key']) + '__isnull': False }),
                     'date': lambda: _append_exclude('OR', { annotation_key(query['field_key']): 'null' })
                 }
             }
@@ -180,9 +180,11 @@ class QueryBuilderFilters:
         if query['operator'] == 'isnull':
             callbacks = handlers['isnull'][value]
 
-        elif value == None and (query['operator'] == 'equal' or query['operator'] == 'not_equal'):
-            callbacks = handlers['None'][query['operator']]
+        elif value == None:
+            if (query['operator'] == 'equal'): callbacks = handlers['None']['equal']
+            elif (query['operator'] in NOT_EQUAL_KEYS): callbacks = handlers['None']['not_equal']
 
+      
         if (callbacks != None): _run_callbacks(callbacks, node.datatype)
 
     def where(self, **kwargs) -> "QueryBuilder":
