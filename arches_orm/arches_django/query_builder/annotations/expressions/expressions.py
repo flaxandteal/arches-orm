@@ -1,4 +1,4 @@
-from django.db.models import Func, F, ExpressionWrapper, FloatField, CharField, DateTimeField, OuterRef, Subquery, Case, Value, When, Q
+from django.db.models import Func, F, ExpressionWrapper, FloatField, DateTimeField, CharField, OuterRef, Subquery, Case, Value, When, Q
 from arches.app.models.models import Value as ValuesModel
 from typing import Dict, List
 from arches.app.models.models import Node
@@ -7,25 +7,11 @@ from datetime import datetime
 from django.conf import settings
 from arches_orm.arches_django.query_builder.config import RESOURCE_MERGED_TILE_DATA_KEY
 from typing import TypedDict
+from arches_orm.arches_django.query_builder.django import CustomDateTimeField;
 
 class ExpressionDomainValueReturnType(TypedDict):
     default: F
     annotation: ExpressionWrapper
-
-def _figure_out_field_instance_type(value: str):
-    try:
-        datetime.fromisoformat(value)
-        return DateTimeField
-    except:
-        pass
-    
-    try:
-        int(value)
-        return FloatField
-    except:
-        pass
-
-    return CharField
 
 def expresion_merge_tile_json_data(database_engine: str):
     """
@@ -127,15 +113,13 @@ def expression_domain_value(database_engine: str, node: Node, additional_keys: L
     # }
 
 
-def expression_date_datatype(nodeid: str) -> ExpressionWrapper:
+def expression_date_datatype(node: str) -> ExpressionWrapper:
     """
     Converts a string-based date stored in `resource_merged_tile_data__{nodeid}` into a proper DateTimeField 
     for sorting, based on the database backend.
     """
-    return ExpressionWrapper(
-        F(f'{RESOURCE_MERGED_TILE_DATA_KEY}__{nodeid}'),
-        output_field=DateTimeField()
-    )
+    field = f'{RESOURCE_MERGED_TILE_DATA_KEY}__{node.nodeid}'
+    return ExpressionWrapper(F(field), output_field=CustomDateTimeField())
 
 def expression_concept_value(node: Node):
     from arches.app.models.concept import Concept
