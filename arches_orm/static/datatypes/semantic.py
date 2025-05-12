@@ -98,7 +98,7 @@ def semantic(
         try:
             svm.update(value)
         except Exception as exc:
-            _tile_loading_error("Suppressed a tile loading error: %s: %s %s (tile: %s; node: %s) - %s", exc, str(type(exc)), exc.message if hasattr(exc, "message") else "", str(tile), str(node), str(value))
+            _tile_loading_error("Tile loading error: %s: %s %s (tile: %s; node: %s) - %s", exc, str(type(exc)), exc.message if hasattr(exc, "message") else "", str(tile), str(node), str(value))
     svm.get_children()
 
     return svm
@@ -106,10 +106,11 @@ def semantic(
 
 def _tile_loading_error(reason, exc, *args):
     if not get_adapter().config.get("suppress-tile-loading-errors"):
-        print(reason.format(exc, *args))
-        logging.error(reason, exc, *args)
-        raise exc
+        # print(reason.format(exc, *args))
+        # logging.error(reason, exc, *args)
+        raise KeyError(reason % (exc, *args)) from exc
     elif not get_adapter().config.get("silence-tile-loading-errors"):
+        print(reason % (exc, *args), "(suppressed)")
         logging.warning(reason, exc, *args)
 
 @semantic.as_tile_data
