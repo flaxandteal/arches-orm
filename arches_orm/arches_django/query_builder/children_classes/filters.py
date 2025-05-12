@@ -180,8 +180,8 @@ class QueryBuilderFilters:
         if query['operator'] == 'isnull':
             callbacks = handlers['isnull'][value]
 
-        elif value == None and (query['operator'] == 'equal' or query['additional_keys'] == 'not_equal'):
-            callbacks = handlers['None'][value]
+        elif value == None and (query['operator'] == 'equal' or query['operator'] == 'not_equal'):
+            callbacks = handlers['None'][query['operator']]
 
         if (callbacks != None): _run_callbacks(callbacks, node.datatype)
 
