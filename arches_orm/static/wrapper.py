@@ -151,8 +151,9 @@ class StaticResourceWrapper(PseudoNodeWrapperMixin, ResourceWrapper, proxy=True)
                 related_prefetch=self._related_prefetch
             )
 
+    @staticmethod
     def _update_tiles(
-        self, tiles, all_values=None, nodegroup_id=None, root=None, parent=None, permitted_nodegroups: None | list[str]=None
+        tiles, all_values=None, nodegroup_id=None, root=None, parent=None, permitted_nodegroups: None | list[str]=None
     ):
         if not root:
             if not all_values:
@@ -178,7 +179,7 @@ class StaticResourceWrapper(PseudoNodeWrapperMixin, ResourceWrapper, proxy=True)
                 continue
             if isinstance(pseudo_node, PseudoNodeList) or pseudo_node.accessed:
                 if len(pseudo_node):
-                    subrelationships, subghost_tiles = self._update_tiles(
+                    subrelationships, subghost_tiles = StaticResourceWrapper._update_tiles(
                         tiles, root=pseudo_node, parent=parent, permitted_nodegroups=permitted_nodegroups
                     )
                     relationships += subrelationships
@@ -198,7 +199,7 @@ class StaticResourceWrapper(PseudoNodeWrapperMixin, ResourceWrapper, proxy=True)
                         if pseudo_node._original_tile and hasattr(pseudo_node._original_tile, "_original_data"):
                             if t.data == pseudo_node._original_tile._original_data:
                                 continue
-                        raise RuntimeError(f"Attempt to modify data that this user does not have permissions to: {t.nodegroup_id} in {self}")
+                        raise RuntimeError(f"Attempt to modify data that this user does not have permissions to: {t.nodegroup_id}")
                     else:
                         combined_tiles.append((t, r))
             # This avoids loading a tile as a set of view models, simply to re-save it.
@@ -609,7 +610,7 @@ class StaticResourceWrapper(PseudoNodeWrapperMixin, ResourceWrapper, proxy=True)
         }
 
         fields = copy.deepcopy(wkri._.all_fields())
-        tiles = []
+        tiles = {}
         nodes = []
         for field, value in values.items():
             node = fields[field]["node"]
@@ -619,17 +620,24 @@ class StaticResourceWrapper(PseudoNodeWrapperMixin, ResourceWrapper, proxy=True)
             node.value = value
             node.get_tile()
             nodes.append(node)
+            cls._update_tiles(tiles, root=node)
 
-        def _children(children):
-            nonlocal tiles
-            for node in children:
-                if not isinstance(node, PseudoNodeList):
-                    tiles.append(node.tile)
-                # else: This should be covered below.
-                #     tiles += [n.tile for n in node]
-                _children(node.get_children(direct=False))
-        _children(nodes)
 
+        #def _children(children):
+        #    nonlocal tiles
+        #    for node in children:
+        #        if not isinstance(node, PseudoNodeList):
+        #            tiles.append(node.tile)
+        #        # else: This should be covered below.
+        #        #     tiles += [n.tile for n in node]
+        #        _children(node.get_children(direct=False))
+        #_children(nodes)
+
+        resource_tiles = []
+        for t in sum((ts for ts in tiles.values()), []):
+            if not t.tileid:
+                t.tileid = uuid4()
+            resource_tiles.append(t)
         if not lazy:
             for ng, nodegroup in nodegroup_objs.items():
                 all_values.update(
@@ -642,7 +650,7 @@ class StaticResourceWrapper(PseudoNodeWrapperMixin, ResourceWrapper, proxy=True)
                         resource=None,
                         related_prefetch=related_prefetch,
                         wkri=wkri,
-                        tiles=tiles
+                        tiles=resource_tiles
                     )
                 )
         return all_values

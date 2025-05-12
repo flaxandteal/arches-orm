@@ -50,7 +50,7 @@ class StaticNode(BaseModel):
     name: str
     nodegroup_id: UUID | None
     nodeid: UUID
-    parentproperty: str
+    parentproperty: str | None
     sortorder: None | int
     ontologyclass: str | None = None
     sourcebranchpublication_id: None | UUID = None
