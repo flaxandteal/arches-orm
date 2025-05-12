@@ -2,7 +2,7 @@ from ..utilities import annotation_key
 from arches.app.models.models import Node
 from typing import List, Dict
 from django.db.models import F, Func, ExpressionWrapper, CharField, JSONField, Value
-from arches_orm.arches_django.query_builder.utilities import domain_value_annotation_key, default_value_annotation_key
+from arches_orm.arches_django.query_builder.utilities import domain_value_annotation_key
 
 from .expressions.expressions import (
     expression_string_datatype, 

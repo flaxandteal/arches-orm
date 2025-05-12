@@ -23,7 +23,6 @@ class QueryBuilderSelectors:
     _instance_query_builder = None;
     _wrapper_instance = None;
     _resourceinstances_ids = []
-    _count = 0;
 
     def __init__(self, instance_query_builder):
         self._instance_query_builder = instance_query_builder;
@@ -69,7 +68,7 @@ class QueryBuilderSelectors:
                 ).annotate(
                     **annotations
                 )
-                
+
             def _get_valid_resource_instance_ids():
                 nonlocal queryset_tiles
                 _apply_annotations()

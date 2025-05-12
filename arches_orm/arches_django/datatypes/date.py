@@ -41,7 +41,6 @@ from ._register import REGISTER
 
 @REGISTER("date")
 def date(tile, node, value: str | datetime | None, _, __, ___, date_datatype):
-    print('tile : ', tile)
     if tile:
         tile.data.setdefault(str(node.nodeid), None)
         if value is not None:
