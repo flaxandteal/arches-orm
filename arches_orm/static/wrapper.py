@@ -63,7 +63,7 @@ class StaticResourceWrapper(PseudoNodeWrapperMixin, ResourceWrapper, proxy=True)
     @classmethod
     def find(cls, resourceinstanceid):
         """Find an individual well-known resource by instance ID."""
-        return STATIC_STORE[resourceinstanceid]
+        return cls.from_static_resource(STATIC_STORE.get(resourceinstanceid))
 
     @classmethod
     def delete(self):
@@ -1056,6 +1056,7 @@ class StaticResourceWrapper(PseudoNodeWrapperMixin, ResourceWrapper, proxy=True)
         if self._unique_identifier_cb:
             key = self.__class__._unique_identifier_cb(self.view_model_inst)
             if key is not None:
+                hash(key) # confirm key hashable
                 return cuuid(f"{self.graphid}:{key}")
         return uuid4()
 

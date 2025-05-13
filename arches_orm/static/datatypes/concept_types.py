@@ -57,6 +57,10 @@ def concept_value(tile, node, value: uuid.UUID | str | None | CollectionEnum | C
     if value and not isinstance(value, uuid.UUID):
         try:
             value = uuid.UUID(value)
+        except AttributeError as exc:
+            raise AttributeError(
+                f"Tried to load UUID from {value} to node for collection {collection_id}, which is not a UUID (perhaps concept vs concept-list?)"
+            ) from exc
         except (ValueError, TypeError):
             if collection_id:
                 collection = retrieve_collection(collection_id)
