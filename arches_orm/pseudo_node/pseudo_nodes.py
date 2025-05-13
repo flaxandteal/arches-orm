@@ -45,7 +45,7 @@ class PseudoNodeWrapperMixin:
                 parent_cls=cls.view_model,
             )
         if value is None or tile:
-            if node_obj.nodegroup_id is not None and node_obj.nodegroup_id not in permitted:
+            if node_obj.nodegroup_id is not None and str(node_obj.nodegroup_id) not in permitted:
                 node_value = PseudoNodeUnavailable(
                     node=node_obj,
                     parent=wkri,
@@ -324,6 +324,8 @@ class PseudoNodeValue:
                 self._value._parent_pseudo_node = self
             if self._value is not None:
                 self._value_loaded = True
+            #if self._value and hasattr(self._value, '_parent_pseudo_node'):
+            #    print('set', self._value._parent_pseudo_node, self.node.alias)
 
     @property
     def value(self):
@@ -332,18 +334,11 @@ class PseudoNodeValue:
 
     @value.setter
     def value(self, value):
-        if not isinstance(value, ViewModel) or isinstance(value, ResourceInstanceViewModel):
-            self.get_tile()
-            value, self._as_tile_data, self._datatype, self._multiple = self.get_view_model_for_datatype(
-                self.tile,
-                self.node,
-                value=value,
-                parent=self._parent,
-                parent_cls=self._parent_cls,
-                child_nodes=self._child_nodes,
-            )
         self._value = value
+        if not isinstance(value, ViewModel) or isinstance(value, ResourceInstanceViewModel):
+            self.get_tile() # is this necessary, as it seems to hydrate what the below overwrites?
         self._value_loaded = True
+        self.set_accessed()
 
     def __len__(self):
         return len(self.get_children())
@@ -415,7 +410,7 @@ class PseudoNodeUnavailable:
         return []
 
 def update_tiles(
-    resource_id: UUID | str, tiles, all_values=None, nodegroup_id=None, root=None, parent=None, permitted_nodegroups: None | list[str]=None
+    resource_id: UUID | str | None, tiles, all_values=None, nodegroup_id=None, root=None, parent=None, permitted_nodegroups: None | list[str]=None
 ) -> tuple[list[tuple[int, ...]], set[Any]]:
     if not root:
         if not all_values:
@@ -432,6 +427,7 @@ def update_tiles(
     if not isinstance(root, PseudoNodeList):
         parent = root
     for pseudo_node in root.get_children():
+        #print('xyz', pseudo_node.node.alias, len(pseudo_node), hasattr(pseudo_node, "accessed") and pseudo_node.accessed)
         if isinstance(pseudo_node.value, RelatedResourceInstanceViewModelMixin):
             # Do not cross between resources. The relationship should
             # be captured. The canonical example of this is a semantic node that
@@ -461,6 +457,7 @@ def update_tiles(
                             continue
                     raise RuntimeError(f"Attempt to modify data that this user does not have permissions to: {t.nodegroup_id} in {resource_id}")
                 else:
+                    #print(t)
                     combined_tiles.append((t, r))
         # This avoids loading a tile as a set of view models, simply to re-save it.
         elif not isinstance(pseudo_node, PseudoNodeList) and pseudo_node._original_tile:

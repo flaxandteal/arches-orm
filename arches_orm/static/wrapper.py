@@ -10,7 +10,7 @@ from arches_orm.errors import DescriptorsNotYetSet
 from threading import Event
 from arches_orm.datatypes import DataTypeNames
 from arches_orm.wrapper import ResourceWrapper
-from arches_orm.pseudo_node.pseudo_nodes import PseudoNodeList, PseudoNodeValue, PseudoNodeUnavailable, PseudoNodeWrapperMixin
+from arches_orm.pseudo_node.pseudo_nodes import PseudoNodeList, PseudoNodeValue, PseudoNodeUnavailable, PseudoNodeWrapperMixin, update_tiles
 from arches_orm.pseudo_node.value_list import ValueList
 from arches_orm.view_models.resources import RelatedResourceInstanceViewModelMixin
 from arches_orm.utils import consistent_uuid as cuuid
@@ -151,77 +151,77 @@ class StaticResourceWrapper(PseudoNodeWrapperMixin, ResourceWrapper, proxy=True)
                 related_prefetch=self._related_prefetch
             )
 
-    @staticmethod
-    def _update_tiles(
-        tiles, all_values=None, nodegroup_id=None, root=None, parent=None, permitted_nodegroups: None | list[str]=None
-    ):
-        if not root:
-            if not all_values:
-                return [], set()
-            root = [
-                nodelist[0]
-                for nodelist in all_values.values()
-                if nodelist[0].node.nodegroup_id is None
-            ][0]
+    # @staticmethod
+    # def _update_tiles(
+    #     tiles, all_values=None, nodegroup_id=None, root=None, parent=None, permitted_nodegroups: None | list[str]=None
+    # ):
+    #     if not root:
+    #         if not all_values:
+    #             return [], set()
+    #         root = [
+    #             nodelist[0]
+    #             for nodelist in all_values.values()
+    #             if nodelist[0].node.nodegroup_id is None
+    #         ][0]
 
-        combined_tiles = []
-        relationships = []
-        ghost_tiles = set()
-        if not isinstance(root, PseudoNodeList):
-            parent = root
-        for pseudo_node in root.get_children():
-            if isinstance(pseudo_node.value, RelatedResourceInstanceViewModelMixin):
-                # Do not cross between resources. The relationship should
-                # be captured. The canonical example of this is a semantic node that
-                # gives us a related resource instance.
-                t, r = pseudo_node.get_tile()
-                combined_tiles.append((t, r))
-                continue
-            if isinstance(pseudo_node, PseudoNodeList) or pseudo_node.accessed:
-                if len(pseudo_node):
-                    subrelationships, subghost_tiles = StaticResourceWrapper._update_tiles(
-                        tiles, root=pseudo_node, parent=parent, permitted_nodegroups=permitted_nodegroups
-                    )
-                    relationships += subrelationships
-                    ghost_tiles |= subghost_tiles
-                if isinstance(pseudo_node, PseudoNodeList):
-                    # Only hold ghost tiles that have been saved.
-                    ghost_tiles = {
-                        tile for ghost in pseudo_node.free_ghost_children()
-                        if (tile := ghost.get_tile()[0]) and tile.pk and not tile._state.adding
-                    }
-                else:
-                    t, r = pseudo_node.get_tile()
-                    if t is not None and t.nodegroup_id and not isinstance(t.nodegroup_id, UUID):
-                        t.nodegroup_id = UUID(t.nodegroup_id)
-                    if t is not None and permitted_nodegroups is not None and (t.nodegroup_id is None or t.nodegroup_id not in permitted_nodegroups):
-                        # Warn if we can
-                        if pseudo_node._original_tile and hasattr(pseudo_node._original_tile, "_original_data"):
-                            if t.data == pseudo_node._original_tile._original_data:
-                                continue
-                        raise RuntimeError(f"Attempt to modify data that this user does not have permissions to: {t.nodegroup_id}")
-                    else:
-                        combined_tiles.append((t, r))
-            # This avoids loading a tile as a set of view models, simply to re-save it.
-            elif not isinstance(pseudo_node, PseudoNodeList) and pseudo_node._original_tile:
-                # TODO: NOTE THAT THIS DOES NOT CAPTURE RELATIONSHIPS THAT HAVE NOT BEEN ACCESSED
-                combined_tiles.append((
-                    pseudo_node._original_tile,
-                    []
-                ))
+    #     combined_tiles = []
+    #     relationships = []
+    #     ghost_tiles = set()
+    #     if not isinstance(root, PseudoNodeList):
+    #         parent = root
+    #     for pseudo_node in root.get_children():
+    #         if isinstance(pseudo_node.value, RelatedResourceInstanceViewModelMixin):
+    #             # Do not cross between resources. The relationship should
+    #             # be captured. The canonical example of this is a semantic node that
+    #             # gives us a related resource instance.
+    #             t, r = pseudo_node.get_tile()
+    #             combined_tiles.append((t, r))
+    #             continue
+    #         if isinstance(pseudo_node, PseudoNodeList) or pseudo_node.accessed:
+    #             if len(pseudo_node):
+    #                 subrelationships, subghost_tiles = StaticResourceWrapper._update_tiles(
+    #                     tiles, root=pseudo_node, parent=parent, permitted_nodegroups=permitted_nodegroups
+    #                 )
+    #                 relationships += subrelationships
+    #                 ghost_tiles |= subghost_tiles
+    #             if isinstance(pseudo_node, PseudoNodeList):
+    #                 # Only hold ghost tiles that have been saved.
+    #                 ghost_tiles = {
+    #                     tile for ghost in pseudo_node.free_ghost_children()
+    #                     if (tile := ghost.get_tile()[0]) and tile.pk and not tile._state.adding
+    #                 }
+    #             else:
+    #                 t, r = pseudo_node.get_tile()
+    #                 if t is not None and t.nodegroup_id and not isinstance(t.nodegroup_id, UUID):
+    #                     t.nodegroup_id = UUID(t.nodegroup_id)
+    #                 if t is not None and permitted_nodegroups is not None and (t.nodegroup_id is None or t.nodegroup_id not in permitted_nodegroups):
+    #                     # Warn if we can
+    #                     if pseudo_node._original_tile and hasattr(pseudo_node._original_tile, "_original_data"):
+    #                         if t.data == pseudo_node._original_tile._original_data:
+    #                             continue
+    #                     raise RuntimeError(f"Attempt to modify data that this user does not have permissions to: {t.nodegroup_id}")
+    #                 else:
+    #                     combined_tiles.append((t, r))
+    #         # This avoids loading a tile as a set of view models, simply to re-save it.
+    #         elif not isinstance(pseudo_node, PseudoNodeList) and pseudo_node._original_tile:
+    #             # TODO: NOTE THAT THIS DOES NOT CAPTURE RELATIONSHIPS THAT HAVE NOT BEEN ACCESSED
+    #             combined_tiles.append((
+    #                 pseudo_node._original_tile,
+    #                 []
+    #             ))
 
-        for tile, subrelationships in combined_tiles:
-            if tile:
-                if parent and parent.tile != tile and parent.node.nodegroup_id:
-                    tile.parenttile = parent.tile
-                nodegroup_id = tile.nodegroup_id
-                tiles.setdefault(nodegroup_id, [])
-                relationships += [
-                    (len(tiles[nodegroup_id]), *relationship)
-                    for relationship in subrelationships
-                ]
-                tiles[nodegroup_id].append(tile)
-        return relationships, ghost_tiles
+    #     for tile, subrelationships in combined_tiles:
+    #         if tile:
+    #             if parent and parent.tile != tile and parent.node.nodegroup_id:
+    #                 tile.parenttile = parent.tile
+    #             nodegroup_id = tile.nodegroup_id
+    #             tiles.setdefault(nodegroup_id, [])
+    #             relationships += [
+    #                 (len(tiles[nodegroup_id]), *relationship)
+    #                 for relationship in subrelationships
+    #             ]
+    #             tiles[nodegroup_id].append(tile)
+    #     return relationships, ghost_tiles
 
     @classmethod
     def _datatype_factory(cls):
@@ -486,7 +486,7 @@ class StaticResourceWrapper(PseudoNodeWrapperMixin, ResourceWrapper, proxy=True)
 
     @classmethod
     def _permitted_nodegroups(cls):
-        return list(cls._nodegroup_objects())
+        return [str(idx) for idx in cls._nodegroup_objects()]
 
     @classmethod
     def _get_allowed_tiles(
@@ -496,7 +496,7 @@ class StaticResourceWrapper(PseudoNodeWrapperMixin, ResourceWrapper, proxy=True)
         permitted = cls._permitted_nodegroups()
         if "nodegroup_id" in kwargs:
             nodegroup_id = kwargs["nodegroup_id"]
-            if nodegroup_id is None or nodegroup_id not in permitted:
+            if nodegroup_id is None or str(nodegroup_id) not in permitted:
                 return []
         elif any(arg.startswith("nodegroup_id") for arg in kwargs):
             raise NotImplementedError(
@@ -508,10 +508,10 @@ class StaticResourceWrapper(PseudoNodeWrapperMixin, ResourceWrapper, proxy=True)
 
         nodes = cls._node_objects()
         if nodegroups := kwargs.get("nodegroup_id__in", []):
-            nodes = [node for node in nodes .values()if node.nodegroup_id in nodegroups]
+            nodes = [node for node in nodes.values() if str(node.nodegroup_id) in nodegroups]
             del kwargs["nodegroup_id__in"]
         if nodegroup := kwargs.get("nodegroup_id", []):
-            nodes = [node for node in nodes.values() if node.nodegroup_id == nodegroup]
+            nodes = [node for node in nodes.values() if str(node.nodegroup_id) == str(nodegroup)]
             del kwargs["nodegroup_id"]
         if resourceinstance := kwargs.get("resourceinstance", []):
             resourceid = resourceinstance.resourceinstance.resourceinstanceid
@@ -618,9 +618,19 @@ class StaticResourceWrapper(PseudoNodeWrapperMixin, ResourceWrapper, proxy=True)
                 logger.warn("Found an entry that should be a list, but is not - making a length one list for backwards compatibility (deprecated) - {} for {}", field, str(value))
                 value = [value]
             node.value = value
+            #print(value)
             node.get_tile()
             nodes.append(node)
-            cls._update_tiles(tiles, root=node)
+            if node.node.alias == "system_reference_numbers":
+                #print(node.value.primaryreferencenumber.primary_reference_number)
+                #print(node.value.primaryreferencenumber._parent_pseudo_node.get_tile())
+                #print(node.value.primaryreferencenumber._parent_pseudo_node.tile, "TILE")
+                #print(node.value._parent_pseudo_node.get_children(), "TILE")
+                pass
+            update_tiles(None, tiles, root=node)
+            if node.node.alias == "system_reference_numbers":
+                #print(tiles, "TILES")
+                pass
 
 
         #def _children(children):
@@ -802,20 +812,21 @@ class StaticResourceWrapper(PseudoNodeWrapperMixin, ResourceWrapper, proxy=True)
         )
         nodegroup_objs = cls._nodegroup_objects()
         edges = cls._edges()
-        values = cls.values_from_dict(
-            wkri,
-            node_objs,
-            nodegroup_objs,
-            edges,
-            values,
-            related_prefetch=related_prefetch,
-            lazy=lazy,
-        )
-        wkri._values = ValueList(
-            values,
-            wkri._,
-            related_prefetch=related_prefetch
-        )
+        wkri._.get_root().value = values
+        #values = cls.values_from_dict(
+        #    wkri,
+        #    node_objs,
+        #    nodegroup_objs,
+        #    edges,
+        #    values,
+        #    related_prefetch=related_prefetch,
+        #    lazy=lazy,
+        #)
+        #wkri._values = ValueList(
+        #    values,
+        #    wkri._,
+        #    related_prefetch=related_prefetch
+        #)
         return wkri
 
     @classmethod
@@ -948,7 +959,7 @@ class StaticResourceWrapper(PseudoNodeWrapperMixin, ResourceWrapper, proxy=True)
         )
         tiles = {}
         permitted_nodegroups = self._permitted_nodegroups()
-        relationships, ghost_tiles = self._update_tiles(tiles, self._values, permitted_nodegroups=permitted_nodegroups)
+        relationships, ghost_tiles = update_tiles(resource_instance_info.resourceinstanceid, tiles, self._values, permitted_nodegroups=permitted_nodegroups)
         for tile in ghost_tiles:
             tile.delete()
 
@@ -958,6 +969,7 @@ class StaticResourceWrapper(PseudoNodeWrapperMixin, ResourceWrapper, proxy=True)
             if not t.tileid:
                 t.tileid = uuid4()
             resource_tiles.append(t)
+        #print(resource_tiles)
         resource = StaticResource(resourceinstance=resource_instance_info, tiles=resource_tiles)
 
         # errors = resource.validate(verbose=verbose, strict=strict)

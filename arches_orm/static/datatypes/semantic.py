@@ -94,7 +94,9 @@ def semantic(
         partial(make_pseudo_node, parent_cls=parent_cls, tile=tile, parent=parent, child_nodes=child_nodes),
         partial(get_child_values, parent=parent, child_keys=child_keys, child_nodes=child_nodes, tile=tile, node=node),
     )
+    #print(svm, 'new svm', node.alias)
     if value:
+        #print(value, 'value', tile)
         try:
             svm.update(value)
         except Exception as exc:
