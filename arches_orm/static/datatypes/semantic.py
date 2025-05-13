@@ -12,6 +12,9 @@ from arches_orm.view_models import (
 from arches_orm.static.datatypes.resource_instances import StaticResource
 from ._register import REGISTER
 
+class SemanticLoadingError(KeyError):
+    ...
+
 
 logger = logging.getLogger(__name__)
 
@@ -110,7 +113,9 @@ def _tile_loading_error(reason, exc, *args):
     if not get_adapter().config.get("suppress-tile-loading-errors"):
         # print(reason.format(exc, *args))
         # logging.error(reason, exc, *args)
-        raise KeyError(reason % (exc, *args)) from exc
+        if not isinstance(exc, SemanticLoadingError):
+            raise SemanticLoadingError(reason % (exc, *args)) from exc
+        raise
     elif not get_adapter().config.get("silence-tile-loading-errors"):
         print(reason % (exc, *args), "(suppressed)")
         logging.warning(reason, exc, *args)
