@@ -266,7 +266,7 @@ class DataTypes:
             if semantic_input_objects[semantic_type]:
                 return graphene.Argument(graphene.List(semantic_input_objects[semantic_type]) if info["multiple"] else semantic_input_objects[semantic_type])
             return None
-        if typ in (DataTypeNames.STRING, DataTypeNames.DATE):
+        if typ in (DataTypeNames.STRING, DataTypeNames.NON_LOCALIZED_STRING, DataTypeNames.DATE):
             graphene_type = graphene.String()
         elif typ == DataTypeNames.BOOLEAN:
             graphene_type = graphene.Boolean()
@@ -370,7 +370,7 @@ class DataTypes:
             if semantic_schema_objects[semantic_type]:
                 return graphene.List(semantic_schema_objects[semantic_type]) if info["multiple"] else graphene.Field(semantic_schema_objects[semantic_type])
             return None
-        if typ in (DataTypeNames.STRING, DataTypeNames.DATE):
+        if typ in (DataTypeNames.STRING, DataTypeNames.NON_LOCALIZED_STRING, DataTypeNames.DATE):
             graphene_type = graphene.String()
         elif typ == DataTypeNames.BOOLEAN:
             graphene_type = graphene.Boolean()

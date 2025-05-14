@@ -69,8 +69,18 @@ class StaticStringDataType(StaticDataType):
             string = string.get("value")
         return string
 
+class StaticNonLocalizedStringDataType(StaticDataType):
+    def transform_value_for_tile(self, value: Any) -> Any:
+        return str(value)
+
+
+    def get_display_value(self, tile: Tile | dict[str | UUID, Any], node: Node, language: None | str = None) -> Any:
+        tile_value = super().get_display_value(tile=tile, node=node, language=language)
+        return str(tile_value)
+
 FACTORIES: dict[DataTypeNames, type[StaticDataType]] = {
     DataTypeNames.STRING: StaticStringDataType
+    DataTypeNames.NON_LOCALIZED_STRING: StaticNonLocalizedStringDataType
 }
 
 CASTING: dict[str, DataTypeNames] = {
