@@ -62,6 +62,7 @@ class StandardDataTypeNames(enum.Enum):
     BNGCENTREPOINT = "bngcentrepoint"
     DOMAIN_VALUE_LIST = "domain-value-list"
     DJANGO_GROUP = "django-group"
+    NON_LOCALIZED_STRING = "non-localized-string"
 
 def snake(class_name):
     class_name = class_name[0].lower() + class_name[1:]
