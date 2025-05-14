@@ -79,7 +79,7 @@ class StaticNonLocalizedStringDataType(StaticDataType):
         return str(tile_value)
 
 FACTORIES: dict[DataTypeNames, type[StaticDataType]] = {
-    DataTypeNames.STRING: StaticStringDataType
+    DataTypeNames.STRING: StaticStringDataType,
     DataTypeNames.NON_LOCALIZED_STRING: StaticNonLocalizedStringDataType
 }
 
