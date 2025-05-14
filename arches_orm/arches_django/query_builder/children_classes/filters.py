@@ -88,7 +88,7 @@ class QueryBuilderFilters:
                 # * and the value as the expression wrapper, therefore we have to use the same key to filter with
                 self._handle_setting_excludes_filters(annotation_key(query['field_key']), query['operator'], value)
                 
-            self._handle_isnull_and_none_queries(query, value, node)
+            # self._handle_isnull_and_none_queries(query, value, node)
 
         # * Attach the filters and the logical operator (AND | OR) to the parent query builder for future use within selectors.py
         if self._filters:
