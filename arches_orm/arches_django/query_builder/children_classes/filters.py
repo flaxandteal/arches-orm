@@ -10,11 +10,14 @@ class QueryBuilderFilters:
     _instance_query_builder = None;
     _wrapper_instance = None;
 
+
+    _nodes = {};
+
     _append_filters: List[any] = [];
-    _append_excludes: List[any] = [];
+    # _append_excludes: List[any] = [];
 
     _filters: Dict[str, any] = {};
-    _excludes: Dict[str, any] = {};
+    # _excludes: Dict[str, any] = {};
 
     if TYPE_CHECKING:
         from arches_orm.arches_django.query_builder.query_builder import QueryBuilder
@@ -23,7 +26,7 @@ class QueryBuilderFilters:
         self._instance_query_builder = instance_query_builder;
         self._wrapper_instance = instance_query_builder._parent_wrapper_instance;
 
-    def _handle_setting_excludes_filters(self, field_key: str, field_lookup: str, value: any):
+    def _transform_filter_field_key(self, field_key: str, field_lookup: str):
         """
         This method handles getting the correct filter key towards Django as we can have custom keys, that are defined in consts.py which point to the
         django key for example ['less_than']: 'lt'. This method gets the field key with the potational operator and stores this either in filters or excludes
@@ -31,51 +34,47 @@ class QueryBuilderFilters:
         Args:
             field_key (str): The field key or node alias for example age
             field_lookup (str): The field key which was gained from the method "handle_operatortion"
-            value (any): The value which the user inputted as the condition
         """
 
         if field_lookup == 'equal':
-            self._filters[field_key] = value
+            return field_key;
 
-        elif field_lookup in NOT_EQUAL_KEYS:
-            self._excludes[field_key] = value
-        
-        else:
-            self._filters[field_key + "__" + field_lookup] = value
+        return field_key + "__" + field_lookup
 
     def _reset_previous_filtering_excluding(self):
         """
         The data is retained as the query builder is uses a single ton towards this class 
         """
         self._filters = {}
-        self._excludes = {}
+        # self._excludes = {}
 
         self._append_filters = []
-        self._append_excludes = []
 
-    def _where_core(self, logical_operator: str, **kwargs):
-        """
-        Method handles the core of where towards where and or_where. The purpose of this method is to add a filter structure towards our 
-        query builders filter structure to enable future filtering within selectors.py
+    def _create_filter_container(logical_operator: str, condition_logical_operator: str = 'AND', **kwargs):
+        return {
+            'logical_operator': logical_operator,
+            'condition_logical_operator': condition_logical_operator,
+            'conditions': _create_filter_conditions(**kwargs)
+        }
 
-        Args:
-            logical_operator (str): This is the logical operator and should only be 'AND' | 'OR'
-        """
-        # * We need to get the nodes as we have to find the correct node towards the field key and then this node is used to find the datatype towards
-        # * annotation
-        nodes: List[Node] = self._wrapper_instance._node_objects_by_alias();
+    def _create_filter_conditions(**kwargs):
+        filters_conditions = {}
 
-        self._reset_previous_filtering_excluding()
-
-        # * Loop through keyword argmunets, this will be what the user has inputed for example where(age__gt=18)
         for key, value in kwargs.items():
-            
+            if key == '__OR':
+                filters_conditions[key] = _create_filter_container(logical_operator='AND', condition_logical_operator='OR', **kwargs)
+                continue;
+
+            if key == '__AND':
+                filters_conditions[key] = _create_filter_container(logical_operator='AND', condition_logical_operator='AND', **kwargs)
+                continue;
+
             # * We split the key query down as they might be addional information or different operation handling needed
             query = split_query_key(key)
-            node: Node = nodes.get(query['field_key'])
+            node: Node = self._nodes.get(query['field_key'])
 
             if (query['field_key'] == 'resourceinstance' and len(query['additional_keys']) > 0):
-                self._handle_setting_excludes_filters(query['field_key'], query['operator'], value)
+                field_key = self._transform_filter_field_key(query['field_key'], query['operator'])
 
             else:
                 set_annotation(
@@ -86,25 +85,43 @@ class QueryBuilderFilters:
                 )
                 # * We do use the annotation_key as the filter field_key as within set_annotation it setups the annotation with the key as annotation_key(query['field_key'])
                 # * and the value as the expression wrapper, therefore we have to use the same key to filter with
-                self._handle_setting_excludes_filters(annotation_key(query['field_key']), query['operator'], value)
-                
+                field_key = self._transform_filter_field_key(annotation_key(query['field_key']), query['operator'])
+
+            filters_conditions[field_key] = value;
+
+        
+        return filters_conditions;
+
             # self._handle_isnull_and_none_queries(query, value, node)
 
-        # * Attach the filters and the logical operator (AND | OR) to the parent query builder for future use within selectors.py
-        if self._filters:
-            self._instance_query_builder._filter_structures.append({
-                'logical_operator': logical_operator,
-                'conditions': self._filters
-            })
 
-        if self._excludes:
-              self._instance_query_builder._exclude_structures.append({
-                'logical_operator': logical_operator,
-                'conditions': self._excludes
-            })
+
+    # def _where_core(self, logical_operator: str, **kwargs):
+    #     """
+    #     Method handles the core of where towards where and or_where. The purpose of this method is to add a filter structure towards our 
+    #     query builders filter structure to enable future filtering within selectors.py
+
+    #     Args:
+    #         logical_operator (str): This is the logical operator and should only be 'AND' | 'OR'
+    #     """
+    #     # * We need to get the nodes as we have to find the correct node towards the field key and then this node is used to find the datatype towards
+    #     # * annotation
+    #     nodes: List[Node] = self._wrapper_instance._node_objects_by_alias();
+
+    #     self._reset_previous_filtering_excluding()
+
+    #     # * Loop through keyword argmunets, this will be what the user has inputed for example where(age__gt=18)
+        
+
+    #     # * Attach the filters and the logical operator (AND | OR) to the parent query builder for future use within selectors.py
+    #     if self._filters:
+    #         self._instance_query_builder._filter_structures.append({
+    #             'logical_operator': logical_operator,
+    #             'conditions': self._filters
+    #         })
               
-        if (self._append_filters != None): self._instance_query_builder._filter_structures.extend(self._append_filters)
-        if (self._append_excludes != None): self._instance_query_builder._exclude_structures.extend(self._append_excludes)
+    #     if (self._append_filters != None): self._instance_query_builder._filter_structures.extend(self._append_filters)
+    #     # if (self._append_excludes != None): self._instance_query_builder._exclude_structures.extend(self._append_excludes)
 
     def _handle_isnull_and_none_queries(self, query: SplitQueryKeyReturn, value: any, node: Node):
         """
@@ -128,15 +145,15 @@ class QueryBuilderFilters:
             """
             self._append_filters.append({ 'logical_operator': logical_operator, 'conditions': conditions })
 
-        def _append_exclude(logical_operator: str, conditions):
-            """
-            Method handles applying on lifecycle append exclude
+        # def _append_exclude(logical_operator: str, conditions):
+        #     """
+        #     Method handles applying on lifecycle append exclude
 
-            Args:
-                logical_operator (str): OR | AND, the operator
-                conditions (_type_): {age=30}, the conditions
-            """
-            self._append_excludes.append({ 'logical_operator': logical_operator, 'conditions': conditions })
+        #     Args:
+        #         logical_operator (str): OR | AND, the operator
+        #         conditions (_type_): {age=30}, the conditions
+        #     """
+        #     self._append_excludes.append({ 'logical_operator': logical_operator, 'conditions': conditions })
 
         def _run_callbacks(callbacks: dict, node_datatype: str):
             """
@@ -160,7 +177,7 @@ class QueryBuilderFilters:
                 },
                 False: {
                     'default': lambda: _append_exclude('OR', { annotation_key(query['field_key']): None }),
-                    'date': lambda: _append_exclude('OR', { annotation_key(query['field_key']): 'null' })
+                    # 'date': lambda: _append_exclude('OR', { annotation_key(query['field_key']): 'null' })
                 }
             },
             'None': {
@@ -170,7 +187,7 @@ class QueryBuilderFilters:
                 },
                 'not_equal': {
                     'default': lambda: _append_fitler('OR', { annotation_key(query['field_key']) + '__isnull': False }),
-                    'date': lambda: _append_exclude('OR', { annotation_key(query['field_key']): 'null' })
+                    # 'date': lambda: _append_exclude('OR', { annotation_key(query['field_key']): 'null' })
                 }
             }
         }
@@ -194,7 +211,10 @@ class QueryBuilderFilters:
         Returns:
             QueryBuilder: This is the query builder instance and this is return for the reason of Chainable
         """
-        self._where_core(logical_operator='AND', **kwargs);
+        
+        filter_container = self._create_filter_container(logical_operator='AND', condition_logical_operator='AND', **kwargs);
+        self._instance_query_builder._filter_structures.append(filter_container)
+
         return self._instance_query_builder;
 
     def or_where(self, **kwargs) -> "QueryBuilder":
@@ -204,5 +224,8 @@ class QueryBuilderFilters:
         Returns:
             QueryBuilder: This is the query builder instance and this is return for the reason of Chainable
         """
-        self._where_core(logical_operator='OR', **kwargs);
+
+        filter_container = self._create_filter_container(logical_operator='OR', condition_logical_operator='AND', **kwargs);
+        self._instance_query_builder._filter_structures.append(filter_container)
+
         return self._instance_query_builder;    
