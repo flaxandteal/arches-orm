@@ -21,6 +21,7 @@ class AnnotationProperties(TypedDict):
 class FilterStructure(TypedDict):
     logical_operator: str
     conditions: Dict[str, any]
+    condition_logical_operator: str
 
 ExcludeStructure = FilterStructure
 
