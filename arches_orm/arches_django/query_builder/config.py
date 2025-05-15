@@ -14,3 +14,6 @@ CONTAINS_KEYS = ['ct', 'contains']
 ISNULL_KEYS = ['isnull', 'isnone']
 
 RESOURCE_MERGED_TILE_DATA_KEY = 'resource_merged_tile_data'
+
+OR_CONDITION_LOGICAL_OPERATOR = ['__OR', '__or']
+AND_CONDITION_LOGICAL_OPERATOR = ['__AND', '__and']

@@ -3,21 +3,17 @@ from ..utilities import split_query_key, annotation_key, SplitQueryKeyReturn
 from arches.app.models.models import Node
 import uuid
 from typing import TYPE_CHECKING, Dict, List
-from arches_orm.arches_django.query_builder.config import NOT_EQUAL_KEYS
+from arches_orm.arches_django.query_builder.config import NOT_EQUAL_KEYS, OR_CONDITION_LOGICAL_OPERATOR, AND_CONDITION_LOGICAL_OPERATOR
 from arches_orm.arches_django.query_builder.annotations.annotations import set_annotation
+
+if TYPE_CHECKING:
+    from ..query_builder import FilterStructure
 
 class QueryBuilderFilters:
     _instance_query_builder = None;
     _wrapper_instance = None;
 
-
     _nodes = {};
-
-    _append_filters: List[any] = [];
-    # _append_excludes: List[any] = [];
-
-    _filters: Dict[str, any] = {};
-    # _excludes: Dict[str, any] = {};
 
     if TYPE_CHECKING:
         from arches_orm.arches_django.query_builder.query_builder import QueryBuilder
@@ -26,14 +22,16 @@ class QueryBuilderFilters:
         self._instance_query_builder = instance_query_builder;
         self._wrapper_instance = instance_query_builder._parent_wrapper_instance;
 
-    def _transform_filter_field_key(self, field_key: str, field_lookup: str):
+    def _transform_filter_field_key(self, field_key: str, field_lookup: str) -> str:
         """
-        This method handles getting the correct filter key towards Django as we can have custom keys, that are defined in consts.py which point to the
-        django key for example ['less_than']: 'lt'. This method gets the field key with the potational operator and stores this either in filters or excludes
+        Method just handles the field key transfrom for the filter so we do something like this filter(age__gt=30)
 
         Args:
-            field_key (str): The field key or node alias for example age
-            field_lookup (str): The field key which was gained from the method "handle_operatortion"
+            field_key (str): key, age
+            field_lookup (str): field lookup, gt
+
+        Returns:
+            str: The field key transformed
         """
 
         if field_lookup == 'equal':
@@ -41,41 +39,71 @@ class QueryBuilderFilters:
 
         return field_key + "__" + field_lookup
 
-    def _reset_previous_filtering_excluding(self):
+    def _create_filter_structurer(self, logical_operator: str, condition_logical_operator: str, **kwargs) -> "FilterStructure":
         """
-        The data is retained as the query builder is uses a single ton towards this class 
+        Method handles creating the structure for the filter structure from the users input and calls _create_filter_conditions for the 
+        conditions
+
+        Args:
+            logical_operator (str): This can be either 'AND' or 'OR' but is for the parent query for example where(age=40, gender='Male').or_where(firstname='Ben')
+                so it's *AND* ((age=40, gender='Male')) *OR* (firstname='Ben') 
+            condition_logical_operator (str): This can be either 'AND' or 'OR' but is for the conditions query for example where(height__gt=5, __or: {age=40, gender='Male'})
+                so for age it's (height__gt *AND* (age=40 *OR* gender='Male'))
+            kwargs: These are the user inputs for example where(age=40, gender='Male') so age=40, gender='Male'
+
+        Returns:
+            FilterStructure: Returns the filter structure and has the annotations setup within the query_builder.py
         """
-        self._filters = {}
-        # self._excludes = {}
-
-        self._append_filters = []
-
-    def _create_filter_container(logical_operator: str, condition_logical_operator: str = 'AND', **kwargs):
         return {
             'logical_operator': logical_operator,
             'condition_logical_operator': condition_logical_operator,
-            'conditions': _create_filter_conditions(**kwargs)
+            'conditions': self._create_filter_conditions(**kwargs)
         }
 
-    def _create_filter_conditions(**kwargs):
+    def _create_filter_conditions(self, **kwargs) -> Dict[str, any]:
+        """
+        Method handles setting up the conditions for the filter inside a filter structure/structurer. Simple we setup annotations and get the
+        appoirate Django query key as we have custom keys for example ISNULL_KEYS = ['isnull', 'isnone'], however in Django it's just 'isnull'
+
+        Args:
+            kwargs: These are the user inputs for example where(age=40, gender='Male') so age=40, gender='Male'
+
+        Raises:
+            ValueError: If the node_alias doesn't exist within nodes, the Error is raised
+
+        Returns:
+            Dict[str, any]: Returns the conditions for the filter inside a filter structure/structurer
+        """
         filters_conditions = {}
 
         for key, value in kwargs.items():
-            if key == '__OR':
-                filters_conditions[key] = _create_filter_container(logical_operator='AND', condition_logical_operator='OR', **kwargs)
+            if key in OR_CONDITION_LOGICAL_OPERATOR:
+                # ? Adding a custom UUID allows for more __or within the same filter condition as the object is a dict and having only __or might
+                # ? override the previous __or
+                custom_uuid = uuid.uuid4()
+                filters_conditions[str(custom_uuid) + key] = self._create_filter_structurer(logical_operator='AND', condition_logical_operator='OR', **value)
                 continue;
 
-            if key == '__AND':
-                filters_conditions[key] = _create_filter_container(logical_operator='AND', condition_logical_operator='AND', **kwargs)
+            if key in AND_CONDITION_LOGICAL_OPERATOR:
+                # ? Adding a custom UUID allows for more __or within the same filter condition as the object is a dict and having only __and might
+                # ? override the previous __and
+                custom_uuid = uuid.uuid4()
+                filters_conditions[str(custom_uuid) + key] = self._create_filter_structurer(logical_operator='AND', condition_logical_operator='AND', **value)
                 continue;
 
             # * We split the key query down as they might be addional information or different operation handling needed
             query = split_query_key(key)
             node: Node = self._nodes.get(query['field_key'])
 
+            if node == None:
+                raise ValueError('Node is not found with alias ' + query['field_key'])
+
+            # * Here we check if the user is trying to access the resourceinstance as we don't want to apply any custom annotation since
+            # * within our query is .selected_related('resourceinstance'). The user can access this aswel
             if (query['field_key'] == 'resourceinstance' and len(query['additional_keys']) > 0):
                 field_key = self._transform_filter_field_key(query['field_key'], query['operator'])
 
+            # * Default, we setup the annotation for the field and add the field onto filters_conditions
             else:
                 set_annotation(
                     self._instance_query_builder,
@@ -89,120 +117,7 @@ class QueryBuilderFilters:
 
             filters_conditions[field_key] = value;
 
-        
         return filters_conditions;
-
-            # self._handle_isnull_and_none_queries(query, value, node)
-
-
-
-    # def _where_core(self, logical_operator: str, **kwargs):
-    #     """
-    #     Method handles the core of where towards where and or_where. The purpose of this method is to add a filter structure towards our 
-    #     query builders filter structure to enable future filtering within selectors.py
-
-    #     Args:
-    #         logical_operator (str): This is the logical operator and should only be 'AND' | 'OR'
-    #     """
-    #     # * We need to get the nodes as we have to find the correct node towards the field key and then this node is used to find the datatype towards
-    #     # * annotation
-    #     nodes: List[Node] = self._wrapper_instance._node_objects_by_alias();
-
-    #     self._reset_previous_filtering_excluding()
-
-    #     # * Loop through keyword argmunets, this will be what the user has inputed for example where(age__gt=18)
-        
-
-    #     # * Attach the filters and the logical operator (AND | OR) to the parent query builder for future use within selectors.py
-    #     if self._filters:
-    #         self._instance_query_builder._filter_structures.append({
-    #             'logical_operator': logical_operator,
-    #             'conditions': self._filters
-    #         })
-              
-    #     if (self._append_filters != None): self._instance_query_builder._filter_structures.extend(self._append_filters)
-    #     # if (self._append_excludes != None): self._instance_query_builder._exclude_structures.extend(self._append_excludes)
-
-    def _handle_isnull_and_none_queries(self, query: SplitQueryKeyReturn, value: any, node: Node):
-        """
-        Stu noticed that if the tile nodegroup section wasn't created within the tiles data table, then __isnull would of worked but
-        equals None didn't work. Also  if the tile nodegroup section was created within the tiles data table, then None would of worked
-        but isnull didn't work. With this in mind, I created this method to help slove the problem, by simpley attaching a OR filtering/excluding
-        query after, based on the query the user gave, therefore we checked for __isnull OR None
-
-        Args:
-            query (SplitQueryKeyReturn): Current query
-            value (any): Current value
-        """
-
-        def _append_fitler(logical_operator: str, conditions):
-            """
-            Method handles applying on lifecycle append filter
-
-            Args:
-                logical_operator (str): OR | AND, the operator
-                conditions (_type_): {age=30}, the conditions
-            """
-            self._append_filters.append({ 'logical_operator': logical_operator, 'conditions': conditions })
-
-        # def _append_exclude(logical_operator: str, conditions):
-        #     """
-        #     Method handles applying on lifecycle append exclude
-
-        #     Args:
-        #         logical_operator (str): OR | AND, the operator
-        #         conditions (_type_): {age=30}, the conditions
-        #     """
-        #     self._append_excludes.append({ 'logical_operator': logical_operator, 'conditions': conditions })
-
-        def _run_callbacks(callbacks: dict, node_datatype: str):
-            """
-            Method handles running the callback methods once gained from the handlers. This should define callback methods towards 
-            _append_filter & _append_exclude to give the complete None or Null values from the database. I've also defined node types
-            as some expression causes issue but are needed for example the DateFieldModel is needed to use gt or lt on dates, however
-            this model can transfrom the None or Null value into a string named 'null', hence the reason for this callback.
-
-            Args:
-                callbacks (dict): The selected callbacks from the handlers
-                node_datatype (str): The node datatype selected
-            """
-            callbacks['default']();
-            if (node_datatype in callbacks): callbacks[node_datatype]();
-
-        handlers = {
-            'isnull': {
-                True: {
-                    'default': lambda: _append_fitler('OR', { annotation_key(query['field_key']): None }),
-                    'date': lambda: _append_fitler('OR', { annotation_key(query['field_key']): 'null' })
-                },
-                False: {
-                    'default': lambda: _append_exclude('OR', { annotation_key(query['field_key']): None }),
-                    # 'date': lambda: _append_exclude('OR', { annotation_key(query['field_key']): 'null' })
-                }
-            },
-            'None': {
-                'equal': {
-                    'default': lambda: _append_fitler('OR', { annotation_key(query['field_key']) + '__isnull': True }),
-                    'date': lambda: _append_fitler('OR', { annotation_key(query['field_key']): 'null' })
-                },
-                'not_equal': {
-                    'default': lambda: _append_fitler('OR', { annotation_key(query['field_key']) + '__isnull': False }),
-                    # 'date': lambda: _append_exclude('OR', { annotation_key(query['field_key']): 'null' })
-                }
-            }
-        }
-
-        callbacks = None;
-        
-        if query['operator'] == 'isnull':
-            callbacks = handlers['isnull'][value]
-
-        elif value == None:
-            if (query['operator'] == 'equal'): callbacks = handlers['None']['equal']
-            elif (query['operator'] in NOT_EQUAL_KEYS): callbacks = handlers['None']['not_equal']
-
-      
-        if (callbacks != None): _run_callbacks(callbacks, node.datatype)
 
     def where(self, **kwargs) -> "QueryBuilder":
         """
@@ -212,8 +127,10 @@ class QueryBuilderFilters:
             QueryBuilder: This is the query builder instance and this is return for the reason of Chainable
         """
         
-        filter_container = self._create_filter_container(logical_operator='AND', condition_logical_operator='AND', **kwargs);
-        self._instance_query_builder._filter_structures.append(filter_container)
+        self._nodes: List[Node] = self._wrapper_instance._node_objects_by_alias();
+        
+        filter_structurer = self._create_filter_structurer(logical_operator='AND', condition_logical_operator='AND', **kwargs);
+        self._instance_query_builder._filter_structures.append(filter_structurer)
 
         return self._instance_query_builder;
 
@@ -224,8 +141,9 @@ class QueryBuilderFilters:
         Returns:
             QueryBuilder: This is the query builder instance and this is return for the reason of Chainable
         """
+        self._nodes: List[Node] = self._wrapper_instance._node_objects_by_alias();
 
-        filter_container = self._create_filter_container(logical_operator='OR', condition_logical_operator='AND', **kwargs);
-        self._instance_query_builder._filter_structures.append(filter_container)
+        filter_structurer = self._create_filter_structurer(logical_operator='OR', condition_logical_operator='AND', **kwargs);
+        self._instance_query_builder._filter_structures.append(filter_structurer)
 
         return self._instance_query_builder;    

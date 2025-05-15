@@ -10,7 +10,7 @@ from .children_classes.modifiers import QueryBuilderModifier
 from django.conf import settings
 from arches.app.models.models import Node
 
-from typing import TypedDict
+from typing import TypedDict, Union, Dict, Any
 
 import re
 
@@ -19,11 +19,17 @@ class AnnotationProperties(TypedDict):
     values: List[int]
 
 class FilterStructure(TypedDict):
+    # This can be either 'AND' or 'OR' but is for the parent query for example where(age=40, gender='Male').or_where(firstname='Ben')
+    # so it's *AND* ((age=40, gender='Male')) *OR* (firstname='Ben') 
     logical_operator: str
-    conditions: Dict[str, any]
-    condition_logical_operator: str
 
-ExcludeStructure = FilterStructure
+    # These are the user inputs for example where(age=40, gender='Male') so age=40, gender='Male', however we can also have a FilterStructre aswel
+    # for situions like where(__or: { age=40, name: 'Aidan' }) so anything inside __or or __and is a FilterStructure
+    conditions: Dict[str, Union["FilterStructure", Any]]
+
+    #This can be either 'AND' or 'OR' but is for the conditions query for example where(height__gt=5, __or: {age=40, gender='Male'})
+    # so for age it's (height__gt *AND* (age=40 *OR* gender='Male'))
+    condition_logical_operator: str
 
 class QueryBuilder:
     _instance = None
@@ -35,7 +41,6 @@ class QueryBuilder:
     _current_build_stage: str = None;
 
     _filter_structures: List[FilterStructure] = [];
-    _exclude_structures: List[ExcludeStructure] = [];
 
     _before_annotations: Dict[str, ExpressionWrapper] = {}; # * These are ran before the annotations
     _annotations: Dict[str, ExpressionWrapper] = {};
@@ -124,7 +129,6 @@ class QueryBuilder:
         time within the wrapper.py, thus this method was developed
         """
         self._filter_structures = []
-        self._exclude_structures = []
         self._order_by = []
         self._lazy_mode = False 
         self._current_build_stage = None
