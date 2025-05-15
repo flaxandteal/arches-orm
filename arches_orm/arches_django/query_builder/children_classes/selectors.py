@@ -32,7 +32,6 @@ class QueryBuilderSelectors:
             self, 
             annotations: Dict[str, ExpressionWrapper] | None = None,
             filter_structures: List["FilterStructure"] | None = None,
-            exclude_structures: List["ExcludeStructure"] | None = None,
             order_by: List[str] | None = None,
             offset: QuerysetOffset = None
         ) -> QuerySet[TileModel]:
@@ -45,8 +44,6 @@ class QueryBuilderSelectors:
                 node alias. Defaults to None.
             filter_structures (List[&quot;FilterStructure&quot;] | None, optional): This structure is mainly used for the .filter()
                 towards Django and we transform this filter_structures to acceptable Q. Defaults to None.
-            exclude_structures (List[&quot;ExcludeStructure&quot;] | None, optional): This structure is mainly used for the .exclude()
-                towards Django and we transform this exclude_structures to acceptable Q. Defaults to None.
             order_by (List[str] | None, optional): This structure is used towards .order_by() in django. Defaults to None.
             offset (QuerysetOffset, optional): This is towards getting a range of records, therefore we can use [50:23]. Defaults to None.
 
@@ -91,16 +88,6 @@ class QueryBuilderSelectors:
 
                 else:
                     queryset_tiles = queryset_tiles.filter(**defaultFilterTileAgrs)
-
-                if (exclude_structures):
-                    # * When you use .annotate(), the annotated fields exist only within that specific query chain. 
-                    # * This means that if you need to use an annotation in both .filter() and .exclude(), you might have to reapply the annotation 
-                    # * before using .exclude().
-                    _apply_annotations()
-                  
-                    queryset_tiles = queryset_tiles.exclude(
-                        transform_exclude_structure_towards_query(exclude_structures)
-                    )
 
                 if (order_by):
                     _apply_annotations()
@@ -178,7 +165,6 @@ class QueryBuilderSelectors:
         """
         annotations = self._instance_query_builder._annotations;
         filter_structures = self._instance_query_builder._filter_structures;
-        exclude_structures = self._instance_query_builder._exclude_structures;
         order_by = self._instance_query_builder._order_by;
 
         # print('=============================================')
@@ -191,7 +177,6 @@ class QueryBuilderSelectors:
         callback_get_tiles = self._default_get_tiles(
             annotations=annotations,
             filter_structures=filter_structures,
-            exclude_structures=exclude_structures,
             order_by=order_by
         )
         
@@ -206,12 +191,10 @@ class QueryBuilderSelectors:
         """
         annotations = self._instance_query_builder._annotations;
         filter_structures = self._instance_query_builder._filter_structures;
-        exclude_structures = self._instance_query_builder._exclude_structures;
 
         callback_get_tiles = self._default_get_tiles(
             annotations=annotations,
             filter_structures=filter_structures,
-            exclude_structures=exclude_structures,
         )
 
         permittedNodegroupIds: List[str | None] = self._wrapper_instance._permitted_nodegroups()
@@ -237,13 +220,11 @@ class QueryBuilderSelectors:
         """
         annotations = self._instance_query_builder._annotations;
         filter_structures = self._instance_query_builder._filter_structures;
-        exclude_structures = self._instance_query_builder._exclude_structures;
         order_by = self._instance_query_builder._order_by;
 
         callback_get_tiles = self._default_get_tiles(
             annotations=annotations,
             filter_structures=filter_structures,
-            exclude_structures=exclude_structures,
             order_by=order_by,
             offset={ 'limit': limit, 'offset': offset }
         )
@@ -260,13 +241,11 @@ class QueryBuilderSelectors:
         """
         annotations = self._instance_query_builder._annotations;
         filter_structures = self._instance_query_builder._filter_structures;
-        exclude_structures = self._instance_query_builder._exclude_structures;
         order_by = self._instance_query_builder._order_by;
 
         callback_get_tiles = self._default_get_tiles(
             annotations=annotations,
             filter_structures=filter_structures,
-            exclude_structures=exclude_structures,
             order_by=order_by,
             offset={ 'limit': 1 }
         )
