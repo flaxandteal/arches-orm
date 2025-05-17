@@ -6,9 +6,17 @@ from collections import UserDict
 from uuid import UUID
 from pathlib import Path
 
-from pydantic import BaseModel, PrivateAttr
+from pydantic import BaseModel as PydanticBaseModel, PrivateAttr, field_validator, ValidatorFunctionWrapHandler, ValidationInfo
 
 _RESOURCE_LOCATIONS: dict[UUID, Path] = {}
+
+class BaseModel(PydanticBaseModel):
+    @field_validator("*", mode="wrap")
+    def ignore_validation(cls, value: Any, handler: ValidatorFunctionWrapHandler, info: ValidationInfo):
+        if info.context and "no_validation" in info.context:
+            return value
+        else:
+            return handler(value)
 
 class StaticResourceInstanceInfo(BaseModel):
     descriptors: dict[str, dict[str, str]]
@@ -85,7 +93,8 @@ class StaticStore(UserDict[str, StaticResource]):
             if (path := _RESOURCE_LOCATIONS.get(item)):
                 with path.open() as f:
                     for resource_json in json.load(f)["business_data"]["resources"]:
-                        resource = StaticResource(**resource_json)
+                        # This does not validate, but does recursively load.
+                        resource = StaticResource.model_validate(resource_json)
                         self[resource.resourceinstance.resourceinstanceid] = resource
         return resource
 

@@ -54,6 +54,7 @@ class StaticResourceWrapper(PseudoNodeWrapperMixin, ResourceWrapper, proxy=True)
     def all(cls, related_prefetch=None, lazy=False) -> list["StaticResourceWrapper"]:
         """Get all resources of this type."""
         STATIC_STORE.load_all()
+        print("loaded")
         return [
             cls.from_static_resource(resource, lazy=lazy)
             for id, resource in STATIC_STORE.items()
