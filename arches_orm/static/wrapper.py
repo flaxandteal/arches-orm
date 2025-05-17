@@ -51,11 +51,11 @@ class StaticResourceWrapper(PseudoNodeWrapperMixin, ResourceWrapper, proxy=True)
         ]
 
     @classmethod
-    def all(cls, related_prefetch=None) -> list["StaticResourceWrapper"]:
+    def all(cls, related_prefetch=None, lazy=False) -> list["StaticResourceWrapper"]:
         """Get all resources of this type."""
         STATIC_STORE.load_all()
         return [
-            cls.from_static_resource(resource)
+            cls.from_static_resource(resource, lazy=lazy)
             for id, resource in STATIC_STORE.items()
             if resource.resourceinstance.graph_id == cls._wkrm.graphid
         ]
