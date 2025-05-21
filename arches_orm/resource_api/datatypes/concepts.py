@@ -143,7 +143,7 @@ def load_collection_path(concept_root: Path) -> None:
             graph.parse(data=xml.read(), format="application/rdf+xml")
         for collection, v, o in graph.triples((None, RDF.type, SKOS.Collection)):
             collection_id = UUID(str(collection).split("/", -1)[-1])
-            top_attributes = StaticCollectionDict(id=collection_id, concepts=[])
+            top_attributes = StaticCollectionDict(id=collection_id, concepts=[], source=concept_root)
             for predicate, object in graph.predicate_objects(subject=collection):
                 if predicate == SKOS.member:
                     for concept, _, _ in graph.triples((object, RDF.type, SKOS.Concept)):
@@ -188,7 +188,7 @@ def load_concept_path(concept_root: Path) -> None:
             static_concept =  StaticConcept(**top_attributes)
             _CONCEPTS[top_attributes["id"]] = static_concept
             for s, v, o in graph.triples((None, SKOS.inScheme, scheme)):
-                attributes = StaticConceptDict(children=[], values={}, source=None)
+                attributes = StaticConceptDict(children=[], values={}, source=concept_root)
                 for predicate, object in graph.predicate_objects(subject=s):
                     if predicate == DCTERMS.identifier and hasattr(object, "value"):
                         concept_id = json.loads(object.value)["value"].split("/", -1)[-1]
