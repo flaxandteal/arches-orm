@@ -182,6 +182,7 @@ def load_concept_path(concept_root: Path) -> None:
                         "language": object.language,
                         "value": value_dict["value"],
                         "id": UUID(value_dict["id"]),
+                        "source": concept_root
                     }
             title_attributes["concept_id"] = top_attributes["id"]
             top_attributes["values"] = {title_attributes["id"]: StaticValue(**title_attributes)}
