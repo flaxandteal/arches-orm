@@ -62,6 +62,7 @@ class StaticCollectionDict(TypedDict):
     id: NotRequired[UUID]
     title: NotRequired[StaticValue]
     concepts: NotRequired[list[UUID]]
+    source: Path | None
 
 class StaticConceptDict(TypedDict):
     """Loading holder for concepts."""
@@ -80,6 +81,7 @@ class StaticCollection:
     id: UUID
     title: StaticValue
     concepts: list[UUID]
+    source: Path | None = None
 
 _CONCEPTS: dict[UUID, StaticConcept] = {}
 _RAW_COLLECTIONS: dict[UUID, StaticCollection] = {}
@@ -95,7 +97,7 @@ def load_collection_path(concept_root: Path) -> None:
             graph.parse(data=xml.read(), format="application/rdf+xml")
         for collection, v, o in graph.triples((None, RDF.type, SKOS.Collection)):
             collection_id = UUID(str(collection).split("/", -1)[-1].strip())
-            top_attributes = StaticCollectionDict(id=collection_id, concepts=[])
+            top_attributes = StaticCollectionDict(id=collection_id, concepts=[], source=concept_root)
             for predicate, object in graph.predicate_objects(subject=collection):
                 if predicate == SKOS.member:
                     for concept, _, _ in graph.triples((object, RDF.type, SKOS.Concept)):
