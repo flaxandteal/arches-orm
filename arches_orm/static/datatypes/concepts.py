@@ -164,7 +164,7 @@ def load_concept_path(concept_root: Path) -> None:
             static_concept =  StaticConceptScheme(**top_attributes)
             _CONCEPTS[top_attributes["id"]] = static_concept
             for s, v, o in graph.triples((None, SKOS.inScheme, scheme)):
-                attributes = StaticConceptDict(_children=[], values={}, source=None, related=[])
+                attributes = StaticConceptDict(_children=[], values={}, source=concept_root, related=[])
                 concept_id: UUID
                 try:
                     concept_id = UUID(s.split("/", -1)[-1])
