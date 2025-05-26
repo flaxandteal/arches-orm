@@ -65,6 +65,8 @@ class StandardDataTypeNames(enum.Enum):
     NON_LOCALIZED_STRING = "non-localized-string"
 
 def snake(class_name):
+    if class_name == "_":
+        return class_name
     class_name = class_name[0].lower() + class_name[1:]
     if class_name[0] == "_" and class_name[1].isnumeric():
         class_name = class_name[1:]

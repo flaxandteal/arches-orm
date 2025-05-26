@@ -124,11 +124,14 @@ def _tile_loading_error(reason, exc, *args):
 def sm_as_tile_data(semantic):
     # Ensure all nodes have populated the tile
     relationships = []
+    node = semantic._parent_pseudo_node.node
+    need_separate_tile = True
     for value in semantic.get_children(direct=True):
         # We do not use tile, because a child node will ignore its tile reference.
-        _, subrelationships = value.get_tile()
+        tile, subrelationships = value.get_tile()
+        need_separate_tile = need_separate_tile and tile and tile.nodegroup_id != node.nodegroup_id
         relationships += subrelationships
     # This is none because the semantic type has no nodal value,
     # only its children have nodal values, and the nodal value of this nodeid should
     # not exist.
-    return None, relationships
+    return {} if need_separate_tile else None, relationships

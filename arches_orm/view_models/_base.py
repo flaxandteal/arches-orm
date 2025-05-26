@@ -2,9 +2,17 @@ import logging
 
 class ViewModel:
     _parent_pseudo_node = None
+    @property
+    def _(self):
+        node = self._parent_pseudo_node
+        if node and node.outer:
+            return node.inner.get_value()
+        return super()._
 
 class ResourceModelViewModel(type, ViewModel):
     """Wraps a resource model."""
+
+    _ = None
 
     def __getattr__(self, key):
         if key == "__fields__":
@@ -37,6 +45,7 @@ class ResourceModelViewModel(type, ViewModel):
 class ResourceInstanceViewModel(ViewModel, metaclass=ResourceModelViewModel):
     """Wraps a resource instance."""
 
+    _ = None
     @property
     def id(self):
         return self._.id
