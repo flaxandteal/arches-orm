@@ -1,5 +1,5 @@
 from ._register import get_view_model_for_datatype
-from . import concepts, semantic, resource_instances, string, user, django_group, geojson_feature_collection, edtf, concept_types, date, domains, non_localized_string
+from . import concepts, semantic, resource_instances, string, user, django_group, geojson_feature_collection, edtf, concept_types, date, domains, non_localized_string, url
 
 __all__ = [
     "get_view_model_for_datatype",
@@ -15,4 +15,5 @@ __all__ = [
     "date",
     "domains",
     "non_localized_string",
+    "url",
 ]

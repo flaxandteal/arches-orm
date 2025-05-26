@@ -53,6 +53,19 @@ class PseudoNodeWrapperMixin:
                 )
             else:
                 child_nodes = cls._child_nodes(node_obj.nodeid)
+                inner = False
+                if child_nodes and node_obj.datatype != 'semantic':
+                    inner = PseudoNodeValue(
+                        tile=tile,
+                        TileProxyModel=cls.TileProxyModel,
+                        get_view_model_for_datatype=cls.get_view_model_for_datatype,
+                        node=node_obj,
+                        value=None,
+                        parent=wkri,
+                        parent_cls=cls.view_model,
+                        child_nodes=child_nodes,
+                        inner=True
+                    )
                 node_value = PseudoNodeValue(
                     tile=tile,
                     TileProxyModel=cls.TileProxyModel,
@@ -61,7 +74,8 @@ class PseudoNodeWrapperMixin:
                     value=None,
                     parent=wkri,
                     parent_cls=cls.view_model,
-                    child_nodes=child_nodes,
+                    child_nodes=None if inner is not False else child_nodes,
+                    inner=inner
                 )
             # If we have a tile in a list, add it
             if value is not None:
@@ -87,6 +101,7 @@ class PseudoNodeList(UserList):
         self._parent_node = None
         self.parenttile_id = None
         self._ghost_children = set()
+        self.outer = None
 
     def free_ghost_children(self):
         ghost_children = self._ghost_children
@@ -206,7 +221,7 @@ class PseudoNodeValue:
     _multiple = False
     _as_tile_data = None
 
-    def __init__(self, node, get_view_model_for_datatype, TileProxyModel: type, tile=None, value=None, parent=None, child_nodes=None, parent_cls=None):
+    def __init__(self, node, get_view_model_for_datatype, TileProxyModel: type, tile=None, value=None, parent=None, child_nodes=None, parent_cls=None, inner=None):
         self.node = node
         self.tile = tile
         if self.tile and "Model" in str(self.tile.__class__):
@@ -219,11 +234,18 @@ class PseudoNodeValue:
         self._parent = parent
         self._parent_cls = parent_cls
         self._parent_node = None
-        self._child_nodes = child_nodes
         self._value = value
         self._accessed = False
         self._original_tile = tile
         self._TileProxyModel = TileProxyModel
+        self.outer = node.datatype != 'semantic' and child_nodes
+        if inner is True:
+            self.is_inner = True
+            self.inner = None
+        else:
+            self.is_inner = False
+            self.inner = inner
+        self._child_nodes = child_nodes
 
     def __str__(self):
         return f"{{{self.value}}}"
@@ -241,7 +263,8 @@ class PseudoNodeValue:
             None,
             self._parent,
             self._child_nodes,
-            self._parent_cls
+            self._parent_cls,
+            inner=self.inner.__deepcopy__(memo) if self.inner else None
         )
 
     @property
@@ -251,7 +274,10 @@ class PseudoNodeValue:
     def get_tile(self):
         self._update_value()
 
-        relationships = []
+        if self.inner:
+            tile, relationships = self.inner.get_tile()
+        else:
+            relationships = []
         if self._as_tile_data and self._value is not None:
             tile_value = self._as_tile_data(self._value)
         else:
@@ -285,6 +311,8 @@ class PseudoNodeValue:
 
     def set_accessed(self, tree=False) -> bool:
         self._accessed = True
+        if self.inner:
+            self.inner.set_accessed(True)
         if tree:
             for child in self.get_children():
                 child.set_accessed(tree)
@@ -295,13 +323,16 @@ class PseudoNodeValue:
         if not self.tile:
             if not self.node:
                 raise RuntimeError("Empty tile")
-            # NB: You may see issues where the nodegroup is null because it is the root node,
-            # and a node below is not marked as a collector, so tries to fill its tile in
-            # A cardinality n node below the root should be a collector.
-            self.tile = self._TileProxyModel(
-                nodegroup_id=self.node.nodegroup_id, tileid=None, data={}, sortorder=self.node.sortorder
-            )
-            self.relationships = []
+            if self.inner:
+                self.tile, self.relationships = self.inner.get_tile()
+            else:
+                # NB: You may see issues where the nodegroup is null because it is the root node,
+                # and a node below is not marked as a collector, so tries to fill its tile in
+                # A cardinality n node below the root should be a collector.
+                self.tile = self._TileProxyModel(
+                    nodegroup_id=self.node.nodegroup_id, tileid=None, data={}, sortorder=self.node.sortorder
+                )
+                self.relationships = []
         if not self._value_loaded:
             if (
                 self._value is None
@@ -312,6 +343,10 @@ class PseudoNodeValue:
             else:
                 data = self._value
 
+            if self.outer and isinstance(data, dict) and "_" in data:
+                outer_data = data["_"]
+                self.inner.value.update({k: v for k, v in data.items() if k != "_"})
+                data = outer_data
             self._value, self._as_tile_data, self._datatype, self._multiple = self.get_view_model_for_datatype(
                 self.tile,
                 self.node,
@@ -319,13 +354,12 @@ class PseudoNodeValue:
                 parent=self._parent,
                 parent_cls=self._parent_cls,
                 child_nodes=self._child_nodes,
+                is_inner=self.is_inner
             )
             if self._value is not None and isinstance(self._value, ViewModel):
                 self._value._parent_pseudo_node = self
             if self._value is not None:
                 self._value_loaded = True
-            #if self._value and hasattr(self._value, '_parent_pseudo_node'):
-            #    print('set', self._value._parent_pseudo_node, self.node.alias)
 
     @property
     def value(self):
@@ -334,8 +368,13 @@ class PseudoNodeValue:
 
     @value.setter
     def value(self, value):
-        self._value = value
-        if not isinstance(value, ViewModel) or isinstance(value, ResourceInstanceViewModel):
+        if self.inner and isinstance(value, dict) and "_" in value:
+            self._value = value["_"]
+            del value["_"]
+            self.inner.value.update(value)
+        else:
+            self._value = value
+        if not isinstance(self._value, ViewModel) or isinstance(self._value, ResourceInstanceViewModel):
             self.get_tile() # is this necessary, as it seems to hydrate what the below overwrites?
         self._value_loaded = True
         self.set_accessed()
@@ -349,20 +388,24 @@ class PseudoNodeValue:
 
     def get_child_types(self):
         self._update_value()
+        child_types = {}
         if isinstance(self.value, ViewModel):
             try:
-                return self.value.get_child_types()
+                child_types = self.value.get_child_types()
             except AttributeError:
                 ...
-        return {}
+        if self.inner:
+            child_types.update(self.inner.get_child_types())
+        return child_types
 
     def get_children(self, direct=None):
+        children = []
         if self.value:
             try:
-                return self.value.get_children(direct=direct)
+                children = self.value.get_children(direct=direct)
             except AttributeError:
                 ...
-        return []
+        return children
 
     def __bool__(self):
         return bool(self.value)
@@ -378,6 +421,7 @@ class PseudoNodeUnavailable:
         self._parent_cls = parent_cls
         self._parent_node = None
         self._child_nodes = child_nodes
+        self.outer = None
 
     def set_accessed(self, tree: bool = True):
         ...
@@ -427,7 +471,6 @@ def update_tiles(
     if not isinstance(root, PseudoNodeList):
         parent = root
     for pseudo_node in root.get_children():
-        #print('xyz', pseudo_node.node.alias, len(pseudo_node), hasattr(pseudo_node, "accessed") and pseudo_node.accessed)
         if isinstance(pseudo_node.value, RelatedResourceInstanceViewModelMixin):
             # Do not cross between resources. The relationship should
             # be captured. The canonical example of this is a semantic node that
@@ -457,7 +500,6 @@ def update_tiles(
                             continue
                     raise RuntimeError(f"Attempt to modify data that this user does not have permissions to: {t.nodegroup_id} in {resource_id}")
                 else:
-                    #print(t)
                     combined_tiles.append((t, r))
         # This avoids loading a tile as a set of view models, simply to re-save it.
         elif not isinstance(pseudo_node, PseudoNodeList) and pseudo_node._original_tile:

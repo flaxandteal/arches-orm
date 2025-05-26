@@ -100,8 +100,10 @@ class StaticAdapter(Adapter, PseudoNodeAdapterMixin):
         self._check_collections_loaded()
         return retrieve_collection(collection_id)
 
-    def load_from_id(self, resource_id, from_prefetch=None):
+    def load_from_id(self, resource_id, from_prefetch=None, lazy=False):
         # TODO: fix to use from_static_resource
+        if not isinstance(resource_id, UUID):
+            resource_id = UUID(resource_id)
         static_resource = (
             from_prefetch(resource_id)
             if from_prefetch is not None

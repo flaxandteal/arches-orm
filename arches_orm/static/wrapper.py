@@ -619,20 +619,9 @@ class StaticResourceWrapper(PseudoNodeWrapperMixin, ResourceWrapper, proxy=True)
                 logger.warn("Found an entry that should be a list, but is not - making a length one list for backwards compatibility (deprecated) - {} for {}", field, str(value))
                 value = [value]
             node.value = value
-            #print(value)
             node.get_tile()
             nodes.append(node)
-            if node.node.alias == "system_reference_numbers":
-                #print(node.value.primaryreferencenumber.primary_reference_number)
-                #print(node.value.primaryreferencenumber._parent_pseudo_node.get_tile())
-                #print(node.value.primaryreferencenumber._parent_pseudo_node.tile, "TILE")
-                #print(node.value._parent_pseudo_node.get_children(), "TILE")
-                pass
             update_tiles(None, tiles, root=node)
-            if node.node.alias == "system_reference_numbers":
-                #print(tiles, "TILES")
-                pass
-
 
         #def _children(children):
         #    nonlocal tiles
@@ -748,6 +737,10 @@ class StaticResourceWrapper(PseudoNodeWrapperMixin, ResourceWrapper, proxy=True)
                                 pseudo_node_list.append(ps)
                             return
             all_values[key].append(pseudo_node)
+            if pseudo_node.outer:
+                inner_key = f":{key}"
+                all_values.setdefault(inner_key, [])
+                all_values[inner_key].append(pseudo_node)
 
         for tile in nodegroup_tiles:
             parent_node = node_objs[nodegroup_id]
@@ -988,7 +981,7 @@ class StaticResourceWrapper(PseudoNodeWrapperMixin, ResourceWrapper, proxy=True)
 
         for tile_ix, nodegroup_id, nodeid, related in relationships:
             value = tiles[nodegroup_id][tile_ix].data.get(str(nodeid))
-            if not value:
+            if value is None:
                 logging.warn("Missing tile values for relationship")
                 continue
             if not related.id:
@@ -1067,6 +1060,7 @@ class StaticResourceWrapper(PseudoNodeWrapperMixin, ResourceWrapper, proxy=True)
         # TODO: move upwards
         collections = {}
         for name, field in cls.all_fields().items():
+            print(name, field["type"])
             if field["type"] in (DataTypeNames.CONCEPT, DataTypeNames.CONCEPT_LIST):
                 try:
                     collections[name] = field["node"].value.__collection__ 

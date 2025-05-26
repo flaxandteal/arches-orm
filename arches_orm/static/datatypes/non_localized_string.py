@@ -1,6 +1,6 @@
 from __future__ import annotations
 from arches_orm.view_models import (
-    StringViewModel,
+    NonLocalizedStringViewModel,
 )
 from ._register import REGISTER
 
@@ -18,16 +18,9 @@ def non_localized_string(tile, node, value: dict | None, _, __, ___, non_localiz
                     value
                 )
 
-    def _flatten_cb(value, language):
-        return non_localized_string_datatype.get_display_value(
-            {"data": {nodeid: value}, "provisionaledits": {}},
-            node,
-            language=language,
-        )
-
     if not tile or tile.data[nodeid] is None:
         return None
-    return StringViewModel(tile.data[nodeid], _flatten_cb)
+    return NonLocalizedStringViewModel(tile.data[nodeid])
 
 
 @non_localized_string.as_tile_data

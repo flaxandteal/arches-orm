@@ -1,10 +1,18 @@
 from __future__ import annotations
+import uuid
 from typing import Any, Generator
 import re
 import json
 from collections import UserDict
 from uuid import UUID
 from pathlib import Path
+
+from arches_orm.view_models import (
+    ResourceInstanceViewModel,
+    RelatedResourceInstanceListViewModel,
+    RelatedResourceInstanceViewModelMixin,
+)
+from ._register import REGISTER
 
 from pydantic import BaseModel as PydanticBaseModel, PrivateAttr, field_validator, ValidatorFunctionWrapHandler, ValidationInfo
 
@@ -46,6 +54,8 @@ class StaticTile(BaseModel):
 
     @parenttile.setter
     def parenttile(self, tile: StaticTile):
+        if not tile.tileid:
+            tile.tileid = uuid.uuid4()
         self._parenttile = tile
         self.parenttile_id = tile.tileid
 
@@ -124,3 +134,126 @@ def add_resource_instance(resource_instance: StaticResource, load_data_to_index:
         STATIC_STORE.add_to_node_tile_index(resource_json)
 
 STATIC_STORE = StaticStore()
+
+@REGISTER("resource-instance-list")
+def resource_instance_list(
+    tile,
+    node,
+    value,
+    parent,
+    parent_cls,
+    child_nodes,
+    datatype,
+):
+    def make_ri_cb(value):
+        return REGISTER.make(
+            tile,
+            node,
+            value=value,
+            parent=parent,
+            parent_cls=parent_cls,
+            child_nodes=child_nodes,
+            datatype="resource-instance",
+        )
+
+    return RelatedResourceInstanceListViewModel(
+        parent,
+        value,
+        make_ri_cb,
+    )
+
+
+@resource_instance_list.as_tile_data
+def ril_as_tile_data(resource_instance_list):
+    return [], resource_instance_list
+
+
+RI_VIEW_MODEL_CLASSES = {}
+
+
+@REGISTER("resource-instance")
+def resource_instance(
+    tile,
+    node,
+    value,
+    parent_wkri,
+    parent_cls,
+    child_nodes,
+    resource_instance_datatype,
+):
+    from arches_orm.wkrm import (
+        get_well_known_resource_model_by_graph_id,
+        attempt_well_known_resource_model,
+    )
+
+    value = value or tile.data.get(str(node.nodeid))
+    if isinstance(value, list):
+        if len(value) > 1:
+            raise RuntimeError("Resource instance should be a list if it contains multiple entries")
+        elif len(value) == 1:
+            value = value[0]
+        else:
+            value = None
+    if isinstance(value, dict):
+        value = value.get("resourceId")
+    resource_instance_id = None
+    resource_instance = None
+    if isinstance(value, uuid.UUID | str):
+        resource_instance_id = value
+    else:
+        resource_instance = value
+
+    if not resource_instance:
+        if resource_instance_id:
+            resource_instance = attempt_well_known_resource_model(
+                resource_instance_id, from_prefetch=parent_wkri._._related_prefetch
+            )
+        else:
+            return None
+
+    if not resource_instance:
+        return None
+    elif not isinstance(resource_instance, ResourceInstanceViewModel):
+        wkrm = get_well_known_resource_model_by_graph_id(
+            resource_instance.resourceinstance.graph_id, default=None
+        )
+        if wkrm:
+            _resource_instance = wkrm.from_static_resource(resource_instance)
+        else:
+            raise RuntimeError("Cannot adapt unknown resource model")
+    else:
+        _resource_instance = resource_instance
+
+    if _resource_instance is None:
+        raise RuntimeError("Could not normalize resource instance")
+
+    datum = {}
+    datum["wkriFrom"] = parent_wkri
+    datum[
+        "wkriFromKey"
+    ] = node.alias  # FIXME: we should use the ORM key to be consistent
+    datum["wkriFromNodeid"] = node.nodeid
+    datum["wkriFromTile"] = tile
+    datum["datatype"] = resource_instance_datatype
+
+    if _resource_instance._._cross_record and _resource_instance._._cross_record != datum:
+        raise NotImplementedError("Cannot currently reparent a resource instance")
+
+    model_class_name = str(_resource_instance.__class__.__name__)
+    mixin = RI_VIEW_MODEL_CLASSES.get(model_class_name)
+    if not mixin:
+        mixin = type(
+            f"{model_class_name}RelatedResourceInstanceViewModel",
+            (_resource_instance.__class__, RelatedResourceInstanceViewModelMixin),
+            dict(proxy=True),
+        )
+        RI_VIEW_MODEL_CLASSES[model_class_name] = mixin
+    _resource_instance._set_class(mixin)
+    _resource_instance._._cross_record = datum
+
+    return _resource_instance
+
+
+@resource_instance.as_tile_data
+def ri_as_tile_data(ri):
+    return [], [ri]
