@@ -15,12 +15,14 @@ class PseudoNodeWrapperMixin:
     @lru_cache
     def _child_nodes(cls, node_id):
         child_nodes = {}
+        node_objects = cls._node_objects()
         edges = cls._edges().get(node_id)
+        node = node_objects.get(node_id)
         if edges is not None:
             child_nodes.update(
                 {
-                    n.alias: (n, not n.is_collector)
-                    for n in cls._node_objects().values()
+                    n.alias: (n, not n.is_collector and n.nodegroup_id == node.nodegroup_id)
+                    for n in node_objects.values()
                     if n.nodeid in edges
                 }
             )
@@ -224,6 +226,9 @@ class PseudoNodeValue:
     def __init__(self, node, get_view_model_for_datatype, TileProxyModel: type, tile=None, value=None, parent=None, child_nodes=None, parent_cls=None, inner=None):
         self.node = node
         self.tile = tile
+
+        # TODO: (RMV) confirm that self.tile is None only when created by semantic node(?)
+        self.independent = self.tile is None
         if self.tile and "Model" in str(self.tile.__class__):
             raise RuntimeError("Should only use Tiles not TileModels")
         if parent_cls is None:
@@ -296,7 +301,7 @@ class PseudoNodeValue:
             self.tile.data[
                 str(self.node.nodeid)
             ] = tile_value  # TODO: ensure this works for any value
-        tile = self.tile if self.node.is_collector else None # RMV: is this the correct interpretation of is_collector?
+        tile = self.tile if self.independent else None # RMV: is this the correct interpretation of is_collector?
 
         return tile, relationships
 
