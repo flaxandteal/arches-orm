@@ -129,9 +129,9 @@ def sm_as_tile_data(semantic):
     for value in semantic.get_children(direct=True):
         # We do not use tile, because a child node will ignore its tile reference.
         tile, subrelationships = value.get_tile()
-        need_separate_tile = need_separate_tile and tile and tile.nodegroup_id != node.nodegroup_id
+        need_separate_tile = need_separate_tile and value.node.nodegroup_id != node.nodegroup_id
         relationships += subrelationships
     # This is none because the semantic type has no nodal value,
     # only its children have nodal values, and the nodal value of this nodeid should
     # not exist.
-    return {} if need_separate_tile else None, relationships
+    return None, relationships
