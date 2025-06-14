@@ -24,4 +24,8 @@ get_adapter("resource_api").config.update({
 def arches_orm():
     import arches_orm.models
 
+    from arches_orm.models import reload
+    ADAPTER_MANAGER.set_default_adapter("resource_api")
+    reload()
+
     yield arches_orm

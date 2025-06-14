@@ -2,7 +2,7 @@ import pytest
 from httpx import AsyncClient
 from graphql import print_schema
 import arches_graphql_client
-import arches_orm.graphql.auth
+import arches_orm.graphql.django_auth
 from unittest.mock import MagicMock, patch
 from asgiref.sync import sync_to_async
 

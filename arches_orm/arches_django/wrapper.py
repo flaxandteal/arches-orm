@@ -444,6 +444,7 @@ class ArchesDjangoResourceWrapper(SearchMixin, PseudoNodeWrapperMixin, ResourceW
             raise RuntimeError("Attempt to load full node objects when asked not to")
 
         cls._build_nodes()
+        print([node for node in cls._nodes_real.values() if node.nodegroup_id is None])
         return cls._nodes_real
 
     @classmethod
@@ -598,6 +599,7 @@ class ArchesDjangoResourceWrapper(SearchMixin, PseudoNodeWrapperMixin, ResourceW
         else:
             fltr = {"nodeid__in": [alias for alias in cls._wkrm.nodes]}
         nodes = {str(node.nodeid): node for node in Node.objects.filter(**fltr)}
+        print({str(node.nodeid): node for node in Node.objects.filter(nodegroup_id=None, **fltr)})
         nodegroups = {
             str(nodegroup.nodegroupid): nodegroup
             for nodegroup in NodeGroup.objects.filter(
@@ -605,6 +607,7 @@ class ArchesDjangoResourceWrapper(SearchMixin, PseudoNodeWrapperMixin, ResourceW
             )
         }
         cls._nodes_real.update(nodes)
+        print([node for node in nodes.values() if node.nodegroup_id is None])
         cls._nodegroup_objects_real.update(nodegroups)
 
     @classmethod
@@ -1197,6 +1200,7 @@ class ArchesDjangoResourceWrapper(SearchMixin, PseudoNodeWrapperMixin, ResourceW
     @lru_cache
     def _root_node(cls) -> Node:
         nodes = cls._node_objects()
+        print([node for node in nodes.values() if node.nodegroup_id is None], '1')
         root_node = {
             "root": node for node in nodes.values() if node.nodegroup_id is None
         }.get("root")
@@ -1215,6 +1219,7 @@ class ArchesDjangoResourceWrapper(SearchMixin, PseudoNodeWrapperMixin, ResourceW
 
     def get_root(self):
         if (node := self._root_node()):
+            print(node, 'node')
             self._values.setdefault(node.alias, [])
             if len(self._values[node.alias]) not in (0, 1):
                 raise RuntimeError("Cannot have multiple root tiles")
@@ -1226,7 +1231,9 @@ class ArchesDjangoResourceWrapper(SearchMixin, PseudoNodeWrapperMixin, ResourceW
                     wkri=self.view_model_inst
                 )
                 self._values[node.alias] = [value]
+            print(value, 'value')
             return value
+        print('no node')
 
     def delete(self):
         """Delete the underlying resource."""

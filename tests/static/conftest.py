@@ -1,10 +1,8 @@
 import pytest
 from pathlib import Path
 
-from arches_orm.adapter import get_adapter, ADAPTER_MANAGER
 from arches_orm import static
-from arches_orm import static as static
-from arches_orm.adapter import get_adapter
+from arches_orm.adapter import get_adapter, ADAPTER_MANAGER
 
 get_adapter("static").config.update({
     "concept_paths": [
