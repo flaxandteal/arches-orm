@@ -98,6 +98,7 @@ class ResourceWrapper(ABC):
             elif (root := self.get_root()):
                 setattr(root.value, key, value)
             else:
+                print(self.get_root())
                 raise RuntimeError(f"Tried to set {key} on {self}, which has no root")
 
     def _get_remap(self, real_key: str):
@@ -155,7 +156,7 @@ class ResourceWrapper(ABC):
                 return self._get_remap(real_key)
             elif self._remap_total:
                 raise AttributeError("Field not available in remapped model")
-        if (root := self.get_root()):
+        if (root := self.get_root()) is not None:
             val = getattr(root.value, key)
         else:
             raise RuntimeError(f"Tried to get {key} on {self}, which has no root")

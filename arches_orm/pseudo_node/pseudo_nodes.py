@@ -35,7 +35,7 @@ class PseudoNodeWrapperMixin:
         if (
             node_obj.nodegroup_id
             and node_obj.is_collector
-            and nodegroups[node_obj.nodegroup_id].cardinality == "n"
+            and nodegroups[str(node_obj.nodegroup_id)].cardinality == "n"
             and not single
         ):
             value = PseudoNodeList(
@@ -44,7 +44,7 @@ class PseudoNodeWrapperMixin:
                 parent_cls=cls.view_model,
             )
         if value is None or tile:
-            if node_obj.nodegroup_id is not None and node_obj.nodegroup_id not in permitted:
+            if node_obj.nodegroup_id is not None and str(node_obj.nodegroup_id) not in permitted:
                 node_value = PseudoNodeUnavailable(
                     node=node_obj,
                     parent=wkri,
