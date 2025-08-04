@@ -4,7 +4,6 @@ import logging
 import uuid
 import functools
 from arches.app.search.mappings import TERMS_INDEX, RESOURCES_INDEX
-from starlette_context import context
 from django.db import transaction, connection
 from arches.app.search.search_engine_factory import SearchEngineInstance as se
 from arches.app.models.system_settings import settings as system_settings
@@ -16,6 +15,11 @@ from django.utils.translation import gettext as _, get_language
 from arches.app.models.models import FunctionXGraph
 from arches.app.utils.betterJSONSerializer import JSONSerializer
 from arches.app.etl_modules.base_import_module import BaseImportModule
+
+try:
+    from starlette_context import context
+except ImportError:
+    context = None
 
 logger = logging.getLogger(__name__)
 FORMAT = '%(asctime)s %(message)s'
@@ -151,6 +155,8 @@ class BulkImportWKRM(BaseImportModule):
 
     def write(self, requested_wkrms, do_index=True):
         self.loadid = str(uuid.uuid4()) # f"graphql_bulk_{int(time_mod.time())}"
+        if context is None:
+            raise RuntimeError("Can only run this in starlette")
         user_id = context.data["user"].id
 
         requested_wkrms = [(None, wkrm, None) for wkrm in requested_wkrms]
