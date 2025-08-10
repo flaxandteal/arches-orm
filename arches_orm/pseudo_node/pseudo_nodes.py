@@ -14,13 +14,13 @@ class PseudoNodeWrapperMixin:
     @lru_cache
     def _child_nodes(cls, node_id):
         child_nodes = {}
-        edges = cls._edges().get(node_id)
+        edges = cls._edges().get(str(node_id))
         if edges is not None:
             child_nodes.update(
                 {
                     n.alias: (n, not n.is_collector)
                     for n in cls._node_objects().values()
-                    if n.nodeid in edges
+                    if str(n.nodeid) in edges
                 }
             )
         return child_nodes
