@@ -211,10 +211,10 @@ class ArchesDjangoResourceWrapper(SearchMixin, PseudoNodeWrapperMixin, ResourceW
 
         crosses = {}
         for cross in ResourceXResource.objects.filter(
-            resourceinstanceidfrom=resource
+            from_resource_id=resource
         ):
-            crosses.setdefault(str(cross.tileid), [])
-            crosses[str(cross.tileid)].append(cross)
+            crosses.setdefault(str(cross.tile_id), [])
+            crosses[str(cross.tile_id)].append(cross)
         for tile_ix, nodegroup_id, nodeid, related in relationships:
             value = tiles[nodegroup_id][tile_ix].data[str(nodeid)]
             tileid = str(tiles[nodegroup_id][tile_ix].tileid)
@@ -229,15 +229,15 @@ class ArchesDjangoResourceWrapper(SearchMixin, PseudoNodeWrapperMixin, ResourceW
             if tileid in crosses:
                 for cross in crosses[tileid]:
                     if (
-                        str(cross.resourceinstanceidto_id) == str(related.id) and
-                        str(cross.resourceinstanceidfrom_id) == str(resource.id)
+                        str(cross.to_resource_id) == str(related.id) and
+                        str(cross.from_resource_id) == str(resource.resourceinstanceid)
                     ):
                         need_cross = False
                         cross_resourcexid = str(cross.resourcexid)
             if need_cross:
                 cross = ResourceXResource(
-                    resourceinstanceidfrom=resource,
-                    resourceinstanceidto_id=related.id,
+                    from_resource_id=resource,
+                    to_resource_id=related.id,
                 )
                 if _no_save:
                     self._pending_relationships.append((value, related, self))
@@ -246,7 +246,7 @@ class ArchesDjangoResourceWrapper(SearchMixin, PseudoNodeWrapperMixin, ResourceW
                     cross_resourcexid = str(cross.resourcexid)
 
             cross_value = {
-                "resourceId": str(cross.resourceinstanceidto_id),
+                "resourceId": str(cross.to_resource_id),
                 "ontologyProperty": "",
                 "resourceXresourceId": cross_resourcexid,
                 "inverseOntologyProperty": "",
@@ -709,8 +709,8 @@ class ArchesDjangoResourceWrapper(SearchMixin, PseudoNodeWrapperMixin, ResourceW
         for tile in resource.tiles:
             if nodegroupid == str(tile.nodegroup_id):
                 cross = ResourceXResource(
-                    resourceinstanceidfrom=wkfm.resource,
-                    resourceinstanceidto=self.resource,
+                    from_resource_id=wkfm.resource,
+                    to_resource_id=self.resource,
                 )
                 cross.save()
                 value = (tile.data or {}).get(nodeid, [])

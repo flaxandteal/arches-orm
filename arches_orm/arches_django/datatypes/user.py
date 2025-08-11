@@ -32,6 +32,8 @@ def user(tile, node, value, _, __, ___, user_datatype) -> UserProtocol:
             else:
                 user = UserViewModel()
                 user.__dict__.update(value.__dict__)
+        if isinstance(value, dict):
+            value = value.get("userId")
         if value:
             try:
                 user = UserViewModel.objects.get(pk=int(value))
