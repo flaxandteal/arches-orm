@@ -373,7 +373,7 @@ class ArchesDjangoResourceWrapper(SearchMixin, PseudoNodeWrapperMixin, ResourceW
             if key in png or str(key) in png
         ] + [None]
         context.setdefault("user_graphs", {})
-        context["user_graphs"][str(cls)] = permitted_nodegroups
+        context["user_graphs"][cls._model_name] = permitted_nodegroups
         return permitted_nodegroups
 
     @classmethod
