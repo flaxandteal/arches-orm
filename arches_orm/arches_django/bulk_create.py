@@ -195,10 +195,10 @@ class BulkImportWKRM(BaseImportModule):
                 # TODO: what happens if the cross already exists for some reason?
                 if wkrm:
                     cross = ResourceXResource(
-                        resourceinstanceidfrom=wkrm_fm.resource,
-                        resourceinstanceidto=wkrm.resource,
-                        resourceinstancefrom_graphid=wkrm_fm.resource.graph,
-                        resourceinstanceto_graphid=wkrm.resource.graph,
+                        from_resource=wkrm_fm.resource,
+                        to_resource=wkrm.resource,
+                        from_resource_graph=wkrm_fm.resource.graph,
+                        to_resource_graph=wkrm.resource.graph,
                         created=datetime.now(),
                         modified=datetime.now()
                     )
