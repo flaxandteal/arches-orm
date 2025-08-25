@@ -38,6 +38,8 @@ def django_group(tile, node, value, _, __, ___, group) -> GroupProtocol:
             else:
                 group = DjangoGroupViewModel()
                 group.__dict__.update(value.__dict__)
+        if isinstance(value, dict):
+            value = value.get("groupId")
         if value:
             try:
                 pk = int(value)
