@@ -52,7 +52,6 @@ class PseudoNodeWrapperMixin:
                 )
             else:
                 child_nodes = cls._child_nodes(node_obj.nodeid)
-                print(child_nodes)
                 node_value = PseudoNodeValue(
                     tile=tile,
                     TileProxyModel=cls.TileProxyModel,
@@ -63,7 +62,6 @@ class PseudoNodeWrapperMixin:
                     parent_cls=cls.view_model,
                     child_nodes=child_nodes,
                 )
-                print(node_value)
             # If we have a tile in a list, add it
             if value is not None:
                 value.append(node_value)

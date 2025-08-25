@@ -98,7 +98,6 @@ class ResourceWrapper(ABC):
             elif (root := self.get_root()):
                 setattr(root.value, key, value)
             else:
-                print(self.get_root())
                 raise RuntimeError(f"Tried to set {key} on {self}, which has no root")
 
     def _get_remap(self, real_key: str):
