@@ -28,7 +28,7 @@ def user(tile, node, value, _, __, ___, user_datatype) -> UserProtocol:
     if value:
         if isinstance(value, User):
             if value.pk:
-                value = value.pk
+                value = {"userId": value.pk}
             else:
                 user = UserViewModel()
                 user.__dict__.update(value.__dict__)
@@ -46,4 +46,4 @@ def user(tile, node, value, _, __, ___, user_datatype) -> UserProtocol:
 
 @user.as_tile_data
 def u_as_tile_data(view_model):
-    return view_model.pk
+    return {"userId": view_model.pk}
