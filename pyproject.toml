@@ -43,7 +43,7 @@ homepage = "https://github.com/flaxandteal/arches-orm"
 repository = "https://github.com/flaxandteal/arches-orm"
 documentation = "https://flaxandteal.github.io/arches-orm"
 readme = "README.md"
-version = "0.4.0a1"
+version = "0.4.0"
 authors = [
     {name = "Phil Weir", email = "phil.weir@flaxandteal.co.uk"},
 ]
@@ -99,10 +99,10 @@ test = [
     "coverage",
     "spatialite",
     "pytest_django",
-    "arches_graphql_client @ git+https://github.com/flaxandteal/arches_graphql_client#release/0.0.11",
+    # "arches_graphql_client @ git+https://github.com/flaxandteal/arches_graphql_client#release/0.0.11",
     "pytest-asyncio"
 ]
 docs = [
-  "portray @ git+https://github.com/flaxandteal/portray.git#v1.8.0-fat",
+  "tmp_fat_portray >= v1.8.0",
   "mkdocs-material==7.0"
 ]
