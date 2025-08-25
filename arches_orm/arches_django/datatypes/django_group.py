@@ -34,7 +34,7 @@ def django_group(tile, node, value, _, __, ___, group) -> GroupProtocol:
     if value:
         if isinstance(value, Group):
             if value.pk:
-                value = value.pk
+                value = {"groupId": value.pk}
             else:
                 group = DjangoGroupViewModel()
                 group.__dict__.update(value.__dict__)
@@ -52,4 +52,4 @@ def django_group(tile, node, value, _, __, ___, group) -> GroupProtocol:
 
 @django_group.as_tile_data
 def dg_as_tile_data(view_model):
-    return view_model.pk
+    return {"groupId": view_model.pk}
